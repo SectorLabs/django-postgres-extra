@@ -1,0 +1,32 @@
+checks:
+    python:
+        code_rating: true
+        duplicate_code: true
+    javascript: true
+tools:
+    pylint:
+        python_version: '2'
+        config_file: .pylintrc
+filter:
+    excluded_paths:
+        - '*/tests/*'
+        - '*/migrations/*'
+build:
+    environment:
+        python: '3.5.0'
+        node: 'v6.2.0'
+        variables:
+            DJANGO_SETTINGS_MODULES: settings
+        postgresql: true
+        redis: true
+    dependencies:
+        override:
+            - 'pip install -r requirements/test.txt'
+    tests:
+        override:
+            - pylint-run postgres_extra
+            -
+                command: coverage run manage.py test
+                coverage:
+                    file: '.coverage'
+                    format: 'py-cc'
