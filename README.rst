@@ -50,7 +50,7 @@ Installation
 
 3. Set the database engine to ``postgres_extra.db``:
 
-    .. code-block:: python
+   .. code-block:: python
 
         DATABASES = {
             'default': {
