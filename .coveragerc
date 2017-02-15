@@ -1,0 +1,5 @@
+[run]
+include = localized_fields/*
+omit = *migrations*, *tests*
+plugins =
+    django_coverage_plugin
