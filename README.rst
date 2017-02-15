@@ -59,6 +59,33 @@ Installation
             }
         }
 
+Usage
+-----
+
+* ``psqlextra.fields.HStoreField``
+    Inherits from Django's ``HStoreField`` but adds support for constraints:
+
+    * ``uniqueness``:
+
+        * Enforce uniqueness for one or more key:
+
+            .. code-block:: python
+
+                from psqlextra.fields import HStoreField
+
+                class MyModel(models.Model):
+                    title = HStoreField(uniqueness=['en', 'ro'])
+
+        * Enforce uniqueness for one ore more keys **together** (similar to Django's ``unique_together``):
+
+            .. code-block:: python
+
+                from psqlextra.fields import HStoreField
+
+                class MyModel(models.Model):
+                    title = HStoreField(uniqueness=[('en', 'ro')])
+
+
 FAQ - Frequently asked questions
 --------------------------------
 
