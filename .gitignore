@@ -1,0 +1,17 @@
+# Ignore virtual environments
+env/
+
+# Ignore Python byte code cache
+*.pyc
+__pycache__
+
+# Ignore coverage reports
+.coverage
+htmlcov
+
+# Ignore build results
+*.egg-info/
+dist/
+
+# Ignore stupid .DS_Store
+.DS_Store
