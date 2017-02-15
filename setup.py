@@ -6,17 +6,17 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as readme:
     README = readme.read()
 
 setup(
-    name='django-localized-fields',
-    version='2.7',
+    name='django-postgres-extra',
+    version='1.0',
     packages=find_packages(),
     include_package_data=True,
     license='MIT License',
-    description='Implementation of localized model fields using PostgreSQL HStore fields.',
+    description='Bringing all of PostgreSQL\'s awesomeness to Django.',
     long_description=README,
-    url='https://github.com/SectorLabs/django-localized-fields',
+    url='https://github.com/SectorLabs/django-postgres-extra',
     author='Sector Labs',
     author_email='open-source@sectorlabs.ro',
-    keywords=['django', 'localized', 'language', 'models', 'fields'],
+    keywords=['django', 'postgres', 'extra', 'hstore', 'ltree'],
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
