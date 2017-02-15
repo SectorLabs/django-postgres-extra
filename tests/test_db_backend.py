@@ -2,11 +2,10 @@ from unittest import mock
 
 from django.db import connection
 from django.apps import apps
-from django.conf import settings
 from django.test import TestCase
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
-from postgres_extra import LocalizedField, get_language_codes
+from postgres_extra import HStoreField
 
 from .fake_model import define_fake_model
 
@@ -33,8 +32,9 @@ class DBBackendTestCase(TestCase):
         with a `uniqueness` constraint get created properly,
         with the contraints in the database."""
 
+        uniqueness = ['beer', 'cookies']
         model = define_fake_model('NewModel', {
-            'title': LocalizedField(uniqueness=get_language_codes())
+            'title': HStoreField(uniqueness=uniqueness)
         })
 
         # create the model in db and verify the indexes are being created
@@ -46,7 +46,7 @@ class DBBackendTestCase(TestCase):
                 call for call in execute.mock_calls if 'CREATE UNIQUE INDEX' in str(call)
             ]
 
-            assert len(create_index_calls) == len(settings.LANGUAGES)
+            assert len(create_index_calls) == len(uniqueness)
 
         # delete the model in the db and verify the indexes are being deleted
         with mock.patch.object(BaseDatabaseSchemaEditor, 'execute') as execute:
@@ -57,15 +57,16 @@ class DBBackendTestCase(TestCase):
                 call for call in execute.mock_calls if 'DROP INDEX' in str(call)
             ]
 
-            assert len(drop_index_calls) == len(settings.LANGUAGES)
+            assert len(drop_index_calls) == len(uniqueness)
 
     @classmethod
     def test_migration_alter_field(cls):
         """Tests whether the back-end correctly removes and
         adds `uniqueness` constraints when altering a :see:LocalizedField."""
 
+        uniqueness = ['beer', 'more_cookies']
         define_fake_model('ExistingModel', {
-            'title': LocalizedField(uniqueness=get_language_codes())
+            'title': HStoreField(uniqueness=uniqueness)
         })
 
         app_config = apps.get_app_config('tests')
@@ -84,4 +85,4 @@ class DBBackendTestCase(TestCase):
                 if 'INDEX' in str(call) and 'title' in str(call)
             ]
 
-            assert len(index_calls) == len(settings.LANGUAGES) * 2
+            assert len(index_calls) == len(uniqueness) * 2

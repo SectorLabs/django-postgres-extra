@@ -1,0 +1,14 @@
+strictness: veryhigh
+test-warnings: true
+doc-warnings: false
+max-line-length: 120
+
+ignore-paths:
+  - env
+  - settings.py
+  - setup.py
+  - manage.py
+  - .git
+
+uses:
+  - django

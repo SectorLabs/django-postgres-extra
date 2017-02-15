@@ -5,7 +5,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.postgresql.base import \
     DatabaseWrapper as Psycopg2DatabaseWrapper
 
-from ..fields import LocalizedField
+from ..fields import HStoreField
 
 
 def _get_backend_base():
@@ -22,7 +22,7 @@ def _get_backend_base():
     """
     base_class_name = getattr(
         settings,
-        'LOCALIZED_FIELDS_DB_BACKEND_BASE',
+        'POSTGRES_EXTRA_DB_BACKEND_BASE',
         'django.db.backends.postgresql'
     )
 
@@ -33,14 +33,14 @@ def _get_backend_base():
         raise ImproperlyConfigured((
             '\'%s\' is not a valid database back-end.'
             ' The module does not define a DatabaseWrapper class.'
-            ' Check the value of LOCALIZED_FIELDS_DB_BACKEND_BASE.'
+            ' Check the value of POSTGRES_EXTRA_DB_BACKEND_BASE.'
         ) % base_class_name)
 
     if isinstance(base_class, Psycopg2DatabaseWrapper):
         raise ImproperlyConfigured((
             '\'%s\' is not a valid database back-end.'
             ' It does inherit from the PostgreSQL back-end.'
-            ' Check the value of LOCALIZED_FIELDS_DB_BACKEND_BASE.'
+            ' Check the value of POSTGRES_EXTRA_DB_BACKEND_BASE.'
         ) % base_class_name)
 
     return base_class
@@ -167,8 +167,8 @@ class SchemaEditor(_get_schema_editor_base()):
             *args, **kwargs
         )
 
-        is_old_field_localized = isinstance(old_field, LocalizedField)
-        is_new_field_localized = isinstance(new_field, LocalizedField)
+        is_old_field_localized = isinstance(old_field, HStoreField)
+        is_new_field_localized = isinstance(new_field, HStoreField)
 
         if is_old_field_localized or is_new_field_localized:
             self._update_hstore_constraints(model, old_field, new_field)
@@ -179,7 +179,7 @@ class SchemaEditor(_get_schema_editor_base()):
         super().create_model(model)
 
         for field in model._meta.local_fields:
-            if not isinstance(field, LocalizedField):
+            if not isinstance(field, HStoreField):
                 continue
 
             self._apply_hstore_constraints(
@@ -194,7 +194,7 @@ class SchemaEditor(_get_schema_editor_base()):
         super().delete_model(model)
 
         for field in model._meta.local_fields:
-            if not isinstance(field, LocalizedField):
+            if not isinstance(field, HStoreField):
                 continue
 
             self._apply_hstore_constraints(

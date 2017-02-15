@@ -1,20 +1,18 @@
-from django.db import connection, migrations
+from django.db import models, connection, migrations
 from django.db.migrations.executor import MigrationExecutor
 from django.contrib.postgres.operations import HStoreExtension
-
-from postgres_extra import LocalizedModel, AtomicSlugRetryMixin
 
 
 def define_fake_model(name='TestModel', fields=None):
     attributes = {
-        'app_label': 'localized_fields',
+        'app_label': 'postgres_extra',
         '__module__': __name__,
         '__name__': name
     }
 
     if fields:
         attributes.update(fields)
-    model = type(name, (AtomicSlugRetryMixin,LocalizedModel,), attributes)
+    model = type(name, (models.Model,), attributes)
 
     return model
 
@@ -39,7 +37,7 @@ def get_fake_model(name='TestModel', fields=None):
     with connection.schema_editor() as schema_editor:
         migration_executor = MigrationExecutor(schema_editor.connection)
         migration_executor.apply_migration(
-            TestProject(), TestMigration('eh', 'localized_fields'))
+            TestProject(), TestMigration('eh', 'postgres_extra'))
 
         schema_editor.create_model(model)
 
