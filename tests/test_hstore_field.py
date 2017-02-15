@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from postgres_extra import HStoreField
+from psqlextra import HStoreField
 
 
 class HStoreFieldTestCase(TestCase):

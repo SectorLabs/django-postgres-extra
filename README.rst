@@ -45,17 +45,17 @@ Installation
             ....
 
             'django.contrib.postgres',
-            'postgres_extra'
+            'psqlextra'
         ]
 
-3. Set the database engine to ``postgres_extra.db``:
+3. Set the database engine to ``psqlextra.backend``:
 
    .. code-block:: python
 
         DATABASES = {
             'default': {
                 ...
-                'ENGINE': 'postgres_extra.db'
+                'ENGINE': 'psqlextra.backend'
             }
         }
 

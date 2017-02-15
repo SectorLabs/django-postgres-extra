@@ -11,7 +11,7 @@ DATABASES = {
     'default': dj_database_url.config(default='postgres:///postgres_extra')
 }
 
-DATABASES['default']['ENGINE'] = 'postgres_extra.db'
+DATABASES['default']['ENGINE'] = 'psqlextra.db'
 
 LANGUAGE_CODE = 'en'
 LANGUAGES = (

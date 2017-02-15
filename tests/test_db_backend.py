@@ -5,7 +5,7 @@ from django.apps import apps
 from django.test import TestCase
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
-from postgres_extra import HStoreField
+from psqlextra import HStoreField
 
 from .fake_model import define_fake_model
 
