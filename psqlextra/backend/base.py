@@ -6,6 +6,7 @@ from django.db.backends.postgresql.base import \
     DatabaseWrapper as Psycopg2DatabaseWrapper
 
 from .hstore_unique import HStoreUniqueSchemaEditorMixin
+from .hstore_required import HStoreRequiredSchemaEditorMixin
 
 
 def _get_backend_base():
@@ -54,7 +55,7 @@ def _get_schema_editor_base():
     return _get_backend_base().SchemaEditorClass
 
 
-class SchemaEditor(HStoreUniqueSchemaEditorMixin, _get_schema_editor_base()):
+class SchemaEditor(HStoreUniqueSchemaEditorMixin, HStoreRequiredSchemaEditorMixin, _get_schema_editor_base()):
     """Custom schema editor, see mixins for implementation."""
 
 

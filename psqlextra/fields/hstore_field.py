@@ -1,3 +1,5 @@
+from typing import List, Tuple, Union
+
 from django.contrib.postgres.fields import HStoreField as DjangoHStoreField
 
 
@@ -10,12 +12,15 @@ class HStoreField(DjangoHStoreField):
           custom database back-end.
     """
 
-    def __init__(self, *args, uniqueness=None, **kwargs):
+    def __init__(self, *args,
+                 uniqueness: List[Union[str, Tuple[str, ...]]]=None,
+                 required: List[str]=None, **kwargs):
         """Initializes a new instance of :see:HStoreField."""
 
         super(HStoreField, self).__init__(*args, **kwargs)
 
         self.uniqueness = uniqueness
+        self.required = required
 
     def deconstruct(self):
         """Gets the values to pass to :see:__init__ when
@@ -26,5 +31,8 @@ class HStoreField(DjangoHStoreField):
 
         if self.uniqueness:
             kwargs['uniqueness'] = self.uniqueness
+
+        if self.required:
+            kwargs['required'] = self.required
 
         return name, path, args, kwargs

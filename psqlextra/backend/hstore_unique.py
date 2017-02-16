@@ -110,10 +110,10 @@ class HStoreUniqueSchemaEditorMixin:
             *args, **kwargs
         )
 
-        is_old_field_localized = isinstance(old_field, HStoreField)
-        is_new_field_localized = isinstance(new_field, HStoreField)
+        is_old_field_hstore = isinstance(old_field, HStoreField)
+        is_new_field_hstore = isinstance(new_field, HStoreField)
 
-        if is_old_field_localized or is_new_field_localized:
+        if is_old_field_hstore or is_new_field_hstore:
             self._update_hstore_constraints(model, old_field, new_field)
 
     def create_model(self, model):
