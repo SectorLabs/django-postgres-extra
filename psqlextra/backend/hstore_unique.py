@@ -2,7 +2,7 @@ from ..fields import HStoreField
 
 
 class HStoreUniqueSchemaEditorMixin:
-    sql_hstore_unique_create = "CREATE UNIQUE INDEX {name} ON {table}{using} ({columns}){extra}"
+    sql_hstore_unique_create = "CREATE UNIQUE INDEX IF NOT EXISTS {name} ON {table}{using} ({columns}){extra}"
     sql_hstore_unique_drop = "DROP INDEX IF EXISTS {name}"
 
     @staticmethod
@@ -62,12 +62,6 @@ class HStoreUniqueSchemaEditorMixin:
     def _apply_hstore_constraints(self, method, model, field):
         """Creates/drops UNIQUE constraints for a field."""
 
-        def _compose_keys(constraint):
-            if isinstance(constraint, str):
-                return [constraint]
-
-            return constraint
-
         uniqueness = getattr(field, 'uniqueness', None)
         if not uniqueness:
             return
@@ -76,8 +70,15 @@ class HStoreUniqueSchemaEditorMixin:
             method(
                 model,
                 field,
-                _compose_keys(keys)
+                self._compose_keys(keys)
             )
+
+    @staticmethod
+    def _compose_keys(constraint):
+        if isinstance(constraint, str):
+            return [constraint]
+
+        return constraint
 
     def _update_hstore_constraints(self, model, old_field, new_field):
         """Updates the UNIQUE constraints for the specified field."""
@@ -85,21 +86,21 @@ class HStoreUniqueSchemaEditorMixin:
         old_uniqueness = getattr(old_field, 'uniqueness', None)
         new_uniqueness = getattr(new_field, 'uniqueness', None)
 
-        # drop any old uniqueness constraints
-        if old_uniqueness:
-            self._apply_hstore_constraints(
-                self._drop_hstore_unique,
-                model,
-                old_field
-            )
+        for keys in old_uniqueness:
+            if keys not in new_uniqueness:
+                self._drop_hstore_unique(
+                    model,
+                    old_field,
+                    self._compose_keys(keys)
+                )
 
-        # (re-)create uniqueness constraints
-        if new_uniqueness:
-            self._apply_hstore_constraints(
-                self._create_hstore_unique,
-                model,
-                new_field
-            )
+        for keys in new_uniqueness:
+            if keys not in old_uniqueness:
+                self._create_hstore_unique(
+                    model,
+                    new_field,
+                    self._compose_keys(keys)
+                )
 
     def _alter_field(self, model, old_field, new_field, *args, **kwargs):
         """Ran when the configuration on a field changed."""

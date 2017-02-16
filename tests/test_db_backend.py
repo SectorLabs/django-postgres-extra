@@ -1,11 +1,12 @@
 from unittest import mock
+import copy
+import uuid
 
 from django.db import connection
+from psqlextra import HStoreField
 from django.apps import apps
 from django.test import TestCase
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
-
-from psqlextra import HStoreField
 
 from .fake_model import define_fake_model
 
@@ -60,29 +61,116 @@ class DBBackendTestCase(TestCase):
             assert len(drop_index_calls) == len(uniqueness)
 
     @classmethod
-    def test_migration_alter_field(cls):
-        """Tests whether the back-end correctly removes and
-        adds `uniqueness` constraints when altering a :see:LocalizedField."""
+    def _alter_field_test(cls, old_unique, new_unique):
+        """Creates a field with the specified uniqueness and
+        then alters it to the specified uniqueness.
 
-        uniqueness = ['beer', 'more_cookies']
-        define_fake_model('ExistingModel', {
-            'title': HStoreField(uniqueness=uniqueness)
+        Arguments:
+            old_unique:
+                The initial uniqueness.
+
+            new_unique:
+                The new uniqueness.
+
+        Returns:
+            Tuple of:
+                - Calls for creating an index
+                - Calls for dropping an index
+        """
+
+        model_name = str(uuid.uuid4())
+        define_fake_model(model_name, {
+            'field1': HStoreField(uniqueness=old_unique)
         })
 
         app_config = apps.get_app_config('tests')
 
         with mock.patch.object(BaseDatabaseSchemaEditor, 'execute') as execute:
             with connection.schema_editor() as schema_editor:
-                dynmodel = app_config.get_model('ExistingModel')
+                dynmodel = app_config.get_model(model_name)
+
+                new_field = copy.deepcopy(dynmodel._meta.fields[1])
+                new_field.uniqueness = new_unique
+
                 schema_editor.alter_field(
                     dynmodel,
                     dynmodel._meta.fields[1],
-                    dynmodel._meta.fields[1]
+                    new_field
                 )
 
-            index_calls = [
+            create_calls = [
                 call for call in execute.mock_calls
-                if 'INDEX' in str(call) and 'title' in str(call)
+                if 'CREATE UNIQUE INDEX' in str(call) and 'field1' in str(call)
             ]
 
-            assert len(index_calls) == len(uniqueness) * 2
+            drop_calls = [
+                call for call in execute.mock_calls
+                if 'DROP INDEX' in str(call) and 'field1' in str(call)
+            ]
+
+        return create_calls, drop_calls
+
+    @classmethod
+    def test_alter_field_nothing(cls):
+        """Tests whether no indexes are dropped when not
+        changing anything in the uniqueness."""
+
+        create_calls, drop_calls = cls._alter_field_test(
+            ['beer'],
+            ['beer']
+        )
+
+        assert len(create_calls) == 0
+        assert len(drop_calls) == 0
+
+    @classmethod
+    def test_alter_field_add(cls):
+        """Tests whether only one index is created when
+        adding another key to the uniqueness."""
+
+        create_calls, drop_calls = cls._alter_field_test(
+            ['beer'],
+            ['beer', 'beer1']
+        )
+
+        assert len(create_calls) == 1
+        assert len(drop_calls) == 0
+
+    @classmethod
+    def test_alter_field_remove(cls):
+        """Tests whether one index is dropped when removing
+        a key from uniqueness."""
+
+        create_calls, drop_calls = cls._alter_field_test(
+            ['beer'],
+            []
+        )
+
+        assert len(create_calls) == 0
+        assert len(drop_calls) == 1
+
+    @classmethod
+    def test_alter_field_add_together(cls):
+        """Tests whether adding one index is created
+        when adding a "unique together"."""
+
+        create_calls, drop_calls = cls._alter_field_test(
+            ['beer'],
+            ['beer', ('beer1', 'beer2')]
+        )
+
+        assert len(create_calls) == 1
+        assert len(drop_calls) == 0
+
+    @classmethod
+    def test_alter_field_remove_together(cls):
+        """Tests whether adding one index is dropped
+        when adding a "unique together"."""
+
+        create_calls, drop_calls = cls._alter_field_test(
+            [('beer1', 'beer2')],
+            []
+        )
+
+        assert len(create_calls) == 0
+        assert len(drop_calls) == 1
