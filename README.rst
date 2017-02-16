@@ -28,6 +28,10 @@ Currently, we are working on bringing the following features to Django:
     * Unique indexes
     * GiST and GIN indexes
 
+* https://www.postgresql.org/docs/9.5/static/sql-insert.html#SQL-ON-CONFLICT
+    * ``ON CONFLICT UPDATE``
+    * ``ON CONFLICT DO NOTHING``
+
 
 Installation
 ------------
