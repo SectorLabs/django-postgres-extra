@@ -89,6 +89,17 @@ Usage
                 class MyModel(models.Model):
                     title = HStoreField(uniqueness=[('en', 'ro')])
 
+    * ``required``:
+
+        * Require one or more keys to be set:
+
+            .. code-block:: python
+
+                from psqlextra.fields import HStoreField
+
+                class MyModel(models.Model):
+                    title = HStoreField(required=['h1', 'h2'])
+
 
 FAQ - Frequently asked questions
 --------------------------------
