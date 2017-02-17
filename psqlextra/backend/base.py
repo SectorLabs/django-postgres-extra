@@ -55,8 +55,48 @@ def _get_schema_editor_base():
     return _get_backend_base().SchemaEditorClass
 
 
-class SchemaEditor(HStoreUniqueSchemaEditorMixin, HStoreRequiredSchemaEditorMixin, _get_schema_editor_base()):
+class SchemaEditor(_get_schema_editor_base()):
     """Custom schema editor, see mixins for implementation."""
+
+    mixins = [
+        HStoreUniqueSchemaEditorMixin(),
+        HStoreRequiredSchemaEditorMixin()
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super(SchemaEditor, self).__init__(*args, **kwargs)
+        for mixin in self.mixins:
+            mixin.execute = self.execute
+
+    def _alter_field(self, model, old_field, new_field, *args, **kwargs):
+        """Ran when the configuration on a field changed."""
+
+        super(SchemaEditor, self)._alter_field(
+            model, old_field, new_field,
+            *args, **kwargs
+        )
+
+        for mixin in self.mixins:
+            mixin.alter_field(
+                model, old_field, new_field,
+                *args, **kwargs
+            )
+
+    def create_model(self, model):
+        """Ran when a new model is created."""
+
+        super(SchemaEditor, self).create_model(model)
+
+        for mixin in self.mixins:
+            mixin.create_model(model)
+
+    def delete_model(self, model):
+        """Ran when a model is being deleted."""
+
+        super(SchemaEditor, self).delete_model(model)
+
+        for mixin in self.mixins:
+            mixin.delete_model(model)
 
 
 class DatabaseWrapper(_get_backend_base()):
