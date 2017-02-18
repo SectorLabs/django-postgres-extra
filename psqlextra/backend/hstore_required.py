@@ -96,6 +96,12 @@ class HStoreRequiredSchemaEditorMixin:
         if is_old_field_hstore or is_new_field_hstore:
             self._update_hstore_required(model, old_field, new_field)
 
+    def add_field(self, model, field):
+        """Ran when a field is added to a model."""
+
+    def remove_field(self, model, field):
+        """ran when a field is removed from a model."""
+
     def create_model(self, model):
         """Ran when a new model is created."""
 

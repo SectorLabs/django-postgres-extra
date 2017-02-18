@@ -82,6 +82,22 @@ class SchemaEditor(_get_schema_editor_base()):
                 *args, **kwargs
             )
 
+    def add_field(self, model, field):
+        """Ran when a field is added to a model."""
+
+        super(SchemaEditor, self).add_field(model, field)
+
+        for mixin in self.mixins:
+            mixin.add_field(model, field)
+
+    def remove_field(self, model, field):
+        """ran when a field is removed from a model."""
+
+        super(SchemaEditor, self).remove_field(model, field)
+
+        for mixin in self.mixins:
+            mixin.remove_field(model, field)
+
     def create_model(self, model):
         """Ran when a new model is created."""
 

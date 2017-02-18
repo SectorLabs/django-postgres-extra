@@ -25,6 +25,32 @@ class HStoreUniqueTest(TestCase):
             assert len(calls['DROP INDEX']) == len(uniqueness)
 
     @classmethod
+    def test_add_field(cls):
+        """Tests whether adding a field properly
+        creates the indexes."""
+
+        test = migrations.add_field(
+            HStoreField(uniqueness=['beer']),
+            ['CREATE UNIQUE']
+        )
+
+        with test as calls:
+            assert len(calls['CREATE UNIQUE']) == 1
+
+    @classmethod
+    def test_remove_field(cls):
+        """Tests whether removing a field properly
+        removes the index."""
+
+        test = migrations.remove_field(
+            HStoreField(uniqueness=['beer']),
+            ['DROP INDEX']
+        )
+
+        with test as calls:
+            assert len(calls['DROP INDEX']) == 1
+
+    @classmethod
     def test_alter_field_nothing(cls):
         """Tests whether no indexes are dropped when not
         changing anything in the uniqueness."""

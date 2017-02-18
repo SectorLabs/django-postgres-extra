@@ -47,13 +47,57 @@ def create_drop_model(field, filters: List[str]):
             SQL statements on.
     """
 
-    model = define_fake_model({
-        'title': field
-    })
+    model = define_fake_model({'title': field})
 
     with migration_test(*filters) as (schema_editor, calls):
         schema_editor.create_model(model)
         schema_editor.delete_model(model)
+
+    yield calls
+
+
+@contextmanager
+def add_field(field, filters: List[str]):
+    """Adds the specified field to a model.
+
+    Arguments:
+        field:
+            The field to add to a model.
+
+        filters:
+            List of strings to filter
+            SQL statements on.
+    """
+
+    model = define_fake_model({'title': field})
+    app_config = apps.get_app_config('tests')
+
+    with migration_test(*filters) as (schema_editor, calls):
+        dynmodel = app_config.get_model(model.__name__)
+        schema_editor.add_field(dynmodel, dynmodel._meta.fields[1])
+
+    yield calls
+
+
+@contextmanager
+def remove_field(field, filters: List[str]):
+    """Removes the specified field from a model.
+
+    Arguments:
+        field:
+            The field to remove from a model.
+
+        filters:
+            List of strings to filter
+            SQL statements on.
+    """
+
+    model = define_fake_model({'title': field})
+    app_config = apps.get_app_config('tests')
+
+    with migration_test(*filters) as (schema_editor, calls):
+        dynmodel = app_config.get_model(model.__name__)
+        schema_editor.remove_field(dynmodel, dynmodel._meta.fields[1])
 
     yield calls
 
@@ -74,10 +118,7 @@ def alter_field(old_field, new_field, filters: List[str]):
             SQL statements on.
     """
 
-    model = define_fake_model({
-        'title': old_field
-    })
-
+    model = define_fake_model({'title': old_field})
     app_config = apps.get_app_config('tests')
 
     with migration_test(*filters) as (schema_editor, calls):

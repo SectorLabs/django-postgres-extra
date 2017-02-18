@@ -116,6 +116,24 @@ class HStoreUniqueSchemaEditorMixin:
         if is_old_field_hstore or is_new_field_hstore:
             self._update_hstore_constraints(model, old_field, new_field)
 
+    def add_field(self, model, field):
+        """Ran when a field is added to a model."""
+
+        self._apply_hstore_uniqueness(
+            self._create_hstore_unique,
+            model,
+            field
+        )
+
+    def remove_field(self, model, field):
+        """ran when a field is removed from a model."""
+
+        self._apply_hstore_uniqueness(
+            self._drop_hstore_unique,
+            model,
+            field
+        )
+
     def create_model(self, model):
         """Ran when a new model is created."""
 
@@ -123,11 +141,7 @@ class HStoreUniqueSchemaEditorMixin:
             if not isinstance(field, HStoreField):
                 continue
 
-            self._apply_hstore_uniqueness(
-                self._create_hstore_unique,
-                model,
-                field
-            )
+            self.add_field(model, field)
 
     def delete_model(self, model):
         """Ran when a model is being deleted."""
@@ -136,8 +150,4 @@ class HStoreUniqueSchemaEditorMixin:
             if not isinstance(field, HStoreField):
                 continue
 
-            self._apply_hstore_uniqueness(
-                self._drop_hstore_unique,
-                model,
-                field
-            )
+            self.remove_field(model, field)
