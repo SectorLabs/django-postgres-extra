@@ -2,8 +2,17 @@ from ..fields import HStoreField
 
 
 class HStoreRequiredSchemaEditorMixin:
-    sql_hstore_required_create = 'ALTER TABLE {table}{using} ADD CONSTRAINT {name} CHECK ({field}->\'{key}\' is not null)'
-    sql_hstore_required_drop = 'ALTER TABLE {table}{using} DROP CONSTRAINT {name}'
+    sql_hstore_required_create = (
+        'ALTER TABLE "{table}" '
+        'ADD CONSTRAINT "{name}" '
+        'CHECK ({field}->\'{key}\' '
+        'IS NOT NULL)'
+    )
+
+    sql_hstore_required_drop = (
+        'ALTER TABLE "{table}" '
+        'DROP CONSTRAINT "{name}"'
+    )
 
     @staticmethod
     def _required_constraint_name(model, field, key: str):
@@ -40,7 +49,6 @@ class HStoreRequiredSchemaEditorMixin:
         sql = self.sql_hstore_required_create.format(
             name=name,
             table=model._meta.db_table,
-            using='',
             key=key
         )
         self.execute(sql)
@@ -53,7 +61,6 @@ class HStoreRequiredSchemaEditorMixin:
         sql = self.sql_hstore_required_drop.format(
             name=name,
             table=model._meta.db_table,
-            using='',
             key=key
         )
         self.execute(sql)

@@ -1,9 +1,12 @@
+import uuid
+
 from django.db import models, connection, migrations
 from django.db.migrations.executor import MigrationExecutor
 from django.contrib.postgres.operations import HStoreExtension
 
 
-def define_fake_model(name='TestModel', fields=None):
+def define_fake_model(fields=None):
+    name = str(uuid.uuid4()).replace('-', '')
     attributes = {
         'app_label': 'postgres_extra',
         '__module__': __name__,
@@ -17,10 +20,10 @@ def define_fake_model(name='TestModel', fields=None):
     return model
 
 
-def get_fake_model(name='TestModel', fields=None):
+def get_fake_model(fields=None):
     """Creates a fake model to use during unit tests."""
 
-    model = define_fake_model(name, fields)
+    model = define_fake_model(fields)
 
     class TestProject:
 

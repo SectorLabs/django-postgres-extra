@@ -2,8 +2,15 @@ from ..fields import HStoreField
 
 
 class HStoreUniqueSchemaEditorMixin:
-    sql_hstore_unique_create = 'CREATE UNIQUE INDEX IF NOT EXISTS {name} ON {table}{using} ({columns}){extra}'
-    sql_hstore_unique_drop = 'DROP INDEX IF EXISTS {name}'
+    sql_hstore_unique_create = (
+        'CREATE UNIQUE INDEX IF NOT EXISTS '
+        '"{name}" ON "{table}" '
+        '({columns})'
+    )
+
+    sql_hstore_unique_drop = (
+        'DROP INDEX IF EXISTS "{name}"'
+    )
 
     @staticmethod
     def _unique_constraint_name(model, field, keys):
@@ -53,9 +60,7 @@ class HStoreUniqueSchemaEditorMixin:
         sql = self.sql_hstore_unique_create.format(
             name=name,
             table=model._meta.db_table,
-            using='',
-            columns=','.join(columns),
-            extra=''
+            columns=','.join(columns)
         )
         self.execute(sql)
 
