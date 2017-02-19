@@ -8,7 +8,8 @@ from django.apps import apps
 
 
 def define_fake_model(fields=None):
-    name = str(uuid.uuid4()).replace('-', '')
+    name = str(uuid.uuid4()).replace('-', '')[:8]
+
     attributes = {
         'app_label': 'postgres_extra',
         '__module__': __name__,

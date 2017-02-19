@@ -32,11 +32,14 @@ class HStoreUniqueTest(TestCase):
 
         test = migrations.alter_db_table(
             HStoreField(uniqueness=['beer', 'cookie']),
-            ['ALTER INDEX']
+            ['RENAME TO', 'CREATE INDEX', 'DROP INDEX']
         )
 
         with test as calls:
-            assert len(calls['ALTER INDEX']) == 2
+            # 1 rename for table, 2 for hstore keys
+            assert len(calls['RENAME TO']) == 3
+            assert len(calls.get('CREATE UNIQUE', [])) == 0
+            assert len(calls.get('DROP INDEX', [])) == 0
 
     @staticmethod
     def test_add_field():
@@ -45,11 +48,12 @@ class HStoreUniqueTest(TestCase):
 
         test = migrations.add_field(
             HStoreField(uniqueness=['beer']),
-            ['CREATE UNIQUE']
+            ['CREATE UNIQUE', 'DROP INDEX']
         )
 
         with test as calls:
-            assert len(calls['CREATE UNIQUE']) == 1
+            assert len(calls.get('CREATE UNIQUE', [])) == 1
+            assert len(calls.get('DROP INDEX', [])) == 0
 
     @staticmethod
     def test_remove_field():
@@ -58,11 +62,12 @@ class HStoreUniqueTest(TestCase):
 
         test = migrations.remove_field(
             HStoreField(uniqueness=['beer']),
-            ['DROP INDEX']
+            ['CREATE UNIQUE', 'DROP INDEX']
         )
 
         with test as calls:
-            assert len(calls['DROP INDEX']) == 1
+            assert len(calls.get('CREATE UNIQUE', [])) == 0
+            assert len(calls.get('DROP INDEX', [])) == 1
 
     @staticmethod
     def test_alter_field_nothing():
@@ -76,8 +81,8 @@ class HStoreUniqueTest(TestCase):
         )
 
         with test as calls:
-            assert len(calls['CREATE UNIQUE']) == 0
-            assert len(calls['DROP INDEX']) == 0
+            assert len(calls.get('CREATE UNIQUE', [])) == 0
+            assert len(calls.get('DROP INDEX', [])) == 0
 
     @staticmethod
     def test_alter_field_add():
@@ -91,8 +96,8 @@ class HStoreUniqueTest(TestCase):
         )
 
         with test as calls:
-            assert len(calls['CREATE UNIQUE']) == 1
-            assert len(calls['DROP INDEX']) == 0
+            assert len(calls.get('CREATE UNIQUE', [])) == 1
+            assert len(calls.get('DROP INDEX', [])) == 0
 
     @staticmethod
     def test_alter_field_remove():
@@ -106,8 +111,8 @@ class HStoreUniqueTest(TestCase):
         )
 
         with test as calls:
-            assert len(calls['CREATE UNIQUE']) == 0
-            assert len(calls['DROP INDEX']) == 1
+            assert len(calls.get('CREATE UNIQUE', [])) == 0
+            assert len(calls.get('DROP INDEX', [])) == 1
 
     @staticmethod
     def test_alter_field_add_together():
@@ -121,8 +126,8 @@ class HStoreUniqueTest(TestCase):
         )
 
         with test as calls:
-            assert len(calls['CREATE UNIQUE']) == 1
-            assert len(calls['DROP INDEX']) == 0
+            assert len(calls.get('CREATE UNIQUE', [])) == 1
+            assert len(calls.get('DROP INDEX', [])) == 0
 
     @staticmethod
     def test_alter_field_remove_together():
@@ -136,5 +141,20 @@ class HStoreUniqueTest(TestCase):
         )
 
         with test as calls:
-            assert len(calls['CREATE UNIQUE']) == 0
-            assert len(calls['DROP INDEX']) == 1
+            assert len(calls.get('CREATE UNIQUE', [])) == 0
+            assert len(calls.get('DROP INDEX', [])) == 1
+
+    @staticmethod
+    def test_rename_field():
+        """Tests whether renaming a field doesn't
+        cause the index to be re-created."""
+
+        test = migrations.rename_field(
+            HStoreField(uniqueness=['beer', 'cookies']),
+            ['RENAME TO', 'CREATE INDEX', 'DROP INDEX']
+        )
+
+        with test as calls:
+            assert len(calls.get('RENAME TO', [])) == 2
+            assert len(calls.get('CREATE UNIQUE', [])) == 0
+            assert len(calls.get('DROP INDEX', [])) == 0

@@ -68,14 +68,15 @@ class HStoreUniqueSchemaEditorMixin:
         )
         self.execute(sql)
 
-    def _rename_hstore_unique(self, old_table_name, new_table_name, _, field, keys):
+    def _rename_hstore_unique(self, old_table_name, new_table_name,
+                              old_field, new_field, model, field, keys):
         """Renames an existing UNIQUE constraint for the specified
         hstore keys."""
 
         old_name = self._unique_constraint_name(
-            old_table_name, field, keys)
+            old_table_name, old_field, keys)
         new_name = self._unique_constraint_name(
-            new_table_name, field, keys)
+            new_table_name, new_field, keys)
 
         sql = self.sql_hstore_unique_rename.format(
             old_name=self.quote_name(old_name),
@@ -118,6 +119,20 @@ class HStoreUniqueSchemaEditorMixin:
         old_uniqueness = getattr(old_field, 'uniqueness', None)
         new_uniqueness = getattr(new_field, 'uniqueness', None)
 
+        # handle field renames before moving on
+        if str(old_field.column) != str(new_field.column):
+            rename_hstore_unique = functools.partial(
+                self._rename_hstore_unique,
+                model._meta.db_table, model._meta.db_table,
+                old_field, new_field)
+
+            self._apply_hstore_uniqueness(
+                rename_hstore_unique,
+                model,
+                old_field
+            )
+
+        # drop the indexes for keys that have been removed
         for keys in old_uniqueness:
             if keys not in new_uniqueness:
                 self._drop_hstore_unique(
@@ -126,6 +141,7 @@ class HStoreUniqueSchemaEditorMixin:
                     self._compose_keys(keys)
                 )
 
+        # create new indexes for keys that have been added
         for keys in new_uniqueness:
             if keys not in old_uniqueness:
                 self._create_hstore_unique(
@@ -155,13 +171,14 @@ class HStoreUniqueSchemaEditorMixin:
     def alter_db_table(self, model, old_db_table, new_db_table):
         """Ran when the name of a model is changed."""
 
-        rename_hstore_unique = functools.partial(
-            self._rename_hstore_unique,
-            old_db_table, new_db_table)
-
         for field in model._meta.local_fields:
             if not isinstance(field, HStoreField):
                 continue
+
+            rename_hstore_unique = functools.partial(
+                self._rename_hstore_unique,
+                old_db_table, new_db_table,
+                field, field)
 
             self._apply_hstore_uniqueness(
                 rename_hstore_unique,

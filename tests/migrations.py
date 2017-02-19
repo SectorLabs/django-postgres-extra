@@ -246,3 +246,41 @@ def alter_field(old_field, new_field, filters: List[str]):
         ], project)
 
     yield calls
+
+
+@contextmanager
+def rename_field(field, filters: List[str]):
+    """Renames a field from one name to the other.
+
+    Arguments:
+        field:
+            Field to be renamed.
+
+        filters:
+            List of strings to filter
+            SQL statements on.
+    """
+
+    model = define_fake_model({'title': field})
+    project = migrations.state.ProjectState.from_apps(apps)
+
+    with connection.schema_editor() as schema_editor:
+        execute_migration(schema_editor, [
+            migrations.CreateModel(
+                model.__name__,
+                fields=[
+                    ('title', field.clone())
+                ]
+            )
+        ], project)
+
+    with filtered_schema_editor(*filters) as (schema_editor, calls):
+        execute_migration(schema_editor, [
+            migrations.RenameField(
+                model.__name__,
+                'title',
+                'newtitle'
+            )
+        ], project)
+
+    yield calls
