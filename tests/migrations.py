@@ -1,10 +1,10 @@
 from typing import List
 from unittest import mock
 from contextlib import contextmanager
-import copy
 
-from django.db import connection
+from django.db import connection, migrations
 from django.apps import apps
+from django.db.migrations.executor import MigrationExecutor
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
 from .fake_model import define_fake_model
@@ -21,9 +21,10 @@ def migration_test(*filters: List[str]):
             statements on.
     """
 
-    with mock.patch.object(BaseDatabaseSchemaEditor, 'execute') as execute:
-        filter_results = {}
-        with connection.schema_editor() as schema_editor:
+    with connection.schema_editor() as schema_editor:
+        wrapper_for = schema_editor.execute
+        with mock.patch.object(BaseDatabaseSchemaEditor, 'execute', wraps=wrapper_for) as execute:
+            filter_results = {}
             yield schema_editor, filter_results
 
     for filter_text in filters:
@@ -47,11 +48,27 @@ def create_drop_model(field, filters: List[str]):
             SQL statements on.
     """
 
-    model = define_fake_model({'title': field})
+    model = define_fake_model()
+
+    class CreateDropModelMigration(migrations.Migration):
+        operations = [
+            migrations.CreateModel(
+                model.__name__,
+                fields=[
+                    ('title', field)
+                ]
+            ),
+            migrations.DeleteModel(
+                model.__name__,
+            )
+        ]
+
+    project = migrations.state.ProjectState.from_apps(apps)
 
     with migration_test(*filters) as (schema_editor, calls):
-        schema_editor.create_model(model)
-        schema_editor.delete_model(model)
+        executor = MigrationExecutor(schema_editor.connection)
+        executor.apply_migration(
+            project, CreateDropModelMigration('eh', 'postgres_extra'))
 
     yield calls
 
@@ -69,12 +86,36 @@ def add_field(field, filters: List[str]):
             SQL statements on.
     """
 
-    model = define_fake_model({'title': field})
-    app_config = apps.get_app_config('tests')
+    model = define_fake_model()
+
+    class CreateModelMigration(migrations.Migration):
+        operations = [
+            migrations.CreateModel(
+                model.__name__,
+                fields=[]
+            )
+        ]
+
+    project = migrations.state.ProjectState.from_apps(apps)
+
+    with connection.schema_editor() as schema_editor:
+        executor = MigrationExecutor(schema_editor.connection)
+        executor.apply_migration(
+            project, CreateModelMigration('eh', 'postgres_extra'))
+
+    class AddFieldMigration(migrations.Migration):
+        operations = [
+            migrations.AddField(
+                model.__name__,
+                'title',
+                field
+            )
+        ]
 
     with migration_test(*filters) as (schema_editor, calls):
-        dynmodel = app_config.get_model(model.__name__)
-        schema_editor.add_field(dynmodel, dynmodel._meta.fields[1])
+        executor = MigrationExecutor(schema_editor.connection)
+        executor.apply_migration(
+            project, AddFieldMigration('eh', 'postgres_extra'))
 
     yield calls
 
@@ -93,11 +134,36 @@ def remove_field(field, filters: List[str]):
     """
 
     model = define_fake_model({'title': field})
-    app_config = apps.get_app_config('tests')
+
+    class CreateModelMigration(migrations.Migration):
+        operations = [
+            migrations.CreateModel(
+                model.__name__,
+                fields=[
+                    ('title', field.clone())
+                ]
+            )
+        ]
+
+    project = migrations.state.ProjectState.from_apps(apps)
+
+    with connection.schema_editor() as schema_editor:
+        executor = MigrationExecutor(schema_editor.connection)
+        executor.apply_migration(
+            project, CreateModelMigration('eh', 'postgres_extra'))
+
+    class RemoveFieldMigration(migrations.Migration):
+        operations = [
+            migrations.RemoveField(
+                model.__name__,
+                'title'
+            )
+        ]
 
     with migration_test(*filters) as (schema_editor, calls):
-        dynmodel = app_config.get_model(model.__name__)
-        schema_editor.remove_field(dynmodel, dynmodel._meta.fields[1])
+        executor = MigrationExecutor(schema_editor.connection)
+        executor.apply_migration(
+            project, RemoveFieldMigration('eh', 'postgres_extra'))
 
     yield calls
 
@@ -119,23 +185,36 @@ def alter_field(old_field, new_field, filters: List[str]):
     """
 
     model = define_fake_model({'title': old_field})
-    app_config = apps.get_app_config('tests')
+
+    class CreateModelMigration(migrations.Migration):
+        operations = [
+            migrations.CreateModel(
+                model.__name__,
+                fields=[
+                    ('title', old_field.clone())
+                ]
+            )
+        ]
+
+    project = migrations.state.ProjectState.from_apps(apps)
+
+    with connection.schema_editor() as schema_editor:
+        executor = MigrationExecutor(schema_editor.connection)
+        executor.apply_migration(
+            project, CreateModelMigration('eh', 'postgres_extra'))
+
+    class AlterFieldMigration(migrations.Migration):
+        operations = [
+            migrations.AlterField(
+                model.__name__,
+                'title',
+                new_field
+            )
+        ]
 
     with migration_test(*filters) as (schema_editor, calls):
-        dynmodel = app_config.get_model(model.__name__)
-
-        # this is nasty, we cannot pass on `new_field`
-        # because it wasn't processed by django, we simply
-        # have to copy the modified kwargs instead
-        altered_field = copy.deepcopy(dynmodel._meta.fields[1])
-        _, _, _, kwargs = new_field.deconstruct()
-        for kwname, kwvalue in kwargs.items():
-            setattr(altered_field, kwname, kwvalue)
-
-        schema_editor.alter_field(
-            dynmodel,
-            dynmodel._meta.fields[1],
-            altered_field
-        )
+        executor = MigrationExecutor(schema_editor.connection)
+        executor.apply_migration(
+            project, AlterFieldMigration('eh', 'postgres_extra'))
 
     yield calls

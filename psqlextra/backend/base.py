@@ -67,19 +67,18 @@ class SchemaEditor(_get_schema_editor_base()):
         super(SchemaEditor, self).__init__(*args, **kwargs)
         for mixin in self.mixins:
             mixin.execute = self.execute
+            mixin.quote_name = self.quote_name
 
-    def _alter_field(self, model, old_field, new_field, *args, **kwargs):
+    def alter_field(self, model, old_field, new_field, strict=False):
         """Ran when the configuration on a field changed."""
 
-        super(SchemaEditor, self)._alter_field(
-            model, old_field, new_field,
-            *args, **kwargs
+        super(SchemaEditor, self).alter_field(
+            model, old_field, new_field, strict
         )
 
         for mixin in self.mixins:
             mixin.alter_field(
-                model, old_field, new_field,
-                *args, **kwargs
+                model, old_field, new_field, strict
             )
 
     def add_field(self, model, field):

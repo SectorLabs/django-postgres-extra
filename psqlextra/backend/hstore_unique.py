@@ -4,12 +4,12 @@ from ..fields import HStoreField
 class HStoreUniqueSchemaEditorMixin:
     sql_hstore_unique_create = (
         'CREATE UNIQUE INDEX IF NOT EXISTS '
-        '"{name}" ON "{table}" '
+        '{name} ON {table} '
         '({columns})'
     )
 
     sql_hstore_unique_drop = (
-        'DROP INDEX IF EXISTS "{name}"'
+        'DROP INDEX IF EXISTS {name}'
     )
 
     @staticmethod
@@ -46,7 +46,7 @@ class HStoreUniqueSchemaEditorMixin:
         """Drops a UNIQUE constraint for the specified hstore keys."""
 
         name = self._unique_constraint_name(model, field, keys)
-        sql = self.sql_hstore_unique_drop.format(name=name)
+        sql = self.sql_hstore_unique_drop.format(name=self.quote_name(name))
         self.execute(sql)
 
     def _create_hstore_unique(self, model, field, keys):
@@ -58,8 +58,8 @@ class HStoreUniqueSchemaEditorMixin:
             for key in keys
         ]
         sql = self.sql_hstore_unique_create.format(
-            name=name,
-            table=model._meta.db_table,
+            name=self.quote_name(name),
+            table=self.quote_name(model._meta.db_table),
             columns=','.join(columns)
         )
         self.execute(sql)
@@ -107,7 +107,7 @@ class HStoreUniqueSchemaEditorMixin:
                     self._compose_keys(keys)
                 )
 
-    def alter_field(self, model, old_field, new_field, *args, **kwargs):
+    def alter_field(self, model, old_field, new_field, strict=False):
         """Ran when the configuration on a field changed."""
 
         is_old_field_hstore = isinstance(old_field, HStoreField)

@@ -4,6 +4,8 @@ from django.db import models, connection, migrations
 from django.db.migrations.executor import MigrationExecutor
 from django.contrib.postgres.operations import HStoreExtension
 
+from django.apps import apps
+
 
 def define_fake_model(fields=None):
     name = str(uuid.uuid4()).replace('-', '')

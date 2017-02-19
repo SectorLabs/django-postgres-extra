@@ -87,7 +87,7 @@ class HStoreRequiredSchemaEditorMixin:
                     key
                 )
 
-    def alter_field(self, model, old_field, new_field, *args, **kwargs):
+    def alter_field(self, model, old_field, new_field, strict=False):
         """Ran when the configuration on a field changed."""
 
         is_old_field_hstore = isinstance(old_field, HStoreField)

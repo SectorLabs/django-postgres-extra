@@ -6,10 +6,11 @@ from . import migrations
 
 
 class HStoreUniqueTest(TestCase):
-    """Tests the custom database back-end."""
+    """Tests migrations for uniqueness on
+    the :see:HStoreField."""
 
-    @classmethod
-    def test_migration_create_drop_model(cls):
+    @staticmethod
+    def test_migration_create_drop_model():
         """Tests whether indexes are properly created
         and dropped when creating and dropping a model."""
 
@@ -24,8 +25,8 @@ class HStoreUniqueTest(TestCase):
             assert len(calls['CREATE UNIQUE']) == len(uniqueness)
             assert len(calls['DROP INDEX']) == len(uniqueness)
 
-    @classmethod
-    def test_add_field(cls):
+    @staticmethod
+    def test_add_field():
         """Tests whether adding a field properly
         creates the indexes."""
 
@@ -37,8 +38,8 @@ class HStoreUniqueTest(TestCase):
         with test as calls:
             assert len(calls['CREATE UNIQUE']) == 1
 
-    @classmethod
-    def test_remove_field(cls):
+    @staticmethod
+    def test_remove_field():
         """Tests whether removing a field properly
         removes the index."""
 
@@ -50,8 +51,8 @@ class HStoreUniqueTest(TestCase):
         with test as calls:
             assert len(calls['DROP INDEX']) == 1
 
-    @classmethod
-    def test_alter_field_nothing(cls):
+    @staticmethod
+    def test_alter_field_nothing():
         """Tests whether no indexes are dropped when not
         changing anything in the uniqueness."""
 
@@ -65,8 +66,8 @@ class HStoreUniqueTest(TestCase):
             assert len(calls['CREATE UNIQUE']) == 0
             assert len(calls['DROP INDEX']) == 0
 
-    @classmethod
-    def test_alter_field_add(cls):
+    @staticmethod
+    def test_alter_field_add():
         """Tests whether only one index is created when
         adding another key to the uniqueness."""
 
@@ -80,8 +81,8 @@ class HStoreUniqueTest(TestCase):
             assert len(calls['CREATE UNIQUE']) == 1
             assert len(calls['DROP INDEX']) == 0
 
-    @classmethod
-    def test_alter_field_remove(cls):
+    @staticmethod
+    def test_alter_field_remove():
         """Tests whether one index is dropped when removing
         a key from uniqueness."""
 
@@ -95,8 +96,8 @@ class HStoreUniqueTest(TestCase):
             assert len(calls['CREATE UNIQUE']) == 0
             assert len(calls['DROP INDEX']) == 1
 
-    @classmethod
-    def test_alter_field_add_together(cls):
+    @staticmethod
+    def test_alter_field_add_together():
         """Tests whether adding one index is created
         when adding a "unique together"."""
 
@@ -110,8 +111,8 @@ class HStoreUniqueTest(TestCase):
             assert len(calls['CREATE UNIQUE']) == 1
             assert len(calls['DROP INDEX']) == 0
 
-    @classmethod
-    def test_alter_field_remove_together(cls):
+    @staticmethod
+    def test_alter_field_remove_together():
         """Tests whether adding one index is dropped
         when adding a "unique together"."""
 
