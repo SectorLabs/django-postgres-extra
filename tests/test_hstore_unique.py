@@ -1,8 +1,11 @@
+from django.db import transaction
 from django.test import TestCase
+from django.db.utils import IntegrityError
 
 from psqlextra import HStoreField
 
 from . import migrations
+from .fake_model import get_fake_model
 
 
 class HStoreUniqueTest(TestCase):
@@ -158,3 +161,35 @@ class HStoreUniqueTest(TestCase):
             assert len(calls.get('RENAME TO', [])) == 2
             assert len(calls.get('CREATE UNIQUE', [])) == 0
             assert len(calls.get('DROP INDEX', [])) == 0
+
+    def test_enforcement(self):
+        """Tests whether the constraints are actually
+        properly enforced."""
+        model = get_fake_model({
+            'title': HStoreField(uniqueness=['en'])
+        })
+
+        # should pass, table is empty and 'ar' does not have to be unique
+        model.objects.create(title={'en': 'unique', 'ar': 'notunique'})
+        model.objects.create(title={'en': 'elseunique', 'ar': 'notunique'})
+
+        # this should fail, key 'en' must be unique
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                model.objects.create(title={'en': 'unique', 'ar': 'notunique'})
+
+    def test_enforcement_together(self):
+        """Tests whether unique_together style constraints are
+        enforced properly."""
+
+        model = get_fake_model({
+            'title': HStoreField(uniqueness=[('en', 'ar')])
+        })
+
+        model.objects.create(title={'en': 'unique', 'ar': 'notunique'})
+
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                model.objects.create(title={'en': 'unique', 'ar': 'notunique'})
+
+        model.objects.create(title={'en': 'notunique', 'ar': 'unique'})

@@ -63,8 +63,10 @@ class SchemaEditor(_get_schema_editor_base()):
         HStoreRequiredSchemaEditorMixin()
     ]
 
-    def __init__(self, *args, **kwargs):
-        super(SchemaEditor, self).__init__(*args, **kwargs)
+    def __init__(self, connection, collect_sql=False, atomic=True):
+        super(SchemaEditor, self).__init__(
+            connection, collect_sql, atomic)
+
         for mixin in self.mixins:
             mixin.execute = self.execute
             mixin.quote_name = self.quote_name
@@ -108,7 +110,7 @@ class SchemaEditor(_get_schema_editor_base()):
             mixin.add_field(model, field)
 
     def remove_field(self, model, field):
-        """ran when a field is removed from a model."""
+        """Ran when a field is removed from a model."""
 
         super(SchemaEditor, self).remove_field(model, field)
 
