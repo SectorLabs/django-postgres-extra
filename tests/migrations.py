@@ -11,9 +11,9 @@ from .fake_model import define_fake_model
 
 
 @contextmanager
-def migration_test(*filters: List[str]):
-    """Assists in testing the custom back-end
-    during a migration.
+def filtered_schema_editor(*filters: List[str]):
+    """Gets a schema editor, but filters executed SQL
+    statements based on the specified text filters.
 
     Arguments:
         filters:
@@ -34,6 +34,35 @@ def migration_test(*filters: List[str]):
         ]
 
 
+def execute_migration(schema_editor, operations, project=None):
+    """Executes the specified migration operations
+    using the specified schema editor.
+
+    Arguments:
+        schema_editor:
+            The schema editor to use to
+            execute the migrations.
+
+        operations:
+            The migration operations to execute.
+
+        project:
+            The project state to use during the
+            migrations.
+    """
+
+    project = project or migrations.state.ProjectState.from_apps(apps)
+
+    class Migration(migrations.Migration):
+        pass
+
+    Migration.operations = operations
+
+    executor = MigrationExecutor(schema_editor.connection)
+    executor.apply_migration(
+        project, Migration('eh', 'postgres_extra'))
+
+
 @contextmanager
 def create_drop_model(field, filters: List[str]):
     """Creates and drops a model with the specified field.
@@ -50,8 +79,8 @@ def create_drop_model(field, filters: List[str]):
 
     model = define_fake_model()
 
-    class CreateDropModelMigration(migrations.Migration):
-        operations = [
+    with filtered_schema_editor(*filters) as (schema_editor, calls):
+        execute_migration(schema_editor, [
             migrations.CreateModel(
                 model.__name__,
                 fields=[
@@ -61,14 +90,7 @@ def create_drop_model(field, filters: List[str]):
             migrations.DeleteModel(
                 model.__name__,
             )
-        ]
-
-    project = migrations.state.ProjectState.from_apps(apps)
-
-    with migration_test(*filters) as (schema_editor, calls):
-        executor = MigrationExecutor(schema_editor.connection)
-        executor.apply_migration(
-            project, CreateDropModelMigration('eh', 'postgres_extra'))
+        ])
 
     yield calls
 
@@ -87,35 +109,24 @@ def add_field(field, filters: List[str]):
     """
 
     model = define_fake_model()
+    project = migrations.state.ProjectState.from_apps(apps)
 
-    class CreateModelMigration(migrations.Migration):
-        operations = [
+    with connection.schema_editor() as schema_editor:
+        execute_migration(schema_editor, [
             migrations.CreateModel(
                 model.__name__,
                 fields=[]
             )
-        ]
+        ], project)
 
-    project = migrations.state.ProjectState.from_apps(apps)
-
-    with connection.schema_editor() as schema_editor:
-        executor = MigrationExecutor(schema_editor.connection)
-        executor.apply_migration(
-            project, CreateModelMigration('eh', 'postgres_extra'))
-
-    class AddFieldMigration(migrations.Migration):
-        operations = [
+    with filtered_schema_editor(*filters) as (schema_editor, calls):
+        execute_migration(schema_editor, [
             migrations.AddField(
                 model.__name__,
                 'title',
                 field
             )
-        ]
-
-    with migration_test(*filters) as (schema_editor, calls):
-        executor = MigrationExecutor(schema_editor.connection)
-        executor.apply_migration(
-            project, AddFieldMigration('eh', 'postgres_extra'))
+        ], project)
 
     yield calls
 
@@ -134,36 +145,25 @@ def remove_field(field, filters: List[str]):
     """
 
     model = define_fake_model({'title': field})
+    project = migrations.state.ProjectState.from_apps(apps)
 
-    class CreateModelMigration(migrations.Migration):
-        operations = [
+    with connection.schema_editor() as schema_editor:
+        execute_migration(schema_editor, [
             migrations.CreateModel(
                 model.__name__,
                 fields=[
                     ('title', field.clone())
                 ]
             )
-        ]
+        ], project)
 
-    project = migrations.state.ProjectState.from_apps(apps)
-
-    with connection.schema_editor() as schema_editor:
-        executor = MigrationExecutor(schema_editor.connection)
-        executor.apply_migration(
-            project, CreateModelMigration('eh', 'postgres_extra'))
-
-    class RemoveFieldMigration(migrations.Migration):
-        operations = [
+    with filtered_schema_editor(*filters) as (schema_editor, calls):
+        execute_migration(schema_editor, [
             migrations.RemoveField(
                 model.__name__,
                 'title'
             )
-        ]
-
-    with migration_test(*filters) as (schema_editor, calls):
-        executor = MigrationExecutor(schema_editor.connection)
-        executor.apply_migration(
-            project, RemoveFieldMigration('eh', 'postgres_extra'))
+        ], project)
 
     yield calls
 
@@ -185,36 +185,25 @@ def alter_field(old_field, new_field, filters: List[str]):
     """
 
     model = define_fake_model({'title': old_field})
+    project = migrations.state.ProjectState.from_apps(apps)
 
-    class CreateModelMigration(migrations.Migration):
-        operations = [
+    with connection.schema_editor() as schema_editor:
+        execute_migration(schema_editor, [
             migrations.CreateModel(
                 model.__name__,
                 fields=[
                     ('title', old_field.clone())
                 ]
             )
-        ]
+        ], project)
 
-    project = migrations.state.ProjectState.from_apps(apps)
-
-    with connection.schema_editor() as schema_editor:
-        executor = MigrationExecutor(schema_editor.connection)
-        executor.apply_migration(
-            project, CreateModelMigration('eh', 'postgres_extra'))
-
-    class AlterFieldMigration(migrations.Migration):
-        operations = [
+    with filtered_schema_editor(*filters) as (schema_editor, calls):
+        execute_migration(schema_editor, [
             migrations.AlterField(
                 model.__name__,
                 'title',
                 new_field
             )
-        ]
-
-    with migration_test(*filters) as (schema_editor, calls):
-        executor = MigrationExecutor(schema_editor.connection)
-        executor.apply_migration(
-            project, AlterFieldMigration('eh', 'postgres_extra'))
+        ], project)
 
     yield calls
