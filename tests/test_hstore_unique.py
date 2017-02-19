@@ -26,6 +26,19 @@ class HStoreUniqueTest(TestCase):
             assert len(calls['DROP INDEX']) == len(uniqueness)
 
     @staticmethod
+    def test_migration_alter_db_table():
+        """Tests whether indexes are renamed properly
+        when renaming the database table."""
+
+        test = migrations.alter_db_table(
+            HStoreField(uniqueness=['beer', 'cookie']),
+            ['ALTER INDEX']
+        )
+
+        with test as calls:
+            assert len(calls['ALTER INDEX']) == 2
+
+    @staticmethod
     def test_add_field():
         """Tests whether adding a field properly
         creates the indexes."""

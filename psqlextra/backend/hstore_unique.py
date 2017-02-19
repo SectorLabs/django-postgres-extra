@@ -1,3 +1,5 @@
+import functools
+
 from ..fields import HStoreField
 
 
@@ -8,18 +10,26 @@ class HStoreUniqueSchemaEditorMixin:
         '({columns})'
     )
 
+    sql_hstore_unique_rename = (
+        'ALTER INDEX '
+        '{old_name} '
+        'RENAME TO '
+        '{new_name}'
+    )
+
     sql_hstore_unique_drop = (
         'DROP INDEX IF EXISTS {name}'
     )
 
     @staticmethod
-    def _unique_constraint_name(model, field, keys):
+    def _unique_constraint_name(table: str, field, keys):
         """Gets the name for a UNIQUE INDEX that applies
         to one or more keys in a hstore field.
 
         Arguments:
-            model:
-                The model the field is a part of.
+            table:
+                The name of the table the field is
+                a part of.
 
             field:
                 The hstore field to create a
@@ -37,22 +47,16 @@ class HStoreUniqueSchemaEditorMixin:
         """
         postfix = '_'.join(keys)
         return '{table}_{field}_unique_{postfix}'.format(
-            table=model._meta.db_table,
+            table=table,
             field=field.column,
             postfix=postfix
         )
 
-    def _drop_hstore_unique(self, model, field, keys):
-        """Drops a UNIQUE constraint for the specified hstore keys."""
-
-        name = self._unique_constraint_name(model, field, keys)
-        sql = self.sql_hstore_unique_drop.format(name=self.quote_name(name))
-        self.execute(sql)
-
     def _create_hstore_unique(self, model, field, keys):
         """Creates a UNIQUE constraint for the specified hstore keys."""
 
-        name = self._unique_constraint_name(model, field, keys)
+        name = self._unique_constraint_name(
+            model._meta.db_table, field, keys)
         columns = [
             '(%s->\'%s\')' % (field.column, key)
             for key in keys
@@ -62,6 +66,29 @@ class HStoreUniqueSchemaEditorMixin:
             table=self.quote_name(model._meta.db_table),
             columns=','.join(columns)
         )
+        self.execute(sql)
+
+    def _rename_hstore_unique(self, old_table_name, new_table_name, _, field, keys):
+        """Renames an existing UNIQUE constraint for the specified
+        hstore keys."""
+
+        old_name = self._unique_constraint_name(
+            old_table_name, field, keys)
+        new_name = self._unique_constraint_name(
+            new_table_name, field, keys)
+
+        sql = self.sql_hstore_unique_rename.format(
+            old_name=self.quote_name(old_name),
+            new_name=self.quote_name(new_name)
+        )
+        self.execute(sql)
+
+    def _drop_hstore_unique(self, model, field, keys):
+        """Drops a UNIQUE constraint for the specified hstore keys."""
+
+        name = self._unique_constraint_name(
+            model._meta.db_table, field, keys)
+        sql = self.sql_hstore_unique_drop.format(name=self.quote_name(name))
         self.execute(sql)
 
     def _apply_hstore_uniqueness(self, method, model, field):
@@ -107,14 +134,40 @@ class HStoreUniqueSchemaEditorMixin:
                     self._compose_keys(keys)
                 )
 
-    def alter_field(self, model, old_field, new_field, strict=False):
-        """Ran when the configuration on a field changed."""
+    def create_model(self, model):
+        """Ran when a new model is created."""
 
-        is_old_field_hstore = isinstance(old_field, HStoreField)
-        is_new_field_hstore = isinstance(new_field, HStoreField)
+        for field in model._meta.local_fields:
+            if not isinstance(field, HStoreField):
+                continue
 
-        if is_old_field_hstore or is_new_field_hstore:
-            self._update_hstore_constraints(model, old_field, new_field)
+            self.add_field(model, field)
+
+    def delete_model(self, model):
+        """Ran when a model is being deleted."""
+
+        for field in model._meta.local_fields:
+            if not isinstance(field, HStoreField):
+                continue
+
+            self.remove_field(model, field)
+
+    def alter_db_table(self, model, old_db_table, new_db_table):
+        """Ran when the name of a model is changed."""
+
+        rename_hstore_unique = functools.partial(
+            self._rename_hstore_unique,
+            old_db_table, new_db_table)
+
+        for field in model._meta.local_fields:
+            if not isinstance(field, HStoreField):
+                continue
+
+            self._apply_hstore_uniqueness(
+                rename_hstore_unique,
+                model,
+                field
+            )
 
     def add_field(self, model, field):
         """Ran when a field is added to a model."""
@@ -134,20 +187,11 @@ class HStoreUniqueSchemaEditorMixin:
             field
         )
 
-    def create_model(self, model):
-        """Ran when a new model is created."""
+    def alter_field(self, model, old_field, new_field, strict=False):
+        """Ran when the configuration on a field changed."""
 
-        for field in model._meta.local_fields:
-            if not isinstance(field, HStoreField):
-                continue
+        is_old_field_hstore = isinstance(old_field, HStoreField)
+        is_new_field_hstore = isinstance(new_field, HStoreField)
 
-            self.add_field(model, field)
-
-    def delete_model(self, model):
-        """Ran when a model is being deleted."""
-
-        for field in model._meta.local_fields:
-            if not isinstance(field, HStoreField):
-                continue
-
-            self.remove_field(model, field)
+        if is_old_field_hstore or is_new_field_hstore:
+            self._update_hstore_constraints(model, old_field, new_field)

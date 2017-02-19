@@ -87,21 +87,6 @@ class HStoreRequiredSchemaEditorMixin:
                     key
                 )
 
-    def alter_field(self, model, old_field, new_field, strict=False):
-        """Ran when the configuration on a field changed."""
-
-        is_old_field_hstore = isinstance(old_field, HStoreField)
-        is_new_field_hstore = isinstance(new_field, HStoreField)
-
-        if is_old_field_hstore or is_new_field_hstore:
-            self._update_hstore_required(model, old_field, new_field)
-
-    def add_field(self, model, field):
-        """Ran when a field is added to a model."""
-
-    def remove_field(self, model, field):
-        """ran when a field is removed from a model."""
-
     def create_model(self, model):
         """Ran when a new model is created."""
 
@@ -115,3 +100,21 @@ class HStoreRequiredSchemaEditorMixin:
         for field in model._meta.local_fields:
             if not isinstance(field, HStoreField):
                 continue
+
+    def alter_db_table(self, model, old_db_table, new_db_table):
+        """Ran when the name of a model is changed."""
+
+    def add_field(self, model, field):
+        """Ran when a field is added to a model."""
+
+    def remove_field(self, model, field):
+        """ran when a field is removed from a model."""
+
+    def alter_field(self, model, old_field, new_field, strict=False):
+        """Ran when the configuration on a field changed."""
+
+        is_old_field_hstore = isinstance(old_field, HStoreField)
+        is_new_field_hstore = isinstance(new_field, HStoreField)
+
+        if is_old_field_hstore or is_new_field_hstore:
+            self._update_hstore_required(model, old_field, new_field)

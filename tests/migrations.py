@@ -96,6 +96,45 @@ def create_drop_model(field, filters: List[str]):
 
 
 @contextmanager
+def alter_db_table(field, filters: List[str]):
+    """Creates a model with the specified field
+    and then renames the database table.
+
+    Arguments:
+        field:
+            The field to include into the
+            model.
+
+        filters:
+            List of strings to filter
+            SQL statements on.
+    """
+
+    model = define_fake_model()
+    project = migrations.state.ProjectState.from_apps(apps)
+
+    with connection.schema_editor() as schema_editor:
+        execute_migration(schema_editor, [
+            migrations.CreateModel(
+                model.__name__,
+                fields=[
+                    ('title', field.clone())
+                ]
+            )
+        ], project)
+
+    with filtered_schema_editor(*filters) as (schema_editor, calls):
+        execute_migration(schema_editor, [
+            migrations.AlterModelTable(
+                model.__name__,
+                'NewTableName'
+            )
+        ], project)
+
+    yield calls
+
+
+@contextmanager
 def add_field(field, filters: List[str]):
     """Adds the specified field to a model.
 

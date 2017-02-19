@@ -69,16 +69,34 @@ class SchemaEditor(_get_schema_editor_base()):
             mixin.execute = self.execute
             mixin.quote_name = self.quote_name
 
-    def alter_field(self, model, old_field, new_field, strict=False):
-        """Ran when the configuration on a field changed."""
+    def create_model(self, model):
+        """Ran when a new model is created."""
 
-        super(SchemaEditor, self).alter_field(
-            model, old_field, new_field, strict
+        super(SchemaEditor, self).create_model(model)
+
+        for mixin in self.mixins:
+            mixin.create_model(model)
+
+    def delete_model(self, model):
+        """Ran when a model is being deleted."""
+
+        super(SchemaEditor, self).delete_model(model)
+
+        for mixin in self.mixins:
+            mixin.delete_model(model)
+
+    def alter_db_table(self, model, old_db_table, new_db_table):
+        """Ran when the name of a model is changed."""
+
+        super(SchemaEditor, self).alter_db_table(
+            model, old_db_table, new_db_table
         )
 
         for mixin in self.mixins:
-            mixin.alter_field(
-                model, old_field, new_field, strict
+            mixin.alter_db_table(
+                model,
+                old_db_table,
+                new_db_table
             )
 
     def add_field(self, model, field):
@@ -97,21 +115,17 @@ class SchemaEditor(_get_schema_editor_base()):
         for mixin in self.mixins:
             mixin.remove_field(model, field)
 
-    def create_model(self, model):
-        """Ran when a new model is created."""
+    def alter_field(self, model, old_field, new_field, strict=False):
+        """Ran when the configuration on a field changed."""
 
-        super(SchemaEditor, self).create_model(model)
-
-        for mixin in self.mixins:
-            mixin.create_model(model)
-
-    def delete_model(self, model):
-        """Ran when a model is being deleted."""
-
-        super(SchemaEditor, self).delete_model(model)
+        super(SchemaEditor, self).alter_field(
+            model, old_field, new_field, strict
+        )
 
         for mixin in self.mixins:
-            mixin.delete_model(model)
+            mixin.alter_field(
+                model, old_field, new_field, strict
+            )
 
 
 class DatabaseWrapper(_get_backend_base()):
