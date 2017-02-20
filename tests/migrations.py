@@ -77,14 +77,14 @@ def create_drop_model(field, filters: List[str]):
             SQL statements on.
     """
 
-    model = define_fake_model()
+    model = define_fake_model({'title': field})
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
         execute_migration(schema_editor, [
             migrations.CreateModel(
                 model.__name__,
                 fields=[
-                    ('title', field)
+                    ('title', field.clone())
                 ]
             ),
             migrations.DeleteModel(

@@ -82,10 +82,10 @@ class SchemaEditor(_get_schema_editor_base()):
     def delete_model(self, model):
         """Ran when a model is being deleted."""
 
-        super(SchemaEditor, self).delete_model(model)
-
         for mixin in self.mixins:
             mixin.delete_model(model)
+
+        super(SchemaEditor, self).delete_model(model)
 
     def alter_db_table(self, model, old_db_table, new_db_table):
         """Ran when the name of a model is changed."""
@@ -112,10 +112,10 @@ class SchemaEditor(_get_schema_editor_base()):
     def remove_field(self, model, field):
         """Ran when a field is removed from a model."""
 
-        super(SchemaEditor, self).remove_field(model, field)
-
         for mixin in self.mixins:
             mixin.remove_field(model, field)
+
+        super(SchemaEditor, self).remove_field(model, field)
 
     def alter_field(self, model, old_field, new_field, strict=False):
         """Ran when the configuration on a field changed."""

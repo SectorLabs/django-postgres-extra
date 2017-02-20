@@ -11,7 +11,7 @@ def define_fake_model(fields=None):
     name = str(uuid.uuid4()).replace('-', '')[:8]
 
     attributes = {
-        'app_label': 'postgres_extra',
+        'app_label': 'tests',
         '__module__': __name__,
         '__name__': name
     }
