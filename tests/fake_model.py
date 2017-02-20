@@ -1,8 +1,10 @@
 import uuid
 
-from django.db import models, connection, migrations
+from django.db import connection, migrations
 from django.db.migrations.executor import MigrationExecutor
 from django.contrib.postgres.operations import HStoreExtension
+
+from psqlextra.models import PostgresModel
 
 
 def define_fake_model(fields=None):
@@ -16,7 +18,7 @@ def define_fake_model(fields=None):
 
     if fields:
         attributes.update(fields)
-    model = type(name, (models.Model,), attributes)
+    model = type(name, (PostgresModel,), attributes)
 
     return model
 
