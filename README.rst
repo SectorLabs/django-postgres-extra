@@ -34,9 +34,7 @@ Currently, we are working on bringing the following features to Django:
 
 The current `TODO` list looks like this:
 
-* Implement support for renaming models and fields.
-* Add tests to ensure migration detection works properly.
-* Finish implementation for ``HStoreField::required`` and add tests.
+* Add validation for field options.
 * Add support for ``ON CONFLICT X``.
 * Add support for ``ltree``.
 
