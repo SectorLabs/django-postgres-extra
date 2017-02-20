@@ -13,7 +13,7 @@ class HStoreRequiredTest(TestCase):
 
     @staticmethod
     def test_migration_create_drop_model():
-        """Tests whether indexes are properly created
+        """Tests whether constraints are properly created
         and dropped when creating and dropping a model."""
 
         required = ['beer', 'cookies']
@@ -29,7 +29,7 @@ class HStoreRequiredTest(TestCase):
 
     @staticmethod
     def test_migration_alter_db_table():
-        """Tests whether indexes are renamed properly
+        """Tests whether constraints are renamed properly
         when renaming the database table."""
 
         test = migrations.alter_db_table(
@@ -45,7 +45,7 @@ class HStoreRequiredTest(TestCase):
     @staticmethod
     def test_add_field():
         """Tests whether adding a field properly
-        creates the indexes."""
+        creates the constraints."""
 
         test = migrations.add_field(
             HStoreField(required=['beer']),
@@ -59,7 +59,7 @@ class HStoreRequiredTest(TestCase):
     @staticmethod
     def test_remove_field():
         """Tests whether removing a field properly
-        removes the index."""
+        removes the constraint."""
 
         test = migrations.remove_field(
             HStoreField(required=['beer']),
@@ -72,7 +72,7 @@ class HStoreRequiredTest(TestCase):
 
     @staticmethod
     def test_alter_field_nothing():
-        """Tests whether no indexes are dropped when not
+        """Tests whether no constraints are dropped when not
         changing anything in the required."""
 
         test = migrations.alter_field(
@@ -87,7 +87,7 @@ class HStoreRequiredTest(TestCase):
 
     @staticmethod
     def test_alter_field_add():
-        """Tests whether only one index is created when
+        """Tests whether only one constraint is created when
         adding another key to the required."""
 
         test = migrations.alter_field(
@@ -102,7 +102,7 @@ class HStoreRequiredTest(TestCase):
 
     @staticmethod
     def test_alter_field_remove():
-        """Tests whether one index is dropped when removing
+        """Tests whether one constraint is dropped when removing
         a key from required."""
 
         test = migrations.alter_field(
@@ -118,7 +118,7 @@ class HStoreRequiredTest(TestCase):
     @staticmethod
     def test_rename_field():
         """Tests whether renaming a field doesn't
-        cause the index to be re-created."""
+        cause the constraint to be re-created."""
 
         test = migrations.rename_field(
             HStoreField(required=['beer', 'cookies']),
