@@ -34,7 +34,6 @@ Currently, we are working on bringing the following features to Django:
 
 The current `TODO` list looks like this:
 
-* Add validation for field options.
 * Add support for ``ON CONFLICT X``.
 * Add support for ``ltree``.
 
