@@ -71,6 +71,45 @@ Installation
 Usage
 -----
 
+* ``psqlextra.models.PostgresModel``
+    Inheriting your models from this gives you access to the ``PostgresManager``, which exposes:
+
+    * ``upsert``:
+
+        * Native, single query, concurrency safe upsert:
+
+            .. code-block:: python
+
+                from psqlextra.models import PostgresModel
+
+                class MyModel(PostgresModel):
+                    title = models.CharField(unique=True)
+
+                pk1 = MyModel.objects.upsert(title='beer')
+                pk2 = MyModel.objects.upsert(title='beer')
+
+                assert pk1 == pk2
+
+    * ``upsert_and_get``:
+
+        * Native, single query, concurrency safe upsert + select:
+
+            .. code-block:: python
+
+                from psqlextra.models import PostgresModel
+
+                class MyModel(PostgresModel):
+                    title = models.CharField(unique=True)
+
+                pk1 = MyModel.objects.upsert(title='beer')
+                obj2 = MyModel.objects.upsert_and_get(title='beer')
+
+                assert pk1 == obj2.pk
+
+    Upserts use PostgreSQL's ``ON CONFLICT`` clause. This instruct PostgreSQL to overwrite
+    an existing row when it encounters a conflict (duplicate key). This happens in a single
+    query. PostgreSQL guarentees concurrency safety for ``ON CONFLICT``.
+
 * ``psqlextra.fields.HStoreField``
     Inherits from Django's ``HStoreField`` but adds support for constraints:
 
