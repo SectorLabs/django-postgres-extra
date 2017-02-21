@@ -2,10 +2,12 @@ from django.db import migrations
 from django.test import TestCase
 from django.db.migrations.state import ProjectState
 from django.db.migrations.autodetector import MigrationAutodetector
+import pytest
 
 from psqlextra import HStoreField
 
 
+@pytest.mark.django_db
 class HStoreAutoDetectTest(TestCase):
     """Tests whether the migration auto detector
     properly detects changes in a :see:HStoreField."""

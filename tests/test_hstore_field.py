@@ -1,9 +1,11 @@
 from django.test import TestCase
+from enforce.exceptions import RuntimeTypeError
+import pytest
 
 from psqlextra import HStoreField
-from enforce.exceptions import RuntimeTypeError
 
 
+@pytest.mark.django_db
 class HStoreFieldTestCase(TestCase):
     """Tests the :see:HStoreField class."""
 

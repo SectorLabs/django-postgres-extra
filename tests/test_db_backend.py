@@ -1,7 +1,9 @@
 from django.db import connection
 from django.test import TestCase
+import pytest
 
 
+@pytest.mark.django_db
 class DBBackendTestCase(TestCase):
     """Tests the custom database back-end."""
 

@@ -4,8 +4,10 @@ from psqlextra import HStoreField
 
 from .fake_model import get_fake_model
 from django.db import models
+import pytest
 
 
+@pytest.mark.django_db
 class OnConflictTest(TestCase):
 
     def test_simple(self):

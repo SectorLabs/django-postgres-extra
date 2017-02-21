@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.test import TestCase
 from django.db.utils import IntegrityError
+import pytest
 
 from psqlextra import HStoreField
 
@@ -8,6 +9,7 @@ from . import migrations
 from .fake_model import get_fake_model
 
 
+@pytest.mark.django_db
 class HStoreUniqueTest(TestCase):
     """Tests migrations for uniqueness on
     the :see:HStoreField."""
