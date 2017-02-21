@@ -2,13 +2,9 @@ import importlib
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models.sql.compiler import \
-    SQLInsertCompiler as BaseSQLInsertCompiler
 from django.db.backends.postgresql.base import \
     DatabaseWrapper as Psycopg2DatabaseWrapper
 
-from ..query import PostgresInsertQuery
-from ..fields import HStoreField
 from .hstore_unique import HStoreUniqueSchemaEditorMixin
 from .hstore_required import HStoreRequiredSchemaEditorMixin
 
@@ -58,126 +54,6 @@ def _get_schema_editor_base():
     schema editor for this."""
 
     return _get_backend_base().SchemaEditorClass
-
-
-def _get_operations_base():
-    """Gets the base class for the operations class.
-
-    We have to use the configured base back-end's
-    operations class for this."""
-
-    # the latest django version has `ops_class` as a
-    # class attribute, similar to `SchemaEditorClass`
-    # but, this hasn't been released yet
-
-    return type(_get_backend_base()({}).ops)
-
-
-class SQLInsertCompiler(BaseSQLInsertCompiler):
-    """Compiler for SQL INSERT statements."""
-
-    def as_sql(self):
-        """Builds the SQL INSERT statement."""
-
-        queries = super(SQLInsertCompiler, self).as_sql()
-
-        if isinstance(self.query, PostgresInsertQuery):
-            queries = [
-                (self._rewrite_insert(sql), params)
-                for sql, params in queries
-            ]
-
-        return queries
-
-    def _rewrite_insert(self, sql):
-        """Rewrites a formed SQL INSERT query to include
-        the ON CONFLICT clause.
-
-        Arguments:
-            sql:
-                The SQL INSERT query to rewrite.
-
-        Returns:
-            The specified SQL INSERT query rewritten
-            to include the ON CONFLICT clause.
-        """
-
-        qn = self.connection.ops.quote_name
-
-        # remove the RETURNING part, it will be become part of
-        # the ON CONFLICT part
-        insert, _ = sql.split(' RETURNING ')
-
-        # ON CONFLICT requires a list of columns to operate on, form
-        # a list of columns to pass in
-        unique_columns = '(%s)' % ', '.join(self._get_unique_columns())
-
-        # construct a list of columns to update when there's a conflict
-        update_columns = ', '.join([
-            '{0} = EXCLUDED.{0}'.format(qn(field.column))
-            for field in self.query.fields
-        ])
-
-        # form the new sql query that does the insert
-        new_sql = (
-            '{insert} ON CONFLICT ({unique_columns}) '
-            'DO UPDATE SET {update_columns} RETURNING id'
-        ).format(
-            insert=insert,
-            unique_columns=unique_columns,
-            update_columns=update_columns
-        )
-
-        return new_sql
-
-    def _get_unique_columns(self):
-        """Gets a list of columns that are marked as 'UNIQUE'.
-
-        This is used in the ON CONFLICT clause. This also
-        works for :see:HStoreField."""
-
-        qn = self.connection.ops.quote_name
-        unique_columns = []
-
-        for field in self.query.fields:
-            if field.unique is True:
-                unique_columns.append(qn(field.column))
-                continue
-
-            # we must also go into possible tuples since those
-            # are used to indicate "unique together"
-            if isinstance(field, HStoreField):
-                for key in field.uniqueness:
-                    if isinstance(key, tuple):
-                        for sub_key in key:
-                            unique_columns.append(
-                                '(%s->\'%s\')' % (qn(field.column), sub_key))
-                    else:
-                        unique_columns.append(
-                            '(%s->\'%s\')' % (qn(field.column), key))
-
-                continue
-
-        return unique_columns
-
-
-class DatabaseOperations(_get_operations_base()):
-    """Custom database operations."""
-
-    def compiler(self, compiler_name):
-        """Gets the SQL compiler with the specified name.
-
-        This is nasty. By default, Django looks in
-        `compiler_model.[compiler_name]`. In order to
-        just override the SQL compiler, we'd have to
-        override everything.
-
-        It's easier to just catch the INSERT compiler."""
-
-        if compiler_name == 'SQLInsertCompiler':
-            return SQLInsertCompiler
-
-        return super(DatabaseOperations, self).compiler(compiler_name)
 
 
 class SchemaEditor(_get_schema_editor_base()):
@@ -263,18 +139,6 @@ class DatabaseWrapper(_get_backend_base()):
     extension is enabled."""
 
     SchemaEditorClass = SchemaEditor
-
-    ops_class = DatabaseOperations
-
-    def __init__(self, *args, **kwargs):
-        """Initializes a new instance of :see:DatabaseWrapper."""
-
-        super(DatabaseWrapper, self).__init__(*args, **kwargs)
-
-        # remove this line once this change is released:
-        # https://github.com/django/django/commit/7ca3b391b611eb710c4c1d613e2f672591097a00
-        # this allows django itself to initialize self.ops based on ops_class
-        self.ops = self.ops_class(self)
 
     def prepare_database(self):
         """Ran to prepare the configured database.
