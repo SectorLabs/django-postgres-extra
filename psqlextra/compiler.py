@@ -6,17 +6,36 @@ from .fields import HStoreField
 class PostgresSQLUpsertCompiler(SQLInsertCompiler):
     """Compiler for SQL INSERT statements."""
 
-    def as_sql(self):
+    def as_sql(self, returning='id'):
         """Builds the SQL INSERT statement."""
 
         queries = [
-            (self._rewrite_insert(sql), params)
+            (self._rewrite_insert(sql, returning), params)
             for sql, params in super().as_sql()
         ]
 
         return queries
 
-    def _rewrite_insert(self, sql):
+    def execute_sql(self, return_id=False):
+        returning = 'id' if return_id else '*'
+        returning = '*'
+
+        # execute all the generate queries
+        with self.connection.cursor() as cursor:
+            rows = []
+            for sql, params in self.as_sql(returning):
+                cursor.execute(sql, params)
+                rows.append(cursor.fetchone())
+
+        # return the primary key, which is stored in
+        # the first column that is returned
+        if return_id:
+            return rows[0][0]
+
+        # return the entire row instead
+        return rows[0]
+
+    def _rewrite_insert(self, sql, returning='id'):
         """Rewrites a formed SQL INSERT query to include
         the ON CONFLICT clause.
 
@@ -24,15 +43,15 @@ class PostgresSQLUpsertCompiler(SQLInsertCompiler):
             sql:
                 The SQL INSERT query to rewrite.
 
+            returning:
+                What to put in the `RETURNING` clause
+                of the resulting query.
+
         Returns:
             The specified SQL INSERT query rewritten
             to include the ON CONFLICT clause.
         """
         qn = self.connection.ops.quote_name
-
-        # remove the RETURNING part, it will be become part of
-        # the ON CONFLICT part
-        insert, _ = sql.split(' RETURNING ')
 
         # ON CONFLICT requires a list of columns to operate on, form
         # a list of columns to pass in
@@ -49,14 +68,14 @@ class PostgresSQLUpsertCompiler(SQLInsertCompiler):
         # form the new sql query that does the insert
         new_sql = (
             '{insert} ON CONFLICT ({unique_columns}) '
-            'DO UPDATE SET {update_columns} RETURNING id'
+            'DO UPDATE SET {update_columns} RETURNING {returning}'
         ).format(
-            insert=insert,
+            insert=sql,
             unique_columns=unique_columns,
-            update_columns=update_columns
+            update_columns=update_columns,
+            returning=returning
         )
 
-        print(new_sql)
         return new_sql
 
     def _get_unique_columns(self):

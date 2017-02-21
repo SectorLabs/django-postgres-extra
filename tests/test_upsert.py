@@ -8,7 +8,8 @@ import pytest
 
 
 @pytest.mark.django_db
-class OnConflictTest(TestCase):
+class UpsertTest(TestCase):
+    """Tests whether the :see:upsert functionality works correctly."""
 
     def test_simple(self):
         model = get_fake_model({
@@ -42,6 +43,12 @@ class OnConflictTest(TestCase):
         obj2 = model.objects.upsert_and_get(
             title='beer'
         )
+
+        assert obj1.date_added
+        assert obj2.date_added
+
+        assert obj1.date_updated
+        assert obj2.date_updated
 
         assert obj1.date_added == obj2.date_added
         assert obj1.date_updated != obj2.date_updated

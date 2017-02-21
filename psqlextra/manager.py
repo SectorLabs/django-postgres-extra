@@ -6,8 +6,8 @@ from django.db.models.sql import InsertQuery
 from django.core.exceptions import ImproperlyConfigured
 import django
 
-from .compiler import PostgresSQLUpsertCompiler
 from .query import PostgresUpsertQuery
+from .compiler import PostgresSQLUpsertCompiler
 
 
 class PostgresManager(models.Manager):
@@ -40,6 +40,42 @@ class PostgresManager(models.Manager):
             The primary key of the row that was created/updated.
         """
 
+        compiler = self._build_upsert_compiler(kwargs)
+        return compiler.execute_sql(return_id=True)
+
+    def upsert_and_get(self, **kwargs):
+        """Creates a new record or updates the existing one
+        with the specified data and then gets the row.
+
+        Arguments:
+            kwargs:
+                Fields to insert/update.
+
+        Returns:
+            The model instance representing the row
+            that was created/updated.
+        """
+
+        compiler = self._build_upsert_compiler(kwargs)
+        row = compiler.execute_sql(return_id=False)
+        field_names = [f.name for f in self.model._meta.concrete_fields]
+        return self.model.from_db(self.db, field_names, row)
+
+    def _build_upsert_compiler(self, kwargs):
+        """Builds the SQL compiler for a insert/update query.
+
+        Arguments:
+            kwargs:
+                Field values.
+
+            return_id:
+                Indicates whether to return just
+                the id or the entire row.
+
+        Returns:
+            The SQL compiler for the upsert.
+        """
+
         # create an empty object to store the result in
         obj = self.model(**kwargs)
 
@@ -58,24 +94,7 @@ class PostgresManager(models.Manager):
         connection = django.db.connections[self.db]
         compiler = PostgresSQLUpsertCompiler(query, connection, self.db)
 
-        # execute the query to the database
-        return compiler.execute_sql(True)
-
-    def upsert_and_get(self, **kwargs):
-        """Creates a new record or updates the existing one
-        with the specified data and then gets the row.
-
-        Arguments:
-            kwargs:
-                Fields to insert/update.
-
-        Returns:
-            The model instance representing the row
-            that was created/updated.
-        """
-
-        pk = self.upsert(**kwargs)
-        return self.get(pk=pk)
+        return compiler
 
     def _is_magical_field(self, model_instance, field, is_insert: bool):
         """Verifies whether this field is gonna modify something
