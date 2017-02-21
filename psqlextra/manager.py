@@ -1,3 +1,5 @@
+import copy
+
 from django.db import models
 from django.conf import settings
 from django.db.models.sql import InsertQuery
@@ -5,6 +7,7 @@ from django.core.exceptions import ImproperlyConfigured
 import django
 
 from .compiler import PostgresSQLUpsertCompiler
+from .query import PostgresUpsertQuery
 
 
 class PostgresManager(models.Manager):
@@ -37,21 +40,18 @@ class PostgresManager(models.Manager):
             The primary key of the row that was created/updated.
         """
 
-        fields = [
-            field
-            for field in self.model._meta.local_concrete_fields
-            if field is not self.model._meta.auto_field and field.column in kwargs
-        ]
+        # create an empty object to store the result in
+        obj = self.model(**kwargs)
 
         # indicate this query is going to perform write
         self._for_write = True
 
-        # create an empty object to store the result in
-        obj = self.model(**kwargs)
+        # get the fields to be used during update/insert
+        insert_fields, update_fields = self._get_upsert_fields(kwargs)
 
         # build a normal insert query
-        query = InsertQuery(self.model)
-        query.insert_values(fields, [obj], raw=False)
+        query = PostgresUpsertQuery(self.model)
+        query.values([obj], insert_fields, update_fields)
 
         # use the upsert query compiler to transform the insert
         # into an upsert so that it will overwrite an existing row
@@ -76,3 +76,80 @@ class PostgresManager(models.Manager):
 
         pk = self.upsert(**kwargs)
         return self.get(pk=pk)
+
+    def _is_magical_field(self, model_instance, field, is_insert: bool):
+        """Verifies whether this field is gonna modify something
+        on its own.
+
+        "Magical" means that a field modifies the field value
+        during the pre_save.
+
+        Arguments:
+            model_instance:
+                The model instance the field is defined on.
+
+            field:
+                The field to get of whether the field is
+                magical.
+
+            is_insert:
+                Pretend whether this is an insert?
+
+        Returns:
+            True when this field modifies something.
+        """
+
+        # does this field modify someting upon insert?
+        old_value = getattr(model_instance, field.name, None)
+        field.pre_save(model_instance, is_insert)
+        new_value = getattr(model_instance, field.name, None)
+
+        return old_value != new_value
+
+    def _get_upsert_fields(self, kwargs):
+        """Gets the fields to use in an upsert.
+
+        This some nice magic. We'll split the fields into
+        a group of "insert fields" and "update fields":
+
+        INSERT INTO bla ("val1", "val2") ON CONFLICT DO UPDATE SET val1 = EXCLUDED.val1
+
+                         ^^^^^^^^^^^^^^                            ^^^^^^^^^^^^^^^^^^^^
+                         insert_fields                                 update_fields
+
+        Often, fields appear in both lists. But, for example,
+        a :see:DateTime field with `auto_now_add=True` set, will
+        only appear in "insert_fields", since it won't be set
+        on existing rows.
+
+        Other than that, the user specificies a list of fields
+        in the upsert() call. That migt not be all fields. The
+        user could decide to leave out optional fields. If we
+        end up doing an update, we don't want to overwrite
+        those non-specified fields.
+
+        We cannot just take the list of fields the user
+        specifies, because as mentioned, some fields
+        make modifications to the model on their own.
+
+        We'll have to detect which fields make modifications
+        and include them in the list of insert/update fields.
+        """
+
+        model_instance = self.model(**kwargs)
+        insert_fields = []
+        update_fields = []
+
+        for field in model_instance._meta.local_concrete_fields:
+            if field.name in kwargs:
+                insert_fields.append(field)
+                update_fields.append(field)
+                continue
+
+            if self._is_magical_field(model_instance, field, is_insert=True):
+                insert_fields.append(field)
+
+            if self._is_magical_field(model_instance, field, is_insert=False):
+                update_fields.append(field)
+
+        return insert_fields, update_fields

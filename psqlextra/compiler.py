@@ -43,7 +43,7 @@ class PostgresSQLUpsertCompiler(SQLInsertCompiler):
         # construct a list of columns to update when there's a conflict
         update_columns = ', '.join([
             '{0} = EXCLUDED.{0}'.format(qn(field.column))
-            for field in self.query.fields
+            for field in self.query.update_fields
         ])
 
         # form the new sql query that does the insert
@@ -56,6 +56,7 @@ class PostgresSQLUpsertCompiler(SQLInsertCompiler):
             update_columns=update_columns
         )
 
+        print(new_sql)
         return new_sql
 
     def _get_unique_columns(self):

@@ -8,7 +8,7 @@ from django.db import models
 
 class OnConflictTest(TestCase):
 
-    def test1(self):
+    def test_simple(self):
         model = get_fake_model({
             'title': HStoreField(uniqueness=['key1']),
             'cookies': models.CharField(max_length=255, null=True)
@@ -25,3 +25,21 @@ class OnConflictTest(TestCase):
 
         assert obj1.title['key1'] == 'beer'
         assert obj1.cookies == 'cheers'
+
+    def test_auto_fields(self):
+        model = get_fake_model({
+            'title': models.CharField(max_length=255, unique=True),
+            'date_added': models.DateTimeField(auto_now_add=True),
+            'date_updated': models.DateTimeField(auto_now=True)
+        })
+
+        obj1 = model.objects.upsert_and_get(
+            title='beer'
+        )
+
+        obj2 = model.objects.upsert_and_get(
+            title='beer'
+        )
+
+        assert obj1.date_added == obj2.date_added
+        assert obj1.date_updated != obj2.date_updated
