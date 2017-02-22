@@ -15,7 +15,7 @@ build:
             - ./lib/python3.5/site-packages
             - ~/.analysis
     environment:
-        python: '3.5.3'
+        python: '3.6.0'
         variables:
             DJANGO_SETTINGS_MODULES: settings
         postgresql: true
