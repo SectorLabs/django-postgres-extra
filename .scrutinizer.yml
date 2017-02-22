@@ -10,8 +10,11 @@ tools:
 filter:
     excluded_paths:
         - '*/tests/*'
-        - '*/migrations/*'
 build:
+    cache:
+        directories:
+            - ./lib/python3.5/site-packages
+            - ~/.analysis
     environment:
         python: '3.5.0'
         node: 'v6.2.0'
@@ -23,10 +26,12 @@ build:
         override:
             - 'pip install -r requirements/test.txt'
     tests:
+        before:
+            - 'pip install coverage --force-reinstall -U'
         override:
-            - pylint-run postgres_extra
+            - pylint-run strat -j8
             -
-                command: coverage run manage.py test
+                command: python -m pytest --cov=psqlextra
                 coverage:
                     file: '.coverage'
                     format: 'py-cc'
