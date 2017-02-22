@@ -28,7 +28,7 @@ build:
             - 'pip install coverage --force-reinstall -U'
         override:
             -
-                command: python -m pytest --cov=psqlextra
+                command: python3.6 -m pytest --cov=psqlextra
                 coverage:
                     file: '.coverage'
                     format: 'py-cc'
