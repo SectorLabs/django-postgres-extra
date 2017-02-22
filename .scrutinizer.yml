@@ -27,7 +27,6 @@ build:
         before:
             - 'pip install coverage --force-reinstall -U'
         override:
-            - pylint-run strat -j8
             -
                 command: python -m pytest --cov=psqlextra
                 coverage:
