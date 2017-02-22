@@ -2,7 +2,6 @@ checks:
     python:
         code_rating: true
         duplicate_code: true
-    javascript: true
 tools:
     pylint:
         python_version: '2'
@@ -16,8 +15,7 @@ build:
             - ./lib/python3.5/site-packages
             - ~/.analysis
     environment:
-        python: '3.5.0'
-        node: 'v6.2.0'
+        python: '3.5.3'
         variables:
             DJANGO_SETTINGS_MODULES: settings
         postgresql: true
