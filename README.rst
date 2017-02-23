@@ -17,7 +17,7 @@ django-postgres-extra
 
 With seamless we mean that any features we add will work truly seamlessly. You should not have to manually modify your migrations to work with fields and objects provided by this package.
 
-This package requires Python 3.5 or newer and Django 1.10 or newer.
+Browse the documentation at: http://django-postgres-extra.readthedocs.io
 
 Focus
 -----
@@ -58,11 +58,6 @@ Installation
                 'ENGINE': 'psqlextra.backend'
             }
         }
-
-Documentation
--------------
-
-Browse the documentation at: [http://django-postgres-extra.readthedocs.io/](http://django-postgres-extra.readthedocs.io/).
 
 
 FAQ - Frequently asked questions
