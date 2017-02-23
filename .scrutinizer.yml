@@ -15,7 +15,7 @@ build:
             - ./lib/python3.5/site-packages
             - ~/.analysis
     environment:
-        python: '3.5.2'
+        python: '3.5.0'
         variables:
             DJANGO_SETTINGS_MODULES: settings
             DATABASE_URL: postgres://scrutinizer:scrutinizer@localhost:5434/psqlextra
