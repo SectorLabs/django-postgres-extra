@@ -15,9 +15,10 @@ build:
             - ./lib/python3.5/site-packages
             - ~/.analysis
     environment:
-        python: '3.6.0'
+        python: '3.5.2'
         variables:
             DJANGO_SETTINGS_MODULES: settings
+            DATABASE_URL: postgres://scrutinizer:scrutinizer@localhost:5434/psqlextra
         postgresql: true
         redis: true
     dependencies:
@@ -28,7 +29,7 @@ build:
             - 'pip install coverage --force-reinstall -U'
         override:
             -
-                command: python3.6 -m pytest --cov=psqlextra
+                command: python3 -m pytest --cov=psqlextra
                 coverage:
                     file: '.coverage'
                     format: 'py-cc'

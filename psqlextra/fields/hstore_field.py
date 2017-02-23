@@ -1,7 +1,6 @@
 from typing import List, Tuple, Union
 
 from django.contrib.postgres.fields import HStoreField as DjangoHStoreField
-import enforce
 
 
 class HStoreField(DjangoHStoreField):
@@ -13,7 +12,6 @@ class HStoreField(DjangoHStoreField):
           custom database back-end.
     """
 
-    @enforce.runtime_validation
     def __init__(self, *args,
                  uniqueness: List[Union[str, Tuple[str, ...]]]=None,
                  required: List[str]=None, **kwargs):
