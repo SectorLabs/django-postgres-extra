@@ -4,7 +4,7 @@ django-postgres-extra aims to make all of PostgreSQL's awesome features availabl
 
 With seamless we mean that any features we add will work truly seamlessly. You should not have to manually modify your migrations to work with fields and objects provided by this package.
 
-## Features
+## PostgreSQL features
 We are currently aiming on having the following features available:
 
 * [hstore](https://www.postgresql.org/docs/9.1/static/hstore.html)

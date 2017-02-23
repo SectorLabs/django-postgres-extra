@@ -1,1 +1,4 @@
 site_name: django-postgres-extra
+pages:
+- Home: index.md
+- Features: features.md
