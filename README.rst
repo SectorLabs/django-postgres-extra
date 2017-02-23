@@ -7,6 +7,12 @@ django-postgres-extra
 .. image:: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/badges/coverage.png
     :target: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/
 
+.. image:: https://img.shields.io/:license-mit-blue.svg
+    :target: http://doge.mit-license.org
+
+.. image:: https://badge.fury.io/py/django-postgres-extra.svg
+    :target: https://pypi.python.org/pypi/django-postgres-extra
+
 ``django-postgres-extra`` aims to make all of PostgreSQL's awesome features available through the Django ORM. We do this by taking care of all the hassle. As opposed to the many small packages that are available to try to bring a single feature to Django with minimal effort. ``django-postgres-extra`` goes the extra mile, with well tested implementations, seamless migrations and much more.
 
 With seamless we mean that any features we add will work truly seamlessly. You should not have to manually modify your migrations to work with fields and objects provided by this package.
