@@ -24,7 +24,6 @@ Focus
 Currently, we are working on bringing the following features to Django:
 
 * https://www.postgresql.org/docs/9.1/static/ltree.html
-
 * https://www.postgresql.org/docs/9.5/static/sql-insert.html#SQL-ON-CONFLICT
     * ``ON CONFLICT DO NOTHING``
 
