@@ -23,25 +23,10 @@ Focus
 -----
 Currently, we are working on bringing the following features to Django:
 
-* https://www.postgresql.org/docs/9.1/static/hstore.html
-   * UNIQUE constraints
-   * All operators
-   * GiST and GIN indexes
-
 * https://www.postgresql.org/docs/9.1/static/ltree.html
-    * All operators
-    * All functions
-    * Unique indexes
-    * GiST and GIN indexes
 
 * https://www.postgresql.org/docs/9.5/static/sql-insert.html#SQL-ON-CONFLICT
-    * ``ON CONFLICT UPDATE``
     * ``ON CONFLICT DO NOTHING``
-
-The current `TODO` list looks like this:
-
-* Add support for ``ON CONFLICT X``.
-* Add support for ``ltree``.
 
 
 Installation
