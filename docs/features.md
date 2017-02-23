@@ -1,5 +1,5 @@
 # HStoreField
-`psqlextra.fields.HStoreField` is based on Django's [HStoreField](https://docs.djangoproject.com/en/1.10/ref/contrib/postgres/fields/#hstorefield) and therefor supports everything Django does natively, plus more.
+`psqlextra.fields.HStoreField` is based on Django's [HStoreField](https://docs.djangoproject.com/en/1.10/ref/contrib/postgres/fields/#hstorefield) and therefore supports everything Django does natively, plus more.
 
 ## uniqueness
 The `uniqueness` constraint can be added on one or more `hstore` keys, similar to how a `UNIQUE` constraint can be added to a column. Setting this option causes unique indexes to be created on the specified keys.
@@ -40,7 +40,7 @@ Both calls to `create` would fail in the example above since they do not provide
 # Upsert
 An "upsert" is an operation where a piece of data is inserted/created if it doesn't exist yet and updated (overwritten) when it already exists. Django has long provided this functionality through [`update_or_create`](https://docs.djangoproject.com/en/1.10/ref/models/querysets/#update-or-create). It does this by first checking whether the record exists and creating it not.
 
-The major problem with this approach is possibility of race conditions. In between the `SELECT` and `INSERT`, another process could perform the `INSERT`. The last `INSERT` would most likely fail because it would be duplicating a `UNIQUE` constaint.
+The major problem with this approach is possibility of race conditions. In between the `SELECT` and `INSERT`, another process could perform the `INSERT`. The last `INSERT` would most likely fail because it would be duplicating a `UNIQUE` constraint.
 
 In order to combat this, PostgreSQL added native upserts. Also known as [`ON CONFLICT DO ...`](https://www.postgresql.org/docs/9.5/static/sql-insert.html#SQL-ON-CONFLICT). This allows a user to specify what to do when a conflict occurs.
 
@@ -48,7 +48,7 @@ In order to combat this, PostgreSQL added native upserts. Also known as [`ON CON
 ## upsert
 The `upsert` method attempts to insert a row with the specified data or updates (and overwrites) the duplicate row, and then returns the primary key of the row that was created/updated:
 
-from django.db import models
+    from django.db import models
     from psqlextra.models import PostgresModel
 
     class MyModel(PostgresModel):
@@ -59,7 +59,7 @@ from django.db import models
 
     assert id1 == id2
 
-Note that a single call to `upsert` results in a single `INSERT INTO` statement. It is therefor much faster and much safer than anything Django currently has to offer.
+Note that a single call to `upsert` results in a single `INSERT INTO ... ON CONFLICT DO UPDATE ...`. This fixes the problem outlined earlier about another process doing the `INSERT` in the mean time.
 
 ## upsert_and_get
 `upsert_and_get` does the same thing as `upsert`, but returns a model instance rather than the primary key of the row that was created/updated. This also happens in a single query using `RETURNING` clause on the `INSERT INTO` statement:
