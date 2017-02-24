@@ -160,7 +160,7 @@ class PostgresManager(models.Manager):
         update_fields = []
 
         for field in model_instance._meta.local_concrete_fields:
-            if field.name in kwargs:
+            if field.name in kwargs or field.column in kwargs:
                 insert_fields.append(field)
                 update_fields.append(field)
                 continue
