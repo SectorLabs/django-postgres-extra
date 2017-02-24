@@ -1,6 +1,7 @@
 from django.db.models.sql.compiler import SQLInsertCompiler
 
 from .fields import HStoreField
+from django.core.exceptions import SuspiciousOperation
 
 
 class PostgresSQLUpsertCompiler(SQLInsertCompiler):
@@ -57,7 +58,10 @@ class PostgresSQLUpsertCompiler(SQLInsertCompiler):
         # a list of columns to pass in
         unique_columns = ', '.join(self._get_unique_columns())
         if len(unique_columns) == 0:
-            return sql
+            raise SuspiciousOperation((
+                'You\'re trying to do a upsert on a table that '
+                'doesn\'t have any unique columns.'
+            ))
 
         # construct a list of columns to update when there's a conflict
         update_columns = ', '.join([
