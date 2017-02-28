@@ -1,7 +1,5 @@
-from django.db.models.sql.compiler import SQLInsertCompiler
-
-from .fields import HStoreField
 from django.core.exceptions import SuspiciousOperation
+from django.db.models.sql.compiler import SQLInsertCompiler
 
 
 class PostgresSQLUpsertCompiler(SQLInsertCompiler):
@@ -31,10 +29,13 @@ class PostgresSQLUpsertCompiler(SQLInsertCompiler):
         # return the primary key, which is stored in
         # the first column that is returned
         if return_id:
-            return rows[0][0]
+            return dict(id=rows[0][0])
 
-        # return the entire row instead
-        return rows[0]
+        # create a mapping between column names and column value
+        return {
+            column.name: rows[0][column_index]
+            for column_index, column in enumerate(cursor.description)
+        }
 
     def _rewrite_insert(self, sql, returning='id'):
         """Rewrites a formed SQL INSERT query to include
@@ -54,63 +55,58 @@ class PostgresSQLUpsertCompiler(SQLInsertCompiler):
         """
         qn = self.connection.ops.quote_name
 
-        # ON CONFLICT requires a list of columns to operate on, form
-        # a list of columns to pass in
-        unique_columns = ', '.join(self._get_unique_columns())
-        if len(unique_columns) == 0:
-            raise SuspiciousOperation((
-                'You\'re trying to do a upsert on a table that '
-                'doesn\'t have any unique columns.'
-            ))
-
         # construct a list of columns to update when there's a conflict
         update_columns = ', '.join([
             '{0} = EXCLUDED.{0}'.format(qn(field.column))
             for field in self.query.update_fields
         ])
 
+        # build the conflict target, the columns to watch
+        # for conflict basically
+        conflict_target = self._build_conflict_target()
+
         # form the new sql query that does the insert
         new_sql = (
-            '{insert} ON CONFLICT ({unique_columns}) '
+            '{insert} ON CONFLICT ({conflict_target}) '
             'DO UPDATE SET {update_columns} RETURNING {returning}'
         ).format(
             insert=sql,
-            unique_columns=unique_columns,
+            conflict_target=conflict_target,
             update_columns=update_columns,
             returning=returning
         )
 
         return new_sql
 
-    def _get_unique_columns(self):
-        """Gets a list of columns that are marked as 'UNIQUE'.
-
-        This is used in the ON CONFLICT clause. This also
-        works for :see:HStoreField."""
+    def _build_conflict_target(self):
+        """Builds the `conflict_target` for the ON CONFLICT
+        clause."""
 
         qn = self.connection.ops.quote_name
-        unique_columns = []
+        conflict_target = []
 
-        for field in self.query.fields:
-            if field.unique is True:
-                unique_columns.append(qn(field.column))
+        if not isinstance(self.query.conflict_target, list):
+            raise SuspiciousOperation((
+                '%s is not a valid conflict target, specify '
+                'a list of column names, or tuples with column '
+                'names and hstore key.'
+            ) % str(self.query.conflict_target))
+
+        for field in self.query.conflict_target:
+            if isinstance(field, str):
+                conflict_target.append(qn(field))
                 continue
 
-            # we must also go into possible tuples since those
-            # are used to indicate "unique together"
-            if isinstance(field, HStoreField):
-                uniqueness = getattr(field, 'uniqueness', None)
-                if not uniqueness:
-                    continue
-                for key in uniqueness:
-                    if isinstance(key, tuple):
-                        for sub_key in key:
-                            unique_columns.append(
-                                '(%s->\'%s\')' % (qn(field.column), sub_key))
-                    else:
-                        unique_columns.append(
-                            '(%s->\'%s\')' % (qn(field.column), key))
-
+            if isinstance(field, tuple):
+                field, key = field
+                conflict_target.append(
+                    '(%s -> \'%s\')' % (qn(field), key))
                 continue
 
-        return unique_columns
+            raise SuspiciousOperation((
+                '%s is not a valid conflict target, specify '
+                'a list of column names, or tuples with column '
+                'names and hstore key.'
+            ) % str(field))
+
+        return ','.join(conflict_target)

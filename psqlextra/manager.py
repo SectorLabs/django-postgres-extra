@@ -1,13 +1,12 @@
-import copy
+from typing import List, Dict
 
-from django.db import models
-from django.conf import settings
-from django.db.models.sql import InsertQuery
-from django.core.exceptions import ImproperlyConfigured
 import django
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+from django.db import models
 
-from .query import PostgresUpsertQuery
 from .compiler import PostgresSQLUpsertCompiler
+from .query import PostgresUpsertQuery
 
 
 class PostgresManager(models.Manager):
@@ -28,27 +27,33 @@ class PostgresManager(models.Manager):
                 'the \'psqlextra.backend\'. Set DATABASES.ENGINE.'
             ) % db_backend)
 
-    def upsert(self, **kwargs) -> int:
+    def upsert(self, conflict_target: List, fields: Dict) -> int:
         """Creates a new record or updates the existing one
         with the specified data.
 
         Arguments:
-            kwargs:
+            conflict_target:
+                Fields to pass into the ON CONFLICT clause.
+
+            fields:
                 Fields to insert/update.
 
         Returns:
             The primary key of the row that was created/updated.
         """
 
-        compiler = self._build_upsert_compiler(kwargs)
-        return compiler.execute_sql(return_id=True)
+        compiler = self._build_upsert_compiler(conflict_target, fields)
+        return compiler.execute_sql(return_id=True)['id']
 
-    def upsert_and_get(self, **kwargs):
+    def upsert_and_get(self, conflict_target: List, fields: Dict):
         """Creates a new record or updates the existing one
         with the specified data and then gets the row.
 
         Arguments:
-            kwargs:
+            conflict_target:
+                Fields to pass into the ON CONFLICT clause.
+
+            fields:
                 Fields to insert/update.
 
         Returns:
@@ -56,15 +61,17 @@ class PostgresManager(models.Manager):
             that was created/updated.
         """
 
-        compiler = self._build_upsert_compiler(kwargs)
-        row = compiler.execute_sql(return_id=False)
-        field_names = [f.name for f in self.model._meta.concrete_fields]
-        return self.model.from_db(self.db, field_names, row)
+        compiler = self._build_upsert_compiler(conflict_target, fields)
+        column_data = compiler.execute_sql(return_id=False)
+        return self.model(**column_data)
 
-    def _build_upsert_compiler(self, kwargs):
+    def _build_upsert_compiler(self, conflict_target: List, kwargs):
         """Builds the SQL compiler for a insert/update query.
 
         Arguments:
+            conflict_target:
+                Fields to pass into the ON CONFLICT clause.
+
             kwargs:
                 Field values.
 
@@ -87,6 +94,7 @@ class PostgresManager(models.Manager):
 
         # build a normal insert query
         query = PostgresUpsertQuery(self.model)
+        query.conflict_target = conflict_target
         query.values([obj], insert_fields, update_fields)
 
         # use the upsert query compiler to transform the insert

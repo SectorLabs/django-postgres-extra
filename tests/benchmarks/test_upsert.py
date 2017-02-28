@@ -23,7 +23,10 @@ def _native_upsert(model, random_value):
     """Performs a concurrency safe upsert
     using the native PostgreSQL upsert."""
 
-    return model.objects.upsert_and_get(field=random_value)
+    return model.objects.upsert_and_get(
+        conflict_target=['field'],
+        fields=dict(field=random_value)
+    )
 
 
 @pytest.mark.django_db()

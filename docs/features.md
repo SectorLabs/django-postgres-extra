@@ -46,7 +46,9 @@ In order to combat this, PostgreSQL added native upserts. Also known as [`ON CON
 
 
 ## upsert
-The `upsert` method attempts to insert a row with the specified data or updates (and overwrites) the duplicate row, and then returns the primary key of the row that was created/updated:
+The `upsert` method attempts to insert a row with the specified data or updates (and overwrites) the duplicate row, and then returns the primary key of the row that was created/updated.
+
+Upserts work by catching conflicts. PostgreSQL requires to know which conflicts to react to. You have to specify the name of the column which's constraint you want to react to. This is specified in the `conflict_target` field. If the constraint you're trying to react to consists of multiple columns, specify multiple columns.
 
     from django.db import models
     from psqlextra.models import PostgresModel
@@ -54,8 +56,19 @@ The `upsert` method attempts to insert a row with the specified data or updates 
     class MyModel(PostgresModel):
         myfield = models.CharField(max_length=255, unique=True)
 
-    id1 = MyModel.objects.upsert(myfield='beer')
-    id2 = MyModel.objects.upsert(myfield='beer')
+    id1 = MyModel.objects.upsert(
+        conflict_target=['myfield'],
+        fields=dict(
+            myfield='beer'
+        )
+    )
+
+    id2 = MyModel.objects.upsert(
+        conflict_target=['myfield'],
+        fields=dict(
+            myfield='beer'
+        )
+    )
 
     assert id1 == id2
 
@@ -72,5 +85,19 @@ Note that a single call to `upsert` results in a single `INSERT INTO ... ON CONF
 
     obj1 = MyModel.objects.upsert_and_get(myfield='beer')
     obj2 = MyModel.objects.upsert_and_get(myfield='beer')
+
+    obj1 = MyModel.objects.upsert_and_get(
+        conflict_target=['myfield'],
+        fields=dict(
+            myfield='beer'
+        )
+    )
+
+    obj2 = MyModel.objects.upsert_and_get(
+        conflict_target=['myfield'],
+        fields=dict(
+            myfield='beer'
+        )
+    )
 
     assert obj1.id == obj2.id

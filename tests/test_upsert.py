@@ -6,6 +6,7 @@ from .fake_model import get_fake_model
 from django.db import models
 import pytest
 
+from django.core.exceptions import SuspiciousOperation
 
 @pytest.mark.django_db
 class UpsertTest(TestCase):
@@ -20,12 +21,18 @@ class UpsertTest(TestCase):
         })
 
         obj = model.objects.upsert_and_get(
-            title={'key1': 'beer'},
-            cookies='cheers'
+            conflict_target=[('title', 'key1')],
+            fields=dict(
+                title={'key1': 'beer'},
+                cookies='cheers'
+            )
         )
 
         obj1 = model.objects.upsert_and_get(
-            title={'key1': 'beer'}
+            conflict_target=[('title', 'key1')],
+            fields=dict(
+                title={'key1': 'beer'}
+            )
         )
 
         obj1.refresh_from_db()
@@ -44,11 +51,17 @@ class UpsertTest(TestCase):
         })
 
         obj1 = model.objects.upsert_and_get(
-            title='beer'
+            conflict_target=['title'],
+            fields=dict(
+                title='beer'
+            )
         )
 
         obj2 = model.objects.upsert_and_get(
-            title='beer'
+            conflict_target=['title'],
+            fields=dict(
+                title='beer'
+            )
         )
 
         assert obj1.date_added
@@ -73,18 +86,89 @@ class UpsertTest(TestCase):
             'model1': models.ForeignKey(model1)
         })
 
-        model1_row = model1.objects.upsert_and_get(name='item1')
+        model1_row = model1.objects.upsert_and_get(
+            conflict_target=['name'],
+            fields=dict(
+                name='item1'
+            )
+        )
 
         # upsert by id, that should work
-        model2.objects.upsert(name='item1', model1_id=model1_row.id)
+        model2.objects.upsert(
+            conflict_target=['name'],
+            fields=dict(
+                name='item1',
+                model1_id=model1_row.id
+            )
+        )
 
         model2_row = model2.objects.get(name='item1')
         assert model2_row.name == 'item1'
         assert model2_row.model1.id == model1_row.id
 
         # upsert by object, that should also work
-        model2.objects.upsert(name='item2', model1=model1_row)
+        model2.objects.upsert(
+            conflict_target=['name'],
+            fields=dict(
+                name='item2',
+                model1=model1_row
+            )
+        )
 
         model2_row = model2.objects.get(name='item2')
         assert model2_row.name == 'item2'
         assert model2_row.model1.id == model1_row.id
+
+    def test_get_partial(self):
+        """Asserts that when doing a upsert_and_get with
+        only part of the columns on the model, all fields
+        are returned properly."""
+
+        model = get_fake_model({
+            'title': models.CharField(max_length=140, unique=True),
+            'purpose': models.CharField(max_length=10, null=True),
+            'created_at': models.DateTimeField(auto_now_add=True),
+            'updated_at': models.DateTimeField(auto_now=True),
+        })
+
+        obj1 = model.objects.upsert_and_get(
+            conflict_target=['title'],
+            fields=dict(
+                title='beer',
+                purpose='for-sale'
+            )
+        )
+
+        obj2 = model.objects.upsert_and_get(
+            conflict_target=['title'],
+            fields=dict(title='beer')
+        )
+
+        assert obj2.title == obj1.title
+        assert obj2.purpose == obj1.purpose
+        assert obj2.created_at == obj2.created_at
+        assert obj2.updated_at != obj1.updated_at
+
+    def test_invalid_conflict_target(self):
+        """Tests whether specifying a invalid value
+        for `conflict_target` raises an error."""
+
+        model = get_fake_model({
+            'title': models.CharField(max_length=140, unique=True)
+        })
+
+        with self.assertRaises(SuspiciousOperation):
+            model.objects.upsert(
+                conflict_target='cookie',
+                fields=dict(
+                    title='beer'
+                )
+            )
+
+        with self.assertRaises(SuspiciousOperation):
+            model.objects.upsert(
+                conflict_target=[None],
+                fields=dict(
+                    title='beer'
+                )
+            )

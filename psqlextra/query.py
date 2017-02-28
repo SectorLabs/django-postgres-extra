@@ -1,3 +1,5 @@
+from typing import List
+
 from django.db.models.sql import InsertQuery
 
 
@@ -10,8 +12,9 @@ class PostgresUpsertQuery(InsertQuery):
         super(PostgresUpsertQuery, self).__init__(*args, **kwargs)
 
         self.update_fields = []
+        self.conflict_target = []
 
-    def values(self, objs, insert_fields, update_fields):
+    def values(self, objs: List, insert_fields: List, update_fields: List):
         """Sets the values to be used in this query.
 
         Insert fields are fields that are definitely
