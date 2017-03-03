@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import Dict, List
 
 import django
 from django.conf import settings
@@ -63,7 +63,23 @@ class PostgresManager(models.Manager):
 
         compiler = self._build_upsert_compiler(conflict_target, fields)
         column_data = compiler.execute_sql(return_id=False)
-        return self.model(**column_data)
+
+        # get a list of columns that are officially part of the model
+        model_columns = [
+            field.column
+            for field in self.model._meta.local_concrete_fields
+        ]
+
+        # strip out any columns/fields returned by the db that
+        # are not present in the model
+        model_init_fields = {}
+        for column_name, column_value in column_data.items():
+            if column_name not in model_columns:
+                continue
+
+            model_init_fields[column_name] = column_value
+
+        return self.model(**model_init_fields)
 
     def _build_upsert_compiler(self, conflict_target: List, kwargs):
         """Builds the SQL compiler for a insert/update query.

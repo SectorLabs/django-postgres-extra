@@ -1,12 +1,12 @@
+import pytest
+from django.core.exceptions import SuspiciousOperation
+from django.db import connection, models
 from django.test import TestCase
 
 from psqlextra import HStoreField
 
 from .fake_model import get_fake_model
-from django.db import models
-import pytest
 
-from django.core.exceptions import SuspiciousOperation
 
 @pytest.mark.django_db
 class UpsertTest(TestCase):
@@ -172,3 +172,33 @@ class UpsertTest(TestCase):
                     title='beer'
                 )
             )
+
+    def test_outdated_model(self):
+        """Tests whether upsert_and_get properly handles
+        fields that are in the database but not on the model.
+
+        This happens if somebody manually modified the database
+        to add a column that is not present in the model.
+
+        This should be handled properly by ignoring the column
+        returned by the database.
+        """
+
+        model = get_fake_model({
+            'title': models.CharField(max_length=140, unique=True)
+        })
+
+        # manually create the colum that is not on the model
+        with connection.cursor() as cursor:
+            cursor.execute((
+                'ALTER TABLE {table} '
+                'ADD COLUMN beer character varying(50);'
+            ).format(table=model._meta.db_table))
+
+        # without proper handling, this would fail with a TypeError
+        model.objects.upsert_and_get(
+            conflict_target=['title'],
+            fields=dict(
+                title='beer'
+            )
+        )
