@@ -1,5 +1,26 @@
 from django.core.exceptions import SuspiciousOperation
-from django.db.models.sql.compiler import SQLInsertCompiler
+from django.db.models.sql.compiler import SQLInsertCompiler, SQLUpdateCompiler
+
+
+class PostgresSQLReturningUpdateCompiler(SQLUpdateCompiler):
+    """Compiler for SQL UPDATE statements that return
+    the primary keys of the affected rows."""
+
+    def execute_sql(self, _result_type):
+        sql, params = self.as_sql()
+        sql += self._form_returning()
+
+        with self.connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            primary_keys = cursor.fetchall()
+
+        return primary_keys
+
+    def _form_returning(self):
+        """Builds the RETURNING part of the query."""
+
+        qn = self.connection.ops.quote_name
+        return 'RETURNING %s' % qn(self.query.model._meta.pk.name)
 
 
 class PostgresSQLUpsertCompiler(SQLInsertCompiler):

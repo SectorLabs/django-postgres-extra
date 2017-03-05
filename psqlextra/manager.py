@@ -3,10 +3,44 @@ from typing import Dict, List
 import django
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db import models
+from django.db import models, transaction
+from django.db.models.sql import UpdateQuery
+from django.db.models.sql.constants import CURSOR
 
-from .compiler import PostgresSQLUpsertCompiler
+from . import signals
+from .compiler import (PostgresSQLReturningUpdateCompiler,
+                       PostgresSQLUpsertCompiler)
 from .query import PostgresUpsertQuery
+
+
+class PostgresQuerySet(models.QuerySet):
+    """Adds support for PostgreSQL specifics."""
+
+    def update(self, **fields):
+        """Updates all rows that match the filter."""
+
+        # build up the query to execute
+        self._for_write = True
+        query = self.query.clone(UpdateQuery)
+        query._annotations = None
+        query.add_update_values(fields)
+
+        # build the compiler for form the query
+        connection = django.db.connections[self.db]
+        compiler = PostgresSQLReturningUpdateCompiler(query, connection, self.db)
+
+        # execute the query
+        with transaction.atomic(using=self.db, savepoint=False):
+            rows = compiler.execute_sql(CURSOR)
+        self._result_cache = None
+
+        # send out a signal for each row
+        for row in rows:
+            signals.update.send(self.model, pk=row[0])
+
+        # the original update(..) returns the amount of rows
+        # affected, let's do the same
+        return len(rows)
 
 
 class PostgresManager(models.Manager):
@@ -26,6 +60,35 @@ class PostgresManager(models.Manager):
                 'django-postgres-extra cannot function without '
                 'the \'psqlextra.backend\'. Set DATABASES.ENGINE.'
             ) % db_backend)
+
+        # hook into django signals to then trigger our own
+
+        def on_model_save(sender, **kwargs):
+            """When a model gets created or updated."""
+
+            created, instance = kwargs['created'], kwargs['instance']
+
+            if created:
+                signals.create.send(sender, pk=instance.pk)
+            else:
+                signals.update.send(sender, pk=instance.pk)
+
+        django.db.models.signals.post_save.connect(
+            on_model_save, sender=self.model, weak=False)
+
+        def on_model_delete(sender, **kwargs):
+            """When a model gets deleted."""
+
+            instance = kwargs['instance']
+            signals.delete.send(sender, pk=instance.pk)
+
+        django.db.models.signals.pre_delete.connect(
+            on_model_delete, sender=self.model, weak=False)
+
+    def get_queryset(self):
+        """Gets the query set to be used on this manager."""
+
+        return PostgresQuerySet(self.model, using=self._db)
 
     def upsert(self, conflict_target: List, fields: Dict) -> int:
         """Creates a new record or updates the existing one
