@@ -58,6 +58,8 @@ Installation
             }
         }
 
+4. Make sure all models that inherit from ``psqlextra.models.PostgresModel`` or use the ``psqlextra.manager.PostgresManager``. Without this, most features **do not work**.
+
 
 FAQ - Frequently asked questions
 --------------------------------

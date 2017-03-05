@@ -15,6 +15,8 @@ Explore the [Features](/features/) page for detailed instructions and informatio
     * [`upsert`](http://localhost:8000/features/#upsert_1)
     * [`upsert_and_get`](http://localhost:8000/features/#upsert_and_get)
 
+* [signals](/features/#signals)
+
 ## Installation
 
 1. Install the package from PyPi:
@@ -38,6 +40,8 @@ Explore the [Features](/features/) page for detailed instructions and informatio
                 'ENGINE': 'psqlextra.backend'
             }
         }
+
+4. Make sure all models that inherit from `psqlextra.models.PostgresModel` or use the `psqlextra.manager.PostgresManager`. Without this, most features **do not work**.
 
 ## Requirements
 In order to use this package, your project must be using:
