@@ -47,7 +47,7 @@ The major problem with this approach is possibility of race conditions. In betwe
 
 In order to combat this, PostgreSQL added native upserts. Also known as [`ON CONFLICT DO ...`](https://www.postgresql.org/docs/9.5/static/sql-insert.html#SQL-ON-CONFLICT). This allows a user to specify what to do when a conflict occurs.
 
-### `upsert`
+### upsert
 Attempts to insert a row with the specified data or updates (and overwrites) the duplicate row, and then returns the primary key of the row that was created/updated.
 
 Upserts work by catching conflcits. PostgreSQL requires to know whichconflicts to react to. You have to specify the name of the column to which you want to react to. This is specified in the `conflict_target` parameter.
@@ -135,7 +135,7 @@ It also supports specifying a "unique together" constraint on HStore keys:
         )
     )
 
-### `upsert_and_get`
+### upsert_and_get
 Does the same thing as `upsert`, but returns a model instance rather than the primary key of the row that was created/updated. This also happens in a single query using `RETURNING` clause on the `INSERT INTO` statement:
 
     from django.db import models
