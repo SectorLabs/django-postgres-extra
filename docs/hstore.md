@@ -1,4 +1,3 @@
-# HStoreField
 `psqlextra.fields.HStoreField` is based on Django's [HStoreField](https://docs.djangoproject.com/en/1.10/ref/contrib/postgres/fields/#hstorefield) and therefore supports everything Django does natively, plus more.
 
 ## Unique constraint

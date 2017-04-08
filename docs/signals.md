@@ -1,4 +1,3 @@
-# Signals
 Django has long supported "signals", a feature that can be really useful. It allows you to get notified in a callback when a certain event occurs. One of the most common use cases is connecting to model signals. These signals get triggered when a model gets saved, or deleted.
 
 Django's built-in signals have one major flaw:
