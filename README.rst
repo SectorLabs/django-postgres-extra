@@ -19,13 +19,11 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 
 Browse the documentation at: http://django-postgres-extra.readthedocs.io
 
-Focus
+Major features
 -----
-Currently, we are working on bringing the following features to Django:
-
-* https://www.postgresql.org/docs/9.1/static/ltree.html
-* https://www.postgresql.org/docs/9.5/static/sql-insert.html#SQL-ON-CONFLICT
-    * ``ON CONFLICT DO NOTHING``
+* Single query, concurrency safe upserts.
+* Unique and not null constraints for `HStoreField`.
+* Signals for updates.
 
 
 Installation
