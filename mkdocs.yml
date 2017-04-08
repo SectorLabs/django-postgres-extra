@@ -1,6 +1,6 @@
 site_name: django-postgres-extra
 pages:
 - Home: index.md
-- Upsert: manager.md
+- Manager: manager.md
 - HStore: hstore.md
 - Signals: signals.md
