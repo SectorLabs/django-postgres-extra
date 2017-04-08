@@ -12,8 +12,8 @@ Explore the [Features](/features/) page for detailed instructions and informatio
     * [`required`](/features/#required)
 
 * [upsert](/features/#upsert)
-    * [`upsert`](http://localhost:8000/features/#upsert_1)
-    * [`upsert_and_get`](http://localhost:8000/features/#upsert_and_get)
+    * [`upsert`](/features/#upsert_1)
+    * [`upsert_and_get`](/features/#upsert_and_get)
 
 * [signals](/features/#signals)
 
