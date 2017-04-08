@@ -3,17 +3,19 @@
 With seamless we mean that any features we add will work truly seamlessly. You should not have to manually modify your migrations to work with fields and objects provided by this package.
 
 ## Features
-Explore the [Features](/features/) page for detailed instructions and information on how to use all features.
+Explore the documentation to learn about all features:
 
-* [hstore](/features/#hstorefield)
-    * [`uniqueness`](/features/#uniqueness)
-    * [`required`](/features/#required)
+* [Manager](/manager)
+    * [Upserts](/manager/#upserting)
 
-* [upsert](/features/#upsert)
-    * [`upsert`](/features/#upsert_1)
-    * [`upsert_and_get`](/features/#upsert_and_get)
+* [HStore](/hstore)
+    * [Unique constraint](/hstore/#unique-constraint)
+    * [Not null constraint](/hstore/#not-null-constraint)
 
-* [signals](/features/#signals)
+* [Signals](/signals)
+    * [Create](/signals/#psqlextrasignalscreate)
+    * [Update](/signals/#psqlextrasignalsupdate)
+    * [Delete](/signals/#psqlextrasignalsdelete)
 
 ## Installation
 
