@@ -1,5 +1,3 @@
-import copy
-
 from contextlib import contextmanager
 
 from .manager import PostgresManager

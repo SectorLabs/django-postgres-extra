@@ -1,7 +1,7 @@
 # Using the manager
 `django-postgres-extra` provides the `psqlextra.manager.PostgresManager` which exposes a lot of functionality. Your model must use this manager in order to use most of this package's functionality.
 
-There's three ways to do this:
+There are four ways to do this:
 
 * **Inherit your model from `psqlextra.models.PostgresModel`:**
 
@@ -39,6 +39,20 @@ There's three ways to do this:
 
         # not like this:
         MyModel.objects.upsert(..) # error!
+
+* **Use the `psqlextra.util.postgres_manager` on the fly:**
+
+    This allows the manager to be used **anywhere** on **any** model, but only within the context. This is especially useful if you want to do upserts into Django's `ManyToManyField`'s generated `through` table:
+
+        from django.db import models
+        from psqlextra.util import postgres_manager
+
+        class MyModel(models.Model):
+            myself = models.ManyToManyField('self')
+
+        # within the context, you can access psqlextra features
+        with postgres_manager(MyModel.myself.through) as manager:
+            manager.upsert(...)
 
 ## Upserting
 An "upsert" is an operation where a piece of data is inserted/created if it doesn't exist yet and updated (overwritten) when it already exists. Django has long provided this functionality through [`update_or_create`](https://docs.djangoproject.com/en/1.10/ref/models/querysets/#update-or-create). It does this by first checking whether the record exists and creating it not.
