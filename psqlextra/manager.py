@@ -63,27 +63,20 @@ class PostgresManager(models.Manager):
 
         # hook into django signals to then trigger our own
 
-        def on_model_save(sender, **kwargs):
-            """When a model gets created or updated."""
-
-            created, instance = kwargs['created'], kwargs['instance']
-
-            if created:
-                signals.create.send(sender, pk=instance.pk)
-            else:
-                signals.update.send(sender, pk=instance.pk)
-
         django.db.models.signals.post_save.connect(
-            on_model_save, sender=self.model, weak=False)
-
-        def on_model_delete(sender, **kwargs):
-            """When a model gets deleted."""
-
-            instance = kwargs['instance']
-            signals.delete.send(sender, pk=instance.pk)
+            self._on_model_save, sender=self.model, weak=False)
 
         django.db.models.signals.pre_delete.connect(
-            on_model_delete, sender=self.model, weak=False)
+            self._on_model_delete, sender=self.model, weak=False)
+
+    def __del__(self):
+        """Disconnects signals."""
+
+        django.db.models.signals.post_save.disconnect(
+            self._on_model_save, sender=self.model, weak=False)
+
+        django.db.models.signals.pre_delete.disconnect(
+            self._on_model_delete, sender=self.model, weak=False)
 
     def get_queryset(self):
         """Gets the query set to be used on this manager."""
@@ -259,3 +252,21 @@ class PostgresManager(models.Manager):
                 update_fields.append(field)
 
         return insert_fields, update_fields
+
+    @staticmethod
+    def _on_model_save(sender, **kwargs):
+        """When a model gets created or updated."""
+
+        created, instance = kwargs['created'], kwargs['instance']
+
+        if created:
+            signals.create.send(sender, pk=instance.pk)
+        else:
+            signals.update.send(sender, pk=instance.pk)
+
+    @staticmethod
+    def _on_model_delete(sender, **kwargs):
+        """When a model gets deleted."""
+
+        instance = kwargs['instance']
+        signals.delete.send(sender, pk=instance.pk)
