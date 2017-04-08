@@ -70,50 +70,69 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             to include the ON CONFLICT clause.
         """
 
-        # build the conflict target, the columns to watch
-        # for conflict basically
-        conflict_target = self._build_conflict_target()
-
-        # form the new sql query that does the insert
-        new_sql = (
-            '{insert} ON CONFLICT ({conflict_target}) DO {conflict_action}'
-        ).format(
-            insert=sql,
-            conflict_target=conflict_target,
-            conflict_action=self._build_conflict_action(return_id)
-        )
-
-        return new_sql
-
-    def _build_conflict_action(self, return_id=False):
-        """Builds the `conflict_action` for the DO clause."""
-
         returning = 'id' if return_id else '*'
 
-        qn = self.connection.ops.quote_name
-
-        # construct a list of columns to update when there's a conflict
         if self.query.conflict_action.value == 'UPDATE':
-            update_columns = ', '.join([
-                '{0} = EXCLUDED.{0}'.format(qn(field.column))
-                for field in self.query.update_fields
-            ])
-
-            return (
-                'UPDATE SET {update_columns} RETURNING {returning}'
-            ).format(
-                update_columns=update_columns,
-                returning=returning
-            )
+            return self._rewrite_insert_update(sql, returning)
         elif self.query.conflict_action.value == 'NOTHING':
-            return (
-                'NOTHING RETURNING {returning}'
-            ).format(returning=returning)
+            return self._rewrite_insert_nothing(sql, returning)
 
         raise SuspiciousOperation((
             '%s is not a valid conflict action, specify '
             'ConflictAction.UPDATE or ConflictAction.NOTHING.'
         ) % str(self.query.conflict_action))
+
+    def _rewrite_insert_update(self, sql, returning):
+        qn = self.connection.ops.quote_name
+
+        update_columns = ', '.join([
+            '{0} = EXCLUDED.{0}'.format(qn(field.column))
+            for field in self.query.update_fields
+        ])
+
+        # build the conflict target, the columns to watch
+        # for conflicts
+        conflict_target = self._build_conflict_target()
+
+        return (
+            '{insert} ON CONFLICT ({conflict_target}) DO UPDATE'
+            ' SET {update_columns} RETURNING {returning}'
+        ).format(
+            insert=sql,
+            conflict_target=conflict_target,
+            update_columns=update_columns,
+            returning=returning
+        )
+
+    def _rewrite_insert_nothing(self, sql, returning):
+        qn = self.connection.ops.quote_name
+
+        # build the conflict target, the columns to watch
+        # for conflicts
+        conflict_target = self._build_conflict_target()
+
+        select_columns = ', '.join([
+            '{0} = \'{1}\''.format(qn(column), getattr(self.query.objs[0], column))
+            for column in self.query.conflict_target
+        ])
+
+        # this looks complicated, and it is, but it is for a reason... a normal
+        # ON CONFLICT DO NOTHING doesn't return anything if the row already exists
+        # so we do DO UPDATE instead that never executes to lock the row, and then
+        # select from the table in case we're dealing with an existing row..
+        return (
+            'WITH insdata AS ('
+            '{insert} ON CONFLICT ({conflict_target}) DO UPDATE'
+            ' SET id = NULL WHERE FALSE RETURNING {returning})'
+            ' SELECT * FROM insdata UNION ALL'
+            ' SELECT {returning} FROM {table} WHERE {select_columns} LIMIT 1;'
+        ).format(
+            insert=sql,
+            conflict_target=conflict_target,
+            returning=returning,
+            table=self.query.objs[0]._meta.db_table,
+            select_columns=select_columns
+        )
 
     def _build_conflict_target(self):
         """Builds the `conflict_target` for the ON CONFLICT
