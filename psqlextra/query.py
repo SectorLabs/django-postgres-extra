@@ -1,20 +1,30 @@
 from typing import List
+from enum import Enum
 
 from django.db.models.sql import InsertQuery
 
 
-class PostgresUpsertQuery(InsertQuery):
-    """Upsert query (insert/update) query using PostgreSQL."""
+class ConflictAction(Enum):
+    """Possible actions to take on a conflict."""
+
+    NOTHING = 'NOTHING'
+    UPDATE = 'UPDATE'
+
+
+class PostgresInsertQuery(InsertQuery):
+    """Insert query using PostgreSQL."""
 
     def __init__(self, *args, **kwargs):
-        """Initializes a new instance :see:PostgresUpsertQuery."""
+        """Initializes a new instance :see:PostgresInsertQuery."""
 
-        super(PostgresUpsertQuery, self).__init__(*args, **kwargs)
+        super(PostgresInsertQuery, self).__init__(*args, **kwargs)
+
+        self.conflict_target = []
+        self.conflict_action = ConflictAction.UPDATE
 
         self.update_fields = []
-        self.conflict_target = []
 
-    def values(self, objs: List, insert_fields: List, update_fields: List):
+    def values(self, objs: List, insert_fields: List, update_fields: List=[]):
         """Sets the values to be used in this query.
 
         Insert fields are fields that are definitely

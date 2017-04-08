@@ -2,7 +2,7 @@ from django.core.exceptions import SuspiciousOperation
 from django.db.models.sql.compiler import SQLInsertCompiler, SQLUpdateCompiler
 
 
-class PostgresSQLReturningUpdateCompiler(SQLUpdateCompiler):
+class PostgresReturningUpdateCompiler(SQLUpdateCompiler):
     """Compiler for SQL UPDATE statements that return
     the primary keys of the affected rows."""
 
@@ -23,42 +23,37 @@ class PostgresSQLReturningUpdateCompiler(SQLUpdateCompiler):
         return 'RETURNING %s' % qn(self.query.model._meta.pk.name)
 
 
-class PostgresSQLUpsertCompiler(SQLInsertCompiler):
+class PostgresInsertCompiler(SQLInsertCompiler):
     """Compiler for SQL INSERT statements."""
 
-    def as_sql(self, returning='id'):
+    def as_sql(self, return_id=False):
         """Builds the SQL INSERT statement."""
 
         queries = [
-            (self._rewrite_insert(sql, returning), params)
+            (self._rewrite_insert(sql, return_id), params)
             for sql, params in super().as_sql()
         ]
 
         return queries
 
     def execute_sql(self, return_id=False):
-        returning = 'id' if return_id else '*'
-        returning = '*'
-
         # execute all the generate queries
         with self.connection.cursor() as cursor:
             rows = []
-            for sql, params in self.as_sql(returning):
+            for sql, params in self.as_sql(return_id):
                 cursor.execute(sql, params)
                 rows.append(cursor.fetchone())
 
-        # return the primary key, which is stored in
-        # the first column that is returned
-        if return_id:
-            return dict(id=rows[0][0])
-
         # create a mapping between column names and column value
-        return {
-            column.name: rows[0][column_index]
-            for column_index, column in enumerate(cursor.description)
-        }
+        return [
+            {
+                column.name: row[column_index]
+                for column_index, column in enumerate(cursor.description) if row
+            }
+            for row in rows
+        ]
 
-    def _rewrite_insert(self, sql, returning='id'):
+    def _rewrite_insert(self, sql, return_id=False):
         """Rewrites a formed SQL INSERT query to include
         the ON CONFLICT clause.
 
@@ -74,13 +69,6 @@ class PostgresSQLUpsertCompiler(SQLInsertCompiler):
             The specified SQL INSERT query rewritten
             to include the ON CONFLICT clause.
         """
-        qn = self.connection.ops.quote_name
-
-        # construct a list of columns to update when there's a conflict
-        update_columns = ', '.join([
-            '{0} = EXCLUDED.{0}'.format(qn(field.column))
-            for field in self.query.update_fields
-        ])
 
         # build the conflict target, the columns to watch
         # for conflict basically
@@ -88,16 +76,44 @@ class PostgresSQLUpsertCompiler(SQLInsertCompiler):
 
         # form the new sql query that does the insert
         new_sql = (
-            '{insert} ON CONFLICT ({conflict_target}) '
-            'DO UPDATE SET {update_columns} RETURNING {returning}'
+            '{insert} ON CONFLICT ({conflict_target}) DO {conflict_action}'
         ).format(
             insert=sql,
             conflict_target=conflict_target,
-            update_columns=update_columns,
-            returning=returning
+            conflict_action=self._build_conflict_action(return_id)
         )
 
         return new_sql
+
+    def _build_conflict_action(self, return_id=False):
+        """Builds the `conflict_action` for the DO clause."""
+
+        returning = 'id' if return_id else '*'
+
+        qn = self.connection.ops.quote_name
+
+        # construct a list of columns to update when there's a conflict
+        if self.query.conflict_action.value == 'UPDATE':
+            update_columns = ', '.join([
+                '{0} = EXCLUDED.{0}'.format(qn(field.column))
+                for field in self.query.update_fields
+            ])
+
+            return (
+                'UPDATE SET {update_columns} RETURNING {returning}'
+            ).format(
+                update_columns=update_columns,
+                returning=returning
+            )
+        elif self.query.conflict_action.value == 'NOTHING':
+            return (
+                'NOTHING RETURNING {returning}'
+            ).format(returning=returning)
+
+        raise SuspiciousOperation((
+            '%s is not a valid conflict action, specify '
+            'ConflictAction.UPDATE or ConflictAction.NOTHING.'
+        ) % str(self.query.conflict_action))
 
     def _build_conflict_target(self):
         """Builds the `conflict_target` for the ON CONFLICT

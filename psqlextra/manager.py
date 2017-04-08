@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Union, Tuple
 
 import django
 from django.conf import settings
@@ -8,13 +8,21 @@ from django.db.models.sql import UpdateQuery
 from django.db.models.sql.constants import CURSOR
 
 from . import signals
-from .compiler import (PostgresSQLReturningUpdateCompiler,
-                       PostgresSQLUpsertCompiler)
-from .query import PostgresUpsertQuery
+from .compiler import (PostgresReturningUpdateCompiler,
+                       PostgresInsertCompiler)
+from .query import PostgresInsertQuery, ConflictAction
 
 
 class PostgresQuerySet(models.QuerySet):
     """Adds support for PostgreSQL specifics."""
+
+    def __init__(self, *args, **kwargs):
+        """Initializes a new instance of :see:PostgresQuerySet."""
+
+        super().__init__(*args, **kwargs)
+
+        self.conflict_target = None
+        self.conflict_action = None
 
     def update(self, **fields):
         """Updates all rows that match the filter."""
@@ -27,7 +35,7 @@ class PostgresQuerySet(models.QuerySet):
 
         # build the compiler for form the query
         connection = django.db.connections[self.db]
-        compiler = PostgresSQLReturningUpdateCompiler(query, connection, self.db)
+        compiler = PostgresReturningUpdateCompiler(query, connection, self.db)
 
         # execute the query
         with transaction.atomic(using=self.db, savepoint=False):
@@ -42,83 +50,68 @@ class PostgresQuerySet(models.QuerySet):
         # affected, let's do the same
         return len(rows)
 
-
-class PostgresManager(models.Manager):
-    """Adds support for PostgreSQL specifics."""
-
-    def __init__(self, *args, **kwargs):
-        """Initializes a new instance of :see:PostgresManager."""
-
-        super(PostgresManager, self).__init__(*args, **kwargs)
-
-        # make sure our back-end is set and refuse to proceed
-        # if it's not set
-        db_backend = settings.DATABASES['default']['ENGINE']
-        if 'psqlextra' not in db_backend:
-            raise ImproperlyConfigured((
-                '\'%s\' is not the \'psqlextra.backend\'. '
-                'django-postgres-extra cannot function without '
-                'the \'psqlextra.backend\'. Set DATABASES.ENGINE.'
-            ) % db_backend)
-
-        # hook into django signals to then trigger our own
-
-        django.db.models.signals.post_save.connect(
-            self._on_model_save, sender=self.model, weak=False)
-
-        django.db.models.signals.pre_delete.connect(
-            self._on_model_delete, sender=self.model, weak=False)
-
-    def __del__(self):
-        """Disconnects signals."""
-
-        django.db.models.signals.post_save.disconnect(
-            self._on_model_save, sender=self.model, weak=False)
-
-        django.db.models.signals.pre_delete.disconnect(
-            self._on_model_delete, sender=self.model, weak=False)
-
-    def get_queryset(self):
-        """Gets the query set to be used on this manager."""
-
-        return PostgresQuerySet(self.model, using=self._db)
-
-    def upsert(self, conflict_target: List, fields: Dict) -> int:
-        """Creates a new record or updates the existing one
-        with the specified data.
+    def on_conflict(self, fields: List[Union[str, Tuple[str]]], action):
+        """Sets the action to take when conflicts arise when attempting
+        to insert/create a new row.
 
         Arguments:
-            conflict_target:
-                Fields to pass into the ON CONFLICT clause.
-
             fields:
-                Fields to insert/update.
+                The fields the conflicts can occur in.
 
-        Returns:
-            The primary key of the row that was created/updated.
+            action:
+                The action to take when the conflict occurs.
         """
 
-        compiler = self._build_upsert_compiler(conflict_target, fields)
-        return compiler.execute_sql(return_id=True)['id']
+        self.conflict_target = fields
+        self.conflict_action = action
+        return self
 
-    def upsert_and_get(self, conflict_target: List, fields: Dict):
-        """Creates a new record or updates the existing one
-        with the specified data and then gets the row.
+    def insert(self, **fields):
+        """Creates a new record in the database.
+
+        This allows specifying custom conflict behavior using .on_conflict().
+        If no special behavior was specified, this uses the normal Django create(..)
 
         Arguments:
-            conflict_target:
-                Fields to pass into the ON CONFLICT clause.
-
             fields:
-                Fields to insert/update.
+                The fields of the row to create.
 
         Returns:
-            The model instance representing the row
-            that was created/updated.
+            The primary key of the record that was created.
         """
 
-        compiler = self._build_upsert_compiler(conflict_target, fields)
-        column_data = compiler.execute_sql(return_id=False)
+        if self.conflict_target or self.conflict_action:
+            compiler = self._build_insert_compiler(**fields)
+            rows = compiler.execute_sql(return_id=True)
+            if 'id' in rows[0]:
+                return rows[0]['id']
+            return None
+
+        # no special action required, use the standard Django create(..)
+        return super().create(**fields).id
+
+    def insert_and_get(self, **fields):
+        """Creates a new record in the database and then gets
+        the entire row.
+
+        This allows specifying custom conflict behavior using .on_conflict().
+        If no special behavior was specified, this uses the normal Django create(..)
+
+        Arguments:
+            fields:
+                The fields of the row to create.
+
+        Returns:
+            The model instance representing the row that was created.
+        """
+
+        if not self.conflict_target and not self.conflict_action:
+            # no special action required, use the standard Django create(..)
+            return super().create(**fields)
+
+        compiler = self._build_insert_compiler(**fields)
+        rows = compiler.execute_sql(return_id=False)
+        column_data = rows[0]
 
         # get a list of columns that are officially part of the model
         model_columns = [
@@ -137,42 +130,69 @@ class PostgresManager(models.Manager):
 
         return self.model(**model_init_fields)
 
-    def _build_upsert_compiler(self, conflict_target: List, kwargs):
-        """Builds the SQL compiler for a insert/update query.
+    def upsert(self, conflict_target: List, fields: Dict) -> int:
+        """Creates a new record or updates the existing one
+        with the specified data.
 
         Arguments:
             conflict_target:
                 Fields to pass into the ON CONFLICT clause.
 
-            kwargs:
-                Field values.
-
-            return_id:
-                Indicates whether to return just
-                the id or the entire row.
+            fields:
+                Fields to insert/update.
 
         Returns:
-            The SQL compiler for the upsert.
+            The primary key of the row that was created/updated.
+        """
+
+        self.on_conflict(conflict_target, ConflictAction.UPDATE)
+        return self.insert(**fields)
+
+    def upsert_and_get(self, conflict_target: List, fields: Dict):
+        """Creates a new record or updates the existing one
+        with the specified data and then gets the row.
+
+        Arguments:
+            conflict_target:
+                Fields to pass into the ON CONFLICT clause.
+
+            fields:
+                Fields to insert/update.
+
+        Returns:
+            The model instance representing the row
+            that was created/updated.
+        """
+
+        self.on_conflict(conflict_target, ConflictAction.UPDATE)
+        return self.insert_and_get(**fields)
+
+    def _build_insert_compiler(self, **fields):
+        """Builds the SQL compiler for a insert query.
+
+        Returns:
+            The SQL compiler for the insert.
         """
 
         # create an empty object to store the result in
-        obj = self.model(**kwargs)
+        obj = self.model(**fields)
 
         # indicate this query is going to perform write
         self._for_write = True
 
         # get the fields to be used during update/insert
-        insert_fields, update_fields = self._get_upsert_fields(kwargs)
+        insert_fields, update_fields = self._get_upsert_fields(fields)
 
         # build a normal insert query
-        query = PostgresUpsertQuery(self.model)
-        query.conflict_target = conflict_target
+        query = PostgresInsertQuery(self.model)
+        query.conflict_action = self.conflict_action
+        query.conflict_target = self.conflict_target
         query.values([obj], insert_fields, update_fields)
 
-        # use the upsert query compiler to transform the insert
-        # into an upsert so that it will overwrite an existing row
+        # use the postgresql insert query compiler to transform the insert
+        # into an special postgresql insert
         connection = django.db.connections[self.db]
-        compiler = PostgresSQLUpsertCompiler(query, connection, self.db)
+        compiler = PostgresInsertCompiler(query, connection, self.db)
 
         return compiler
 
@@ -252,6 +272,95 @@ class PostgresManager(models.Manager):
                 update_fields.append(field)
 
         return insert_fields, update_fields
+
+
+class PostgresManager(models.Manager):
+    """Adds support for PostgreSQL specifics."""
+
+    def __init__(self, *args, **kwargs):
+        """Initializes a new instance of :see:PostgresManager."""
+
+        super(PostgresManager, self).__init__(*args, **kwargs)
+
+        # make sure our back-end is set and refuse to proceed
+        # if it's not set
+        db_backend = settings.DATABASES['default']['ENGINE']
+        if 'psqlextra' not in db_backend:
+            raise ImproperlyConfigured((
+                '\'%s\' is not the \'psqlextra.backend\'. '
+                'django-postgres-extra cannot function without '
+                'the \'psqlextra.backend\'. Set DATABASES.ENGINE.'
+            ) % db_backend)
+
+        # hook into django signals to then trigger our own
+
+        django.db.models.signals.post_save.connect(
+            self._on_model_save, sender=self.model, weak=False)
+
+        django.db.models.signals.pre_delete.connect(
+            self._on_model_delete, sender=self.model, weak=False)
+
+    def __del__(self):
+        """Disconnects signals."""
+
+        django.db.models.signals.post_save.disconnect(
+            self._on_model_save, sender=self.model, weak=False)
+
+        django.db.models.signals.pre_delete.disconnect(
+            self._on_model_delete, sender=self.model, weak=False)
+
+    def get_queryset(self):
+        """Gets the query set to be used on this manager."""
+
+        return PostgresQuerySet(self.model, using=self._db)
+
+    def on_conflict(self, fields: List[Union[str, Tuple[str]]], action):
+        """Sets the action to take when conflicts arise when attempting
+        to insert/create a new row.
+
+        Arguments:
+            fields:
+                The fields the conflicts can occur in.
+
+            action:
+                The action to take when the conflict occurs.
+        """
+        return self.get_queryset().on_conflict(fields, action)
+
+    def upsert(self, conflict_target: List, fields: Dict) -> int:
+        """Creates a new record or updates the existing one
+        with the specified data.
+
+        Arguments:
+            conflict_target:
+                Fields to pass into the ON CONFLICT clause.
+
+            fields:
+                Fields to insert/update.
+
+        Returns:
+            The primary key of the row that was created/updated.
+        """
+
+        return self.get_queryset().upsert(conflict_target, fields)
+
+    def upsert_and_get(self, conflict_target: List, fields: Dict):
+        """Creates a new record or updates the existing one
+        with the specified data and then gets the row.
+
+        Arguments:
+            conflict_target:
+                Fields to pass into the ON CONFLICT clause.
+
+            fields:
+                Fields to insert/update.
+
+        Returns:
+            The model instance representing the row
+            that was created/updated.
+        """
+
+        return self.get_queryset().upsert_and_get(conflict_target, fields)
 
     @staticmethod
     def _on_model_save(sender, **kwargs):
