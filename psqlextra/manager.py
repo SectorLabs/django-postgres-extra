@@ -106,12 +106,24 @@ class PostgresQuerySet(models.QuerySet):
         """
 
         if not self.conflict_target and not self.conflict_action:
+            print('oh fuck');
             # no special action required, use the standard Django create(..)
             return super().create(**fields)
 
         compiler = self._build_insert_compiler(**fields)
         rows = compiler.execute_sql(return_id=False)
-        column_data = rows[0]
+
+        columns = rows[0]
+
+        # it could happen that in the case of ConflictAction.NOTHING, the
+        # row already existed, and in that case, we have to do an extra SELECT
+        if not columns:
+            select_fields = {
+                field: fields[field]
+                for field in self.conflict_target
+            }
+
+            return self.get(**select_fields)
 
         # get a list of columns that are officially part of the model
         model_columns = [
@@ -122,7 +134,7 @@ class PostgresQuerySet(models.QuerySet):
         # strip out any columns/fields returned by the db that
         # are not present in the model
         model_init_fields = {}
-        for column_name, column_value in column_data.items():
+        for column_name, column_value in columns.items():
             if column_name not in model_columns:
                 continue
 
