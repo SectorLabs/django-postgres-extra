@@ -70,7 +70,8 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             to include the ON CONFLICT clause.
         """
 
-        returning = 'id' if return_id else '*'
+        qn = self.connection.ops.quote_name
+        returning = qn(self.query.model._meta.pk.name) if return_id else '*'
 
         if self.query.conflict_action.value == 'UPDATE':
             return self._rewrite_insert_update(sql, returning)
@@ -148,13 +149,26 @@ class PostgresInsertCompiler(SQLInsertCompiler):
                 'names and hstore key.'
             ) % str(self.query.conflict_target))
 
+        def _assert_valid_field(field_name):
+            for field in self.query.objs[0]._meta.local_concrete_fields:
+                if field.column == field_name:
+                    return
+
+            raise SuspiciousOperation((
+                '%s is not a valid conflict target, specify '
+                'a list of column names, or tuples with column '
+                'names and hstore key.'
+            ) % str(field))
+
         for field in self.query.conflict_target:
             if isinstance(field, str):
+                _assert_valid_field(field)
                 conflict_target.append(qn(field))
                 continue
 
             if isinstance(field, tuple):
                 field, key = field
+                _assert_valid_field(field)
                 conflict_target.append(
                     '(%s -> \'%s\')' % (qn(field), key))
                 continue
