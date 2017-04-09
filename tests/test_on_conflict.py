@@ -214,3 +214,19 @@ def test_on_conflict_outdated_model(conflict_action):
         .on_conflict(['title'], conflict_action)
         .insert_and_get(title='beer')
     )
+
+@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+def test_on_conflict_custom_column_names(conflict_action):
+    """Asserts that models with custom column names (models
+    where the column and field name are different) work properly."""
+
+    model = get_fake_model({
+        'title': models.CharField(max_length=140, unique=True, db_column='beer'),
+        'description': models.CharField(max_length=255, db_column='desc')
+    })
+
+    id = (
+        model.objects
+        .on_conflict(['title'], conflict_action)
+        .insert(title='yeey', description='great thing')
+    )

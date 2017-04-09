@@ -124,13 +124,8 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         # for conflicts
         conflict_target = self._build_conflict_target()
 
-        def format_field_name(field_name):
-            if isinstance(field_name, tuple):
-                return self.qn(field_name[0])
-            return self.qn(field_name)
-
         where_clause = ', '.join([
-            '{0} = %s'.format(format_field_name(field_name))
+            '{0} = %s'.format(self._format_field_name(field_name))
             for field_name in self.query.conflict_target
         ])
 
@@ -188,10 +183,20 @@ class PostgresInsertCompiler(SQLInsertCompiler):
                 'names and hstore key.'
             ) % str(field_name))
 
-        for field in self.query.conflict_target:
-            _assert_valid_field(field)
-            conflict_target.append(
-                self._format_field_name(field))
+        for field_name in self.query.conflict_target:
+            _assert_valid_field(field_name)
+
+            # special handling for hstore keys
+            if isinstance(field_name, tuple):
+                conflict_target.append(
+                    '(%s->\'%s\')' % (
+                        self._format_field_name(field_name),
+                        field_name[1]
+                    )
+                )
+            else:
+                conflict_target.append(
+                    self._format_field_name(field_name))
 
         return '(%s)' % ','.join(conflict_target)
 
@@ -207,17 +212,21 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             no such field exists.
         """
 
+        field_name = name
+        if isinstance(field_name, tuple):
+            field_name = field_name[0]
+
         for field in self.query.model._meta.local_concrete_fields:
-            if field.name == name or field.column == name:
+            if field.name == field_name or field.column == field_name:
                 return field
 
         return None
 
-    def _format_field_name(self, name) -> str:
+    def _format_field_name(self, field_name) -> str:
         """Formats a field's name for usage in SQL.
 
         Arguments:
-            name:
+            field_name:
                 The field name to format.
 
         Returns:
@@ -225,10 +234,8 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             usage in SQL.
         """
 
-        if isinstance(name, tuple):
-            return '(%s->\'%s\')' % name
-
-        return self.qn(name)
+        field = self._get_model_field(field_name)
+        return self.qn(field.column)
 
     def _format_field_value(self, field_name) -> str:
         """Formats a field's value for usage in SQL.
@@ -243,11 +250,9 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             in SQL.
         """
 
-        if isinstance(field_name, tuple):
-            field_name, _ = field_name
-
+        field = self._get_model_field(field_name)
         return SQLInsertCompiler.prepare_value(
             self,
-            self._get_model_field(field_name),
-            getattr(self.query.objs[0], field_name)
+            field,
+            getattr(self.query.objs[0], field.name)
         )
