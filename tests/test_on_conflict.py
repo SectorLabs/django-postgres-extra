@@ -12,7 +12,7 @@ CONFLICT_ACTIONS = (ConflictAction.UPDATE, ConflictAction.NOTHING)
 
 
 @pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
-def test_simple(conflict_action):
+def test_on_conflict(conflict_action):
     """Tests whether simple inserts work correctly."""
 
     model = get_fake_model({
@@ -40,7 +40,7 @@ def test_simple(conflict_action):
 
 
 @pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
-def test_auto_fields(conflict_action):
+def test_on_conflict_auto_fields(conflict_action):
     """Asserts that fields that automatically add something
     to the model automatically still work properly when upserting."""
 
@@ -81,7 +81,7 @@ def test_auto_fields(conflict_action):
 
 
 @pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
-def test_foreign_key(conflict_action):
+def test_on_conflict_foreign_key(conflict_action):
     """Asserts that models with foreign key relationships
     can safely be inserted."""
 
@@ -125,7 +125,7 @@ def test_foreign_key(conflict_action):
 
 
 @pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
-def test_get_partial(conflict_action):
+def test_on_conflict_partial_get(conflict_action):
     """Asserts that when doing a insert_and_get with
     only part of the columns on the model, all fields
     are returned properly."""
@@ -162,7 +162,7 @@ def test_get_partial(conflict_action):
 
 
 @pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
-def test_invalid_conflict_target(conflict_action):
+def test_on_conflict_invalid_target(conflict_action):
     """Tests whether specifying a invalid value
     for `conflict_target` raises an error."""
 
@@ -186,7 +186,7 @@ def test_invalid_conflict_target(conflict_action):
 
 
 @pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
-def test_outdated_model(conflict_action):
+def test_on_conflict_outdated_model(conflict_action):
     """Tests whether insert properly handles
     fields that are in the database but not on the model.
 

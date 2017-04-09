@@ -91,6 +91,9 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         ) % str(self.query.conflict_action))
 
     def _rewrite_insert_update(self, sql, params, returning):
+        """Rewrites a formed SQL INSERT query to include
+        the ON CONFLICT DO UPDATE clause."""
+
         update_columns = ', '.join([
             '{0} = EXCLUDED.{0}'.format(self.qn(field.column))
             for field in self.query.update_fields
@@ -114,6 +117,9 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         )
 
     def _rewrite_insert_nothing(self, sql, params, returning):
+        """Rewrites a formed SQL INSERT query to include
+        the ON CONFLICT DO NOTHING clause."""
+
         # build the conflict target, the columns to watch
         # for conflicts
         conflict_target = self._build_conflict_target()
