@@ -4,6 +4,7 @@ from django.db import connection, models
 from django.test import TestCase
 
 from psqlextra import HStoreField
+from psqlextra.query import ConflictAction
 
 from .fake_model import get_fake_model
 
@@ -20,22 +21,28 @@ class UpsertTest(TestCase):
             'cookies': models.CharField(max_length=255, null=True)
         })
 
-        obj = model.objects.upsert_and_get(
-            conflict_target=[('title', 'key1')],
-            fields=dict(
+        obj = (
+            model.objects
+            .on_conflict(
+                [('title', 'key1')],
+                ConflictAction.UPDATE
+            )
+            .insert_and_get(
                 title={'key1': 'beer'},
                 cookies='cheers'
             )
         )
 
-        obj1 = model.objects.upsert_and_get(
-            conflict_target=[('title', 'key1')],
-            fields=dict(
+        obj1 = (
+            model.objects
+            .on_conflict(
+                [('title', 'key1')],
+                ConflictAction.UPDATE
+            )
+            .insert_and_get(
                 title={'key1': 'beer'}
             )
         )
-
-        obj1.refresh_from_db()
 
         assert obj1.title['key1'] == 'beer'
         assert obj1.cookies == obj.cookies
@@ -50,17 +57,25 @@ class UpsertTest(TestCase):
             'date_updated': models.DateTimeField(auto_now=True)
         })
 
-        obj1 = model.objects.upsert_and_get(
-            conflict_target=['title'],
-            fields=dict(
-                title='beer'
+        obj1 = (
+            model.objects
+            .on_conflict(
+                ['title'],
+                ConflictAction.UPDATE
+            )
+            .insert_and_get(
+                title={'beer'}
             )
         )
 
-        obj2 = model.objects.upsert_and_get(
-            conflict_target=['title'],
-            fields=dict(
-                title='beer'
+        obj2 = (
+            model.objects
+            .on_conflict(
+                ['title'],
+                ConflictAction.UPDATE
+            )
+            .insert_and_get(
+                title={'beer'}
             )
         )
 
@@ -86,17 +101,25 @@ class UpsertTest(TestCase):
             'model1': models.ForeignKey(model1)
         })
 
-        model1_row = model1.objects.upsert_and_get(
-            conflict_target=['name'],
-            fields=dict(
+        model1_row = (
+            model1.objects
+            .on_conflict(
+                ['name'],
+                ConflictAction.UPDATE
+            )
+            .insert_and_get(
                 name='item1'
             )
         )
 
         # upsert by id, that should work
-        model2.objects.upsert(
-            conflict_target=['name'],
-            fields=dict(
+        model2_row = (
+            model2.objects
+            .on_conflict(
+                ['name'],
+                ConflictAction.UPDATE
+            )
+            .insert_and_get(
                 name='item1',
                 model1_id=model1_row.id
             )
@@ -107,9 +130,13 @@ class UpsertTest(TestCase):
         assert model2_row.model1.id == model1_row.id
 
         # upsert by object, that should also work
-        model2.objects.upsert(
-            conflict_target=['name'],
-            fields=dict(
+        model2_row = (
+            model2.objects
+            .on_conflict(
+                ['name'],
+                ConflictAction.UPDATE
+            )
+            .insert_and_get(
                 name='item2',
                 model1=model1_row
             )
@@ -131,17 +158,27 @@ class UpsertTest(TestCase):
             'updated_at': models.DateTimeField(auto_now=True),
         })
 
-        obj1 = model.objects.upsert_and_get(
-            conflict_target=['title'],
-            fields=dict(
+        obj1 = (
+            model.objects
+            .on_conflict(
+                ['title'],
+                ConflictAction.UPDATE
+            )
+            .insert_and_get(
                 title='beer',
                 purpose='for-sale'
             )
         )
 
-        obj2 = model.objects.upsert_and_get(
-            conflict_target=['title'],
-            fields=dict(title='beer')
+        obj2 = (
+            model.objects
+            .on_conflict(
+                ['title'],
+                ConflictAction.UPDATE
+            )
+            .insert_and_get(
+                title='beer'
+            )
         )
 
         assert obj2.title == obj1.title
@@ -158,17 +195,25 @@ class UpsertTest(TestCase):
         })
 
         with self.assertRaises(SuspiciousOperation):
-            model.objects.upsert(
-                conflict_target='cookie',
-                fields=dict(
+            (
+                model.objects
+                .on_conflict(
+                    ['cookie'],
+                    ConflictAction.UPDATE
+                )
+                .insert(
                     title='beer'
                 )
             )
 
         with self.assertRaises(SuspiciousOperation):
-            model.objects.upsert(
-                conflict_target=[None],
-                fields=dict(
+            (
+                model.objects
+                .on_conflict(
+                    [None],
+                    ConflictAction.UPDATE
+                )
+                .insert(
                     title='beer'
                 )
             )
@@ -196,9 +241,13 @@ class UpsertTest(TestCase):
             ).format(table=model._meta.db_table))
 
         # without proper handling, this would fail with a TypeError
-        model.objects.upsert_and_get(
-            conflict_target=['title'],
-            fields=dict(
+        (
+            model.objects
+            .on_conflict(
+                ['title'],
+                ConflictAction.UPDATE
+            ).
+            insert_and_get(
                 title='beer'
             )
         )
