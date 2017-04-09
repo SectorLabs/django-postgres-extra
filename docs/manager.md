@@ -54,103 +54,124 @@ There are four ways to do this:
         with postgres_manager(MyModel.myself.through) as manager:
             manager.upsert(...)
 
-## Upserting
-An "upsert" is an operation where a piece of data is inserted/created if it doesn't exist yet and updated (overwritten) when it already exists. Django has long provided this functionality through [`update_or_create`](https://docs.djangoproject.com/en/1.10/ref/models/querysets/#update-or-create). It does this by first checking whether the record exists and creating it not.
+## Conflict handling
+The `PostgresManager` comes with full support for PostgreSQL's `ON CONFLICT DO ...`. This is an extremely useful feature for doing concurrency safe inserts. Often, when you want to insert a row, you want to overwrite it already exists, or simply leave the existing data there. This would require a `SELECT` first and then possibly a `INSERT`. Within those two queries, another process might make a change to the row. The alternative of trying to insert, ignoring the error and then doing a `UPDATE` is also not good. That would result in a a lot of write overhead (due to logging). Luckily, PostgreSQL offers `ON CONFLICT DO ...`, which allows you to specify what PostgreSQL should do in case that row already exists.
 
-The major problem with this approach is possibility of race conditions. In between the `SELECT` and `INSERT`, another process could perform the `INSERT`. The last `INSERT` would most likely fail because it would be duplicating a `UNIQUE` constraint.
-
-In order to combat this, PostgreSQL added native upserts. Also known as [`ON CONFLICT DO ...`](https://www.postgresql.org/docs/9.5/static/sql-insert.html#SQL-ON-CONFLICT). This allows a user to specify what to do when a conflict occurs.
-
-### upsert
-Attempts to insert a row with the specified data or updates (and overwrites) the duplicate row, and then returns the primary key of the row that was created/updated.
-
-Upserts work by catching conflcits. PostgreSQL requires to know whichconflicts to react to. You have to specify the name of the column to which you want to react to. This is specified in the `conflict_target` parameter.
-
-You can only specify a single "constraint" in this field. You **cannot** react to conflicts in multiple fields. This is a limitation by PostgreSQL. Note that this means **single constraint**, not necessarily a single column. A constraint can cover multiple columns.
+`django-postgres-extra` brings full support for PostgreSQL's `ON CONFLICT DO ...`, allowing blazing fast and concurrency safe inserts:
 
     from django.db import models
     from psqlextra.models import PostgresModel
+    from psqlextra.query import ConflictAction
 
     class MyModel(PostgresModel):
         myfield = models.CharField(max_length=255, unique=True)
 
-    id1 = MyModel.objects.upsert(
-        conflict_target=['myfield'],
-        fields=dict(
-            myfield='beer'
-        )
+    # insert or update if already exists, then fetch, all in a single query
+    obj2 = (
+        MyModel.objects
+        .on_conflict(['myfield'], ConflictAction.UPDATE)
+        .insert_and_get(myfield='beer')
     )
 
-    id2 = MyModel.objects.upsert(
-        conflict_target=['myfield'],
-        fields=dict(
-            myfield='beer'
-        )
+    # insert, or do nothing if it already exists, then fetch
+    obj1 = (
+        MyModel.objects
+        .on_conflict(['myfield'], ConflictAction.NOTHING)
+        .insert_and_get(myfield='beer')
     )
 
-    assert id1 == id2
+    # insert or update if already exists, then fetch only the primary key
+    id = (
+        MyModel.objects
+        .on_conflict(['myfield'], ConflictAction.UPDATE)
+        .insert(myfield='beer')
+    )
 
-Note that a single call to `upsert` results in a single `INSERT INTO ... ON CONFLICT DO UPDATE ...`. This fixes the problem outlined earlier about another process doing the `INSERT` in the mean time.
+### Constraint specification
+The `on_conflict` function's first parameter denotes the name of the column(s) in which the conflict might occur. Although you can specify multiple columns, these columns must somehow have a single constraint. For example, in case of a `unique_together` constraint.
 
-#### unique_together
-As mentioned earlier, `conflict_target` expects a single column name, or multiple if the constraint you want to react to spans multiple columns. Django's [unique_together](https://docs.djangoproject.com/en/1.11/ref/models/options/#unique-together) has this. If you want to react to this constraint that covers multiple columns, specify those columns in the `conflict_target` parameter:
+#### Multiple columns
+Specifying multiple columns is necessary in case of a constraint that spans multiple columns, such as when using Django's [unique_together](https://docs.djangoproject.com/en/1.11/ref/models/options/#unique-together):
 
     from django.db import models
     from psqlextra.models import PostgresModel
 
-    class MyModel(PostgresModel):
+    class MyModel(PostgresModel)
         class Meta:
-            unique_together = ('myfield1', 'myfield2')
+            unique_together = ('first_name', 'last_name',)
 
-        myfield1 = models.CharField(max_length=255)
-        myfield1 = models.CharField(max_length=255)
+        first_name = models.CharField(max_length=255)
+        last_name = models.CharField(max_length=255)
 
-    MyModel.objects.upsert(
-        conflict_target=['myfield1', 'myfield2'],
-        fields=dict(
-            myfield1='beer'
-            myfield2='moar beer'
-        )
+    obj = (
+        MyModel.objects
+        .on_conflict(['first_name', 'last_name'], ConflictAction.UPDATE)
+        .insert_and_get(first_name='Henk', last_name='Jansen')
     )
 
-#### hstore
-You can specify HStore keys that have a unique constraint as a `conflict_target`:
+#### HStore keys
+Catching conflicts in columns with a `UNIQUE` constraint on a `hstore` key is also supported:
 
     from django.db import models
     from psqlextra.models import PostgresModel
     from psqlextra.fields import HStoreField
 
-    class MyModel(PostgresModel):
-        # values in the key 'en' have to be unique
-        myfield = HStoreField(uniqueness=['en'])
+    class MyModel(PostgresModel)
+        name = HStoreField(uniqueness=['en'])
 
-    MyModel.objects.upsert(
-        conflict_target=[('myfield', 'en')],
-        fields=dict(
-            myfield={'en': 'beer'}
-        )
+    id = (
+        MyModel.objects
+        .on_conflict([('name', 'en')], ConflictAction.NOTHING)
+        .insert(name={'en': 'Swen'})
     )
 
-It also supports specifying a "unique together" constraint on HStore keys:
+This also applies to "unique together" constraints in a `hstore` field:
 
-    from django.db import models
-    from psqlextra.models import PostgresModel
-    from psqlextra.fields import HStoreField
+    class MyModel(PostgresModel)
+        name = HStoreField(uniqueness=[('en', 'ar')])
 
-    class MyModel(PostgresModel):
-        # values in the key 'en' and 'ar' have to be
-        # unique together
-        myfield = HStoreField(uniqueness=[('en', 'ar')])
-
-    MyModel.objects.upsert(
-        conflict_target=[('myfield', 'en'), ('myfield', 'ar')],
-        fields=dict(
-            myfield={'en': 'beer', 'ar': 'arabic beer'}
-        )
+    id = (
+        MyModel.objects
+        .on_conflict([('name', 'en'), ('name', 'ar')], ConflictAction.NOTHING)
+        .insert(name={'en': 'Swen'})
     )
 
-### upsert_and_get
-Does the same thing as `upsert`, but returns a model instance rather than the primary key of the row that was created/updated. This also happens in a single query using `RETURNING` clause on the `INSERT INTO` statement:
+### insert vs insert_and_get
+After specifying `on_conflict` you can use either `insert` or `insert_and_get` to perform the insert.
+
+#### insert
+* Perform the insert, and then returns the primary key of the row that was inserted or it conflicted with.
+
+#### insert_and_get
+* Perform the insert, then returns the entire row that was inserted or it conflicted with, in the form of a model instance.
+
+### Pitfalls
+The standard Django methods for inserting/updating are not affected by `on_conflict`. It was a conscious decision to not override or change their behavior. **The following completely ignores the `on_conflict` **:
+
+    obj = (
+        MyModel.objects
+        .on_conflict(['first_name', 'last_name'], ConflictAction.UPDATE)
+        .create(first_name='Henk', last_name='Jansen')
+
+The same applies to methods such as `update`, `get_or_create`, `update_or_create` etc.
+
+### Conflict actions
+There's currently two actions that can be taken when encountering a conflict. The second parameter of `on_conflict` allows you to specify that should happen.
+
+#### ConflictAction.UPDATE
+* If the row does **not exist**, insert a new one.
+* If the row **exists**, update it.
+
+This is also known as a "upsert".
+
+#### ConflictAction.NOTHING
+* If the row does **not exist**, insert a new one.
+* If the row **exists**, do nothing.
+
+This is preferable when the data you're about to insert is the same as the one that already exists. This is more performant because it avoids a write in case the row already exists.
+
+### Shorthand
+The `on_conflict`, `insert` and `insert_or_create` methods were only added in `django-postgres-extra` 1.6. Before that, only `ConflictAction.UPDATE` was supported in the following form:
 
     from django.db import models
     from psqlextra.models import PostgresModel
@@ -158,21 +179,20 @@ Does the same thing as `upsert`, but returns a model instance rather than the pr
     class MyModel(PostgresModel):
         myfield = models.CharField(max_length=255, unique=True)
 
-    obj1 = MyModel.objects.create(myfield='beer')
-    obj2 = MyModel.objects.create(myfield='beer')
-
-    obj1 = MyModel.objects.upsert_and_get(
-        conflict_target=['myfield'],
-        fields=dict(
-            myfield='beer'
+    obj = (
+        MyModel.objects
+        .upsert_and_get(
+            conflict_target=['myfield']
+            fields=dict(myfield='beer')
         )
     )
 
-    obj2 = MyModel.objects.upsert_and_get(
-        conflict_target=['myfield'],
-        fields=dict(
-            myfield='beer'
+    id = (
+        MyModel.objects
+        .upsert(
+            conflict_target=['myfield']
+            fields=dict(myfield='beer')
         )
     )
 
-    assert obj1.id == obj2.id
+These two short hands still exist and **are not** deprecated. They behave exactly the same as `ConflictAction.UPDATE` and are there for convenience. It is up to you to decide what to use.
