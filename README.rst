@@ -22,7 +22,6 @@ Browse the documentation at: http://django-postgres-extra.readthedocs.io
 Major features
 -----
 * Single query, concurrency safe upserts, or safely ignoring a duplicate insert.
-    * Using PostgreSQL's ``ON CONFLICT DO ...``.
 * Unique and not null constraints for `HStoreField`.
 * Signals for updates.
 

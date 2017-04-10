@@ -207,6 +207,9 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             name:
                 The name of the field to look for.
 
+                This can be both the actual field name, or
+                the name of the column, both will work :)
+
         Returns:
             The field with the specified name or None if
             no such field exists.
