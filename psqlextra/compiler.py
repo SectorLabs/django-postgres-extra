@@ -253,9 +253,12 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             in SQL.
         """
 
+        if isinstance(field_name, tuple):
+            field_name, _ = field_name
+
         field = self._get_model_field(field_name)
         return SQLInsertCompiler.prepare_value(
             self,
             field,
-            getattr(self.query.objs[0], field.name)
+            getattr(self.query.objs[0], field_name)
         )
