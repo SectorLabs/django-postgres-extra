@@ -4,6 +4,7 @@ env/
 # Ignore Python byte code cache
 *.pyc
 __pycache__
+./.cache
 
 # Ignore coverage reports
 .coverage
@@ -15,3 +16,6 @@ dist/
 
 # Ignore stupid .DS_Store
 .DS_Store
+
+# Ignore benchmark results
+.benchmarks/
