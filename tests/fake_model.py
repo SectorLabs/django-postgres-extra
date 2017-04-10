@@ -7,13 +7,14 @@ from django.contrib.postgres.operations import HStoreExtension
 from psqlextra.models import PostgresModel
 
 
-def define_fake_model(fields=None, model_base=PostgresModel):
+def define_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
     name = str(uuid.uuid4()).replace('-', '')[:8]
 
     attributes = {
         'app_label': 'tests',
         '__module__': __name__,
-        '__name__': name
+        '__name__': name,
+        'Meta': type('Meta', (object,), meta_options)
     }
 
     if fields:
@@ -23,10 +24,10 @@ def define_fake_model(fields=None, model_base=PostgresModel):
     return model
 
 
-def get_fake_model(fields=None, model_base=PostgresModel):
+def get_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
     """Creates a fake model to use during unit tests."""
 
-    model = define_fake_model(fields, model_base)
+    model = define_fake_model(fields, model_base, meta_options)
 
     class TestProject:
 

@@ -124,7 +124,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         # for conflicts
         conflict_target = self._build_conflict_target()
 
-        where_clause = ', '.join([
+        where_clause = ' AND '.join([
             '{0} = %s'.format(self._format_field_name(field_name))
             for field_name in self.query.conflict_target
         ])
@@ -143,7 +143,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         return (
             (
                 'WITH insdata AS ('
-                '{insert} ON CONFLICT ({conflict_target}) DO UPDATE'
+                '{insert} ON CONFLICT {conflict_target} DO UPDATE'
                 ' SET id = NULL WHERE FALSE RETURNING {returning})'
                 ' SELECT * FROM insdata UNION ALL'
                 ' SELECT {returning} FROM {table} WHERE {where_clause} LIMIT 1;'

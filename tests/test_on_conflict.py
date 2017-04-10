@@ -4,6 +4,7 @@ from django.db import connection, models
 
 from psqlextra import HStoreField
 from psqlextra.query import ConflictAction
+from psqlextra.models import PostgresModel
 
 from .fake_model import get_fake_model
 
@@ -215,6 +216,7 @@ def test_on_conflict_outdated_model(conflict_action):
         .insert_and_get(title='beer')
     )
 
+
 @pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
 def test_on_conflict_custom_column_names(conflict_action):
     """Asserts that models with custom column names (models
@@ -225,8 +227,39 @@ def test_on_conflict_custom_column_names(conflict_action):
         'description': models.CharField(max_length=255, db_column='desc')
     })
 
-    id = (
+    (
         model.objects
         .on_conflict(['title'], conflict_action)
         .insert(title='yeey', description='great thing')
     )
+
+
+@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+def test_on_conflict_unique_together(conflict_action):
+    """Asserts that inserts on models with a unique_together
+    works properly."""
+
+    model = get_fake_model(
+        {
+            'first_name': models.CharField(max_length=140),
+            'last_name': models.CharField(max_length=255)
+        },
+        PostgresModel,
+        {
+            'unique_together': ('first_name', 'last_name')
+        }
+    )
+
+    id1 = (
+        model.objects
+        .on_conflict(['first_name', 'last_name'], conflict_action)
+        .insert(first_name='swen', last_name='kooij')
+    )
+
+    id2 = (
+        model.objects
+        .on_conflict(['first_name', 'last_name'], conflict_action)
+        .insert(first_name='swen', last_name='kooij')
+    )
+
+    assert id1 == id2
