@@ -20,7 +20,7 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 Browse the documentation at: http://django-postgres-extra.readthedocs.io
 
 Major features
------
+--------------
 * Single query, concurrency safe upserts, or safely ignoring a duplicate insert.
 * Unique and not null constraints for `HStoreField`.
 * Signals for updates.
