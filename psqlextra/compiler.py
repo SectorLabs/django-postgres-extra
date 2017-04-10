@@ -105,7 +105,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
 
         return (
             (
-                '{insert} ON CONFLICT ({conflict_target}) DO UPDATE'
+                '{insert} ON CONFLICT {conflict_target} DO UPDATE'
                 ' SET {update_columns} RETURNING {returning}'
             ).format(
                 insert=sql,
