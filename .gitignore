@@ -4,7 +4,7 @@ env/
 # Ignore Python byte code cache
 *.pyc
 __pycache__
-./.cache
+.cache
 
 # Ignore coverage reports
 .coverage
