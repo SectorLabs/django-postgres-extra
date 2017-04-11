@@ -171,9 +171,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             ) % str(self.query.conflict_target))
 
         def _assert_valid_field(field_name):
-            if isinstance(field_name, tuple):
-                field_name, _ = field_name
-
+            field_name = self._normalize_field_name(field_name)
             if self._get_model_field(field_name):
                 return
 
@@ -215,9 +213,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             no such field exists.
         """
 
-        field_name = name
-        if isinstance(field_name, tuple):
-            field_name = field_name[0]
+        field_name = self._normalize_field_name(name)
 
         for field in self.query.model._meta.local_concrete_fields:
             if field.name == field_name or field.column == field_name:
@@ -253,12 +249,29 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             in SQL.
         """
 
-        if isinstance(field_name, tuple):
-            field_name, _ = field_name
-
+        field_name = self._normalize_field_name(field_name)
         field = self._get_model_field(field_name)
+
         return SQLInsertCompiler.prepare_value(
             self,
             field,
             getattr(self.query.objs[0], field_name)
         )
+
+    def _normalize_field_name(self, field_name) -> str:
+        """Normalizes a field name into a string by
+        extracting the field name if it was specified
+        as a reference to a HStore key (as a tuple).
+
+        Arguments:
+            field_name:
+                The field name to normalize.
+
+        Returns:
+            The normalized field name.
+        """
+
+        if isinstance(field_name, tuple):
+            field_name, _ = field_name
+
+        return field_name

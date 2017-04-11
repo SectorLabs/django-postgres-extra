@@ -270,11 +270,9 @@ def test_on_conflict_unique_together2(conflict_action):
     """Asserts that inserts on models with a unique_together
     works properly."""
 
-    model = get_fake_model(
-        {
-            'name': models.CharField(max_length=140),
-        },
-    )
+    model = get_fake_model({
+        'name': models.CharField(max_length=140)
+    })
 
     model2 = get_fake_model(
         {
@@ -294,14 +292,14 @@ def test_on_conflict_unique_together2(conflict_action):
 
     id3 = (
         model2.objects
-            .on_conflict(['model1_id', 'model2_id'], conflict_action)
-            .insert(model1_id=id1, model2_id=id2)
+        .on_conflict(['model1_id', 'model2_id'], conflict_action)
+        .insert(model1_id=id1, model2_id=id2)
     )
 
     id4 = (
         model2.objects
-            .on_conflict(['model1_id', 'model2_id'], conflict_action)
-            .insert(model1_id=id1, model2_id=id2)
+        .on_conflict(['model1_id', 'model2_id'], conflict_action)
+        .insert(model1_id=id1, model2_id=id2)
     )
 
     assert id3 == id4
