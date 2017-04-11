@@ -263,3 +263,45 @@ def test_on_conflict_unique_together(conflict_action):
     )
 
     assert id1 == id2
+
+
+@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+def test_on_conflict_unique_together2(conflict_action):
+    """Asserts that inserts on models with a unique_together
+    works properly."""
+
+    model = get_fake_model(
+        {
+            'name': models.CharField(max_length=140),
+        },
+    )
+
+    model2 = get_fake_model(
+        {
+            'model1': models.ForeignKey(model),
+            'model2': models.ForeignKey(model)
+        },
+        PostgresModel,
+        {
+            'unique_together': ('model1', 'model2')
+        }
+    )
+
+    id1 = model.objects.create(name='one').id
+    id2 = model.objects.create(name='two').id
+
+    assert id1 != id2
+
+    id3 = (
+        model2.objects
+            .on_conflict(['model1_id', 'model2_id'], conflict_action)
+            .insert(model1_id=id1, model2_id=id2)
+    )
+
+    id4 = (
+        model2.objects
+            .on_conflict(['model1_id', 'model2_id'], conflict_action)
+            .insert(model1_id=id1, model2_id=id2)
+    )
+
+    assert id3 == id4
