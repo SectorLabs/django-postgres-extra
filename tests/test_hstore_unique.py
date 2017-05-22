@@ -1,11 +1,12 @@
+import pytest
+
 from django.db import transaction
 from django.db.utils import IntegrityError
 
 from psqlextra import HStoreField
 
 from . import migrations
-import pytest
-from .fake_model import get_fake_model
+from .util import get_fake_model
 
 
 def test_migration_create_drop_model():

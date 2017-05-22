@@ -1,13 +1,17 @@
-from django.db import models
+import uuid
+
+from django.db import connection, models
 
 from psqlextra import PostgresMaterializedView
 
-from .fake_model import get_fake_model, define_fake_model
+from .util import get_fake_model, define_fake_model, db_relation_exists
 
 
-def test_materialized_view_create():
-    """Tests whether defining a materialized view and
-    creating one works correctly."""
+def get_fake_materialized_view():
+    """Creates a fake materialized view composed of two
+    other models."""
+
+    db_table = str(uuid.uuid4()).replace('-', '')[:8]
 
     ModelA = get_fake_model({
         'first_name': models.CharField(max_length=255)
@@ -17,9 +21,6 @@ def test_materialized_view_create():
         'model_a': models.ForeignKey(ModelA),
         'last_name': models.CharField(max_length=255)
     })
-
-    obj_a = ModelA.objects.create(first_name='Swen')
-    obj_b = ModelB.objects.create(model_a=obj_a, last_name='Kooij')
 
     MaterializedViewModel = define_fake_model(
         {
@@ -31,13 +32,38 @@ def test_materialized_view_create():
         PostgresMaterializedView,
         {
             'managed': False,
-            'db_table': 'test_model_view',
-            'unique_together': ('first_name', 'last_name',)
+            'db_table': db_table,
         }
     )
+
+    return ModelA, ModelB, MaterializedViewModel
+
+
+def test_materialized_view_create():
+    """Tests whether defining a materialized view and
+    creating one works correctly."""
+
+    ModelA, ModelB, MaterializedViewModel = get_fake_materialized_view()
+
+    obj_a = ModelA.objects.create(first_name='Swen')
+    obj_b = ModelB.objects.create(model_a=obj_a, last_name='Kooij')
 
     MaterializedViewModel.refresh()
 
     obj = MaterializedViewModel.objects.first()
     assert obj.first_name == obj_a.first_name
     assert obj.last_name == obj_b.last_name
+
+
+def test_materialized_view_drop():
+    """Tests whether dropping a materialize view works
+    correctly."""
+
+    ModelA, ModelB, MaterializedViewModel = get_fake_materialized_view()
+    table_name = MaterializedViewModel._meta.db_table
+
+    MaterializedViewModel.refresh()
+    assert db_relation_exists(table_name)
+
+    MaterializedViewModel.drop()
+    assert not db_relation_exists(table_name)

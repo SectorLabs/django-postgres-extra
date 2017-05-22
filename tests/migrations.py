@@ -7,7 +7,7 @@ from django.apps import apps
 from django.db.migrations.executor import MigrationExecutor
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
-from .fake_model import define_fake_model
+from .util import define_fake_model
 
 
 @contextmanager

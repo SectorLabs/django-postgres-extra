@@ -4,7 +4,7 @@ from django.db import models
 
 from psqlextra import signals
 
-from .fake_model import get_fake_model
+from .util import get_fake_model
 
 
 def mock_signal_handler(signal):

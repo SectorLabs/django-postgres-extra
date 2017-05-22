@@ -2,7 +2,7 @@ from django.db import models
 
 from psqlextra.util import postgres_manager
 
-from .fake_model import get_fake_model
+from .util import get_fake_model
 
 
 def test_manager_context():

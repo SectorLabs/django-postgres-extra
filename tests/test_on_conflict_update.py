@@ -3,7 +3,7 @@ from django.db import models
 from psqlextra import HStoreField
 from psqlextra.query import ConflictAction
 
-from .fake_model import get_fake_model
+from .util import get_fake_model
 
 
 def test_on_conflict_update():

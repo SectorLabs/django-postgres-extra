@@ -15,8 +15,8 @@ class PostgresMaterializedView(models.Model):
         return dict(
             table_name=connection.ops.quote_name(cls._meta.db_table),
             index_name=connection.ops.quote_name('%s_index' % cls._meta.db_table),
+            pk_column_name=cls._meta.pk.db_column or cls._meta.pk.name,
             query=str(cls.queryset.query),
-            index_columns=','.join(cls._meta.unique_together[0])
         )
 
     @classmethod
@@ -30,13 +30,17 @@ class PostgresMaterializedView(models.Model):
             )
 
     @classmethod
-    def refresh(cls, recreate: bool=False) -> None:
+    def refresh(cls, recreate: bool=False, concurrently: bool=True) -> None:
         """Creates and/or refreshes the materialized view.
 
         Arguments:
             recreate:
                 If set to true, will drop the view if it
                 exists and then re-create it.
+
+            concurrently:
+                Indicates whether this materialized view
+                should be refreshed in the background.
         """
         if recreate:
             cls.drop()
@@ -52,12 +56,13 @@ class PostgresMaterializedView(models.Model):
             cursor.execute(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS {index_name}
-                ON {table_name} ({index_columns})
+                ON {table_name} ({pk_column_name})
                 """.format(**cls.context())
             )
 
+            concurrent = 'CONCURRENTLY' if concurrently else ''
             cursor.execute(
                 """
-                REFRESH MATERIALIZED VIEW CONCURRENTLY {table_name}
-                """.format(**cls.context())
+                REFRESH MATERIALIZED VIEW {concurrently} {table_name}
+                """.format(**cls.context(), concurrently=concurrent)
             )
