@@ -1,3 +1,4 @@
+import time
 import uuid
 
 from django.db import connection, models
@@ -39,12 +40,13 @@ def get_fake_materialized_view():
     return ModelA, ModelB, MaterializedViewModel
 
 
-def test_materialized_view_create():
-    """Tests whether defining a materialized view and
-    creating one works correctly."""
+def test_materialized_view_create_refresh():
+    """Tests whether defining a materialized view,
+    creating and refreshing it works correctly."""
 
     ModelA, ModelB, MaterializedViewModel = get_fake_materialized_view()
 
+    # create the materialized view with one row
     obj_a = ModelA.objects.create(first_name='Swen')
     obj_b = ModelB.objects.create(model_a=obj_a, last_name='Kooij')
 
@@ -52,6 +54,19 @@ def test_materialized_view_create():
 
     obj = MaterializedViewModel.objects.first()
     assert obj.first_name == obj_a.first_name
+    assert obj.last_name == obj_b.last_name
+
+    # update the source record, and refresh the view
+    obj_b.last_name = 'Beer'
+    obj_b.save()
+
+    MaterializedViewModel.refresh()
+
+    # wait a bit, since views update concurrently
+    time.sleep(0.2)
+
+    # verify the view was properly updated
+    obj.refresh_from_db()
     assert obj.last_name == obj_b.last_name
 
 
