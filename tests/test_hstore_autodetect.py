@@ -2,7 +2,7 @@ from django.db import migrations
 from django.db.migrations.state import ProjectState
 from django.db.migrations.autodetector import MigrationAutodetector
 
-from psqlextra import HStoreField
+from psqlextra.fields import HStoreField
 
 
 def make_project_state(model_states):

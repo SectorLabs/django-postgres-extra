@@ -1,8 +1,6 @@
-from .fields import HStoreField
 from .materialized_view import PostgresMaterializedView
 
 __all__ = [
-    'HStoreField',
     'PostgresMaterializedView',
 ]
 

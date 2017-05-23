@@ -3,7 +3,7 @@ import uuid
 
 from django.db import connection, models
 
-from psqlextra import PostgresMaterializedView
+from psqlextra.materialized_view import PostgresMaterializedView
 
 from .util import get_fake_model, define_fake_model, db_relation_exists
 
@@ -25,15 +25,15 @@ def get_fake_materialized_view():
 
     MaterializedViewModel = define_fake_model(
         {
-            'queryset': ModelB.objects.values('id', 'last_name', 'model_a__first_name').all(),
             'id': models.IntegerField(primary_key=True),
             'first_name': models.CharField(max_length=255),
-            'last_name': models.CharField(max_length=255)
+            'last_name': models.CharField(max_length=255),
         },
         PostgresMaterializedView,
         {
             'managed': False,
             'db_table': db_table,
+            'query': str(ModelB.objects.values('id', 'last_name', 'model_a__first_name').query)
         }
     )
 

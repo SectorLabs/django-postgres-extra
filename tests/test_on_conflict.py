@@ -3,7 +3,7 @@ import pytest
 from django.core.exceptions import SuspiciousOperation
 from django.db import connection, models
 
-from psqlextra import HStoreField
+from psqlextra.fields import HStoreField
 from psqlextra.query import ConflictAction
 from psqlextra.models import PostgresModel
 

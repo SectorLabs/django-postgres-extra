@@ -3,7 +3,7 @@ import pytest
 from django.db import transaction
 from django.db.utils import IntegrityError
 
-from psqlextra import HStoreField
+from psqlextra.fields import HStoreField
 
 from . import migrations
 from .util import get_fake_model

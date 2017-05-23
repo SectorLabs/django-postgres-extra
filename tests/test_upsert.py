@@ -1,6 +1,6 @@
 from django.db import models
 
-from psqlextra import HStoreField
+from psqlextra.fields import HStoreField
 
 from .util import get_fake_model
 

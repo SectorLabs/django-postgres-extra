@@ -1,4 +1,4 @@
-from psqlextra import HStoreField
+from psqlextra.fields import HStoreField
 
 
 def test_deconstruct():
