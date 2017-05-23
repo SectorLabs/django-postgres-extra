@@ -1,7 +1,7 @@
-from .materialized_view import PostgresMaterializedView
+from .init import setup
 
 __all__ = [
-    'PostgresMaterializedView',
+    'setup'
 ]
 
 default_app_config = 'psqlextra.apps.PostgresExtraAppConfig'

@@ -1,6 +1,7 @@
 from typing import Dict
 
 from django.db import connection, models
+import django.db.models.options as options
 
 
 class PostgresMaterializedView(models.Model):
@@ -16,7 +17,7 @@ class PostgresMaterializedView(models.Model):
             table_name=connection.ops.quote_name(cls._meta.db_table),
             index_name=connection.ops.quote_name('%s_index' % cls._meta.db_table),
             pk_column_name=cls._meta.pk.db_column or cls._meta.pk.name,
-            query=str(cls.queryset.query),
+            query=str(cls._meta.query),
         )
 
     @classmethod
