@@ -24,6 +24,7 @@ Major features
 * Single query, concurrency safe upserts, or safely ignoring a duplicate insert.
 * Unique and not null constraints for `HStoreField`.
 * Signals for updates.
+* Support for selecting individual hstore keys using `.values()` or `.values_list()`.
 
 
 Installation
