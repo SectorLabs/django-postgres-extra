@@ -1,4 +1,5 @@
 import pytest
+
 from django.core.exceptions import SuspiciousOperation
 from django.db import connection, models
 

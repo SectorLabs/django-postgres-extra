@@ -10,16 +10,18 @@ from django.db.models.sql.constants import CURSOR
 from . import signals
 from .compiler import (PostgresReturningUpdateCompiler,
                        PostgresInsertCompiler)
-from .query import PostgresInsertQuery, ConflictAction
+from .query import PostgresQuery, PostgresInsertQuery, ConflictAction
 
 
 class PostgresQuerySet(models.QuerySet):
     """Adds support for PostgreSQL specifics."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, model=None, query=None, using=None, hints=None):
         """Initializes a new instance of :see:PostgresQuerySet."""
 
-        super().__init__(*args, **kwargs)
+        super().__init__(model, query, using, hints)
+
+        self.query = query or PostgresQuery(self.model)
 
         self.conflict_target = None
         self.conflict_action = None
