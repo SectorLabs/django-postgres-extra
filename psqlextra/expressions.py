@@ -54,3 +54,35 @@ class HStoreColumn(expressions.Col):
             self.hstore_key,
             self.output_field
         )
+
+
+class HStoreRef(expressions.F):
+    """Inline reference to a HStore key.
+
+    Allows selecting individual keys in annotations.
+    """
+
+    def __init__(self, name: str, key: str):
+        """Initializes a new instance of :see:HStoreRef.
+
+        Arguments:
+            name:
+                The name of the column/field to resolve.
+
+            key:
+                The name of the HStore key to select.
+        """
+
+        super().__init__(name)
+        self.key = key
+
+    def resolve_expression(self, *args, **kwargs) -> HStoreColumn:
+        """Resolves the expression into a :see:HStoreColumn expression."""
+
+        original_expression = super().resolve_expression(*args, **kwargs)
+        expression = HStoreColumn(
+            original_expression.alias,
+            original_expression.target,
+            self.key
+        )
+        return expression
