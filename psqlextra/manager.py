@@ -26,6 +26,16 @@ class PostgresQuerySet(models.QuerySet):
         self.conflict_target = None
         self.conflict_action = None
 
+    def join(self, **conditions):
+        """Adds extra conditions to existing joins.
+
+        WARNING: This is an extremely experimental feature.
+                 DO NOT USE unless you know what you're doing.
+        """
+
+        self.query.add_join_conditions(conditions)
+        return self
+
     def update(self, **fields):
         """Updates all rows that match the filter."""
 
@@ -35,7 +45,7 @@ class PostgresQuerySet(models.QuerySet):
         query._annotations = None
         query.add_update_values(fields)
 
-        # build the compiler for form the query
+        # build the compiler for for the query
         connection = django.db.connections[self.db]
         compiler = PostgresReturningUpdateCompiler(query, connection, self.db)
 

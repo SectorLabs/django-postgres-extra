@@ -87,6 +87,7 @@ class HStoreRef(expressions.F):
         )
         return expression
 
+
 class NonGroupableFunc(expressions.Func):
     """A version of Django's :see:Func expression that
     is _never_ included in the GROUP BY clause."""

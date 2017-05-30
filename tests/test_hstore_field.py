@@ -50,6 +50,7 @@ def test_values():
 
     result = list(model.objects.values_list('title__en', 'title__ar'))[0]
 
+
 def test_annotate_ref():
     """Tests whether annotating using a :see:HStoreRef expression
     works correctly.
@@ -65,7 +66,7 @@ def test_annotate_ref():
     })
 
     fk = model_fk.objects.create(title={'en': 'english', 'ar': 'arabic'})
-    obj = model.objects.create(fk=fk)
+    model.objects.create(fk=fk)
 
     queryset = (
         model.objects
