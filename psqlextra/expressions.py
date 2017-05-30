@@ -112,3 +112,32 @@ class Max(NonGroupableFunc):
 
     def __init__(self, expression):
         super().__init__(expression, function='Max')
+
+
+class DateTimeEpochColumn(expressions.Col):
+    """Gets the date/time column as a UNIX epoch timestamp."""
+
+    contains_column_references = True
+
+    def as_sql(self, compiler, connection):
+        """Compiles this expression into SQL."""
+
+        sql, params = super().as_sql(compiler, connection)
+        return 'EXTRACT(epoch FROM {})'.format(sql), params
+
+    def get_group_by_cols(self):
+        return []
+
+
+class DateTimeEpoch(expressions.F):
+    """Gets the date/time column as a UNIX epoch timestamp."""
+
+    contains_aggregate = False
+
+    def resolve_expression(self, *args, **kwargs):
+        original_expression = super().resolve_expression(*args, **kwargs)
+        expression = DateTimeEpochColumn(
+            original_expression.alias,
+            original_expression.target,
+        )
+        return expression
