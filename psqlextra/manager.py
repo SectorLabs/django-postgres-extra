@@ -26,7 +26,42 @@ class PostgresQuerySet(models.QuerySet):
         self.conflict_target = None
         self.conflict_action = None
 
-    def rename_annotations(self, **annotations) -> None:
+    def annotate(self, **annotations):
+        """Custom version of the standard annotate function
+        that allows using field names as annotated fields.
+
+        Normally, the annotate function doesn't allow you
+        to use the name of an existing field on the model
+        as the alias name. This version of the function does
+        allow that.
+        """
+
+        fields = {
+            field.name: field
+            for field in self.model._meta.get_fields()
+        }
+
+        # temporarily rename the fields that have the same
+        # name as a field name, we'll rename them back after
+        # the function in the base class ran
+        new_annotations = {}
+        renames = {}
+        for name, value in annotations.items():
+            if name in fields:
+                new_name = '%s_new' % name
+                new_annotations[new_name] = value
+                renames[new_name] = name
+            else:
+                new_annotations[name] = value
+
+        # run the base class's annotate function
+        result = super().annotate(**new_annotations)
+
+        # rename the annotations back to as specified
+        result.rename_annotations(**renames)
+        return result
+
+    def rename_annotations(self, **annotations):
         """Renames the aliases for the specified annotations:
 
             .annotate(myfield=F('somestuf__myfield'))
