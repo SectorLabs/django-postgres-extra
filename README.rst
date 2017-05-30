@@ -22,10 +22,12 @@ Browse the documentation at: http://django-postgres-extra.readthedocs.io
 Major features
 --------------
 * Single query, concurrency safe upserts, or safely ignoring a duplicate insert.
-* Unique and not null constraints for `HStoreField`.
+    * https://www.postgresql.org/docs/9.5/static/sql-insert.html#SQL-ON-CONFLICT
+* Unique and not null constraints for ``HStoreField``.
 * Signals for updates.
-* Support for selecting individual hstore keys using `.values()` or `.values_list()`.
-* Support for `MIN` and `MAX`.
+* Support for selecting individual hstore keys using ``.values()`` or ``.values_list()``.
+* Support for ``MIN`` and ``MAX``.
+    * https://www.postgresql.org/docs/8.0/static/functions-aggregate.html
 * Support for custom join conditions.
 
 Desired/future features
