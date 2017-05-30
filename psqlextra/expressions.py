@@ -1,4 +1,4 @@
-from django.db.models import expressions
+from django.db.models import expressions, CharField
 
 
 class HStoreColumn(expressions.Col):
@@ -141,3 +141,35 @@ class DateTimeEpoch(expressions.F):
             original_expression.target,
         )
         return expression
+
+
+def IsNotNone(*fields, default=None):
+    """Selects whichever field is not None, in the specified order.
+
+    Arguments:
+        fields:
+            The fields to attempt to get a value from,
+            in order.
+
+        default:
+            The value to return in case all values are None.
+
+    Returns:
+        A Case-When expression that tries each field and
+        returns the specified default value when all of
+        them are None.
+    """
+
+    when_clauses = [
+        expressions.When(
+            ~expressions.Q(**{field: None}),
+            then=expressions.F(field)
+        )
+        for field in reversed(fields)
+    ]
+
+    return expressions.Case(
+        *when_clauses,
+        default=expressions.Value(default),
+        output_field=CharField()
+    )
