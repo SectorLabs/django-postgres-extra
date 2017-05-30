@@ -26,6 +26,21 @@ class PostgresQuerySet(models.QuerySet):
         self.conflict_target = None
         self.conflict_action = None
 
+    def rename_annotations(self, **annotations) -> None:
+        """Renames the aliases for the specified annotations:
+
+            .annotate(myfield=F('somestuf__myfield'))
+            .rename_annotations(myfield='field')
+
+        Arguments:
+            annotations:
+                The annotations to rename. Mapping the
+                old name to the new name.
+        """
+
+        self.query.rename_annotations(annotations)
+        return self
+
     def join(self, **conditions):
         """Adds extra conditions to existing joins.
 

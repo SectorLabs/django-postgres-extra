@@ -19,6 +19,30 @@ class ConflictAction(Enum):
 
 
 class PostgresQuery(sql.Query):
+    def rename_annotations(self, annotations) -> None:
+        """Renames the aliases for the specified annotations:
+
+            .annotate(myfield=F('somestuf__myfield'))
+            .rename_annotations(myfield='field')
+
+        Arguments:
+            annotations:
+                The annotations to rename. Mapping the
+                old name to the new name.
+        """
+
+        for old_name, new_name in annotations.items():
+            annotation = self.annotations.get(old_name)
+
+            if not annotation:
+                raise SuspiciousOperation((
+                    'Cannot rename annotation "{old_name}" to "{new_name}", because there'
+                    ' is no annotation named "{old_name}".'
+                ).format(old_name=old_name, new_name=new_name))
+
+            del self.annotations[old_name]
+            self.annotations[new_name] = annotation
+
     def add_join_conditions(self, conditions: Dict[str, Any]) -> None:
         """Adds an extra condition to an existing JOIN.
 
@@ -45,7 +69,7 @@ class PostgresQuery(sql.Query):
             if not join:
                 raise SuspiciousOperation((
                     'Cannot add an extra join condition for "%s", there\'s no'
-                    'existing join to add it to.'
+                    ' existing join to add it to.'
                 ) % target_table)
 
             # convert the Join object into a ConditionalJoin object, which
