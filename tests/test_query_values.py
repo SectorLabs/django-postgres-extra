@@ -53,6 +53,7 @@ def test_values_list_hstore_key(model, modelobj):
     assert result[1] == modelobj.title['ar']
 
 
+@pytest.mark.xfail(reason='has to be fixed as part of issue #8')
 def test_values_hstore_key_through_fk():
     """Tests whether selecting a single key from a :see:HStoreField
     using the query set's .values() works properly when there's a

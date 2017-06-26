@@ -363,14 +363,19 @@ class PostgresManager(models.Manager):
         django.db.models.signals.pre_delete.connect(
             self._on_model_delete, sender=self.model, weak=False)
 
+        self._signals_connected = True
+
     def __del__(self):
         """Disconnects signals."""
 
+        if self._signals_connected is False:
+            return
+
         django.db.models.signals.post_save.disconnect(
-            self._on_model_save, sender=self.model, weak=False)
+            self._on_model_save, sender=self.model)
 
         django.db.models.signals.pre_delete.disconnect(
-            self._on_model_delete, sender=self.model, weak=False)
+            self._on_model_delete, sender=self.model)
 
     def get_queryset(self):
         """Gets the query set to be used on this manager."""
