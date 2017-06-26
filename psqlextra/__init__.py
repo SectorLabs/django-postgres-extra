@@ -4,4 +4,4 @@ __all__ = [
     'HStoreField'
 ]
 
-default_app_config = 'psqlextra.app.PostgresExtraAppConfig'
+default_app_config = 'psqlextra.apps.PostgresExtraAppConfig'
