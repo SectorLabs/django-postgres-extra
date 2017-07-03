@@ -20,7 +20,7 @@ class PostgresReturningUpdateCompiler(SQLUpdateCompiler):
         """Builds the RETURNING part of the query."""
 
         qn = self.connection.ops.quote_name
-        return 'RETURNING %s' % qn(self.query.model._meta.pk.name)
+        return ' RETURNING %s' % qn(self.query.model._meta.pk.name)
 
 
 class PostgresInsertCompiler(SQLInsertCompiler):

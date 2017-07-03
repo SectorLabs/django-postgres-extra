@@ -16,8 +16,10 @@ def mock_signal_handler(signal):
     """
 
     model = get_fake_model({
-        'title': models.CharField(max_length=255)
-    })
+                'title': models.CharField(max_length=255),
+                'flag': models.BooleanField(default=False)
+            })
+
 
     signal_handler = Mock()
     signal.connect(signal_handler, sender=model, weak=False)
@@ -104,6 +106,22 @@ def test_query_set_update():
     instance_2 = model.objects.create(title='more boar')
 
     model.objects.all().update(title='cookies')
+
+    assert signal_handler.call_count == 2
+    assert signal_handler.call_args_list[0][1]['pk'] == instance_1.pk
+    assert signal_handler.call_args_list[1][1]['pk'] == instance_2.pk
+
+
+def test_query_set_update_boolean():
+    """Tests whether the update signal is emitted
+    for each row that has been updated with boolean values."""
+
+    model, signal_handler = mock_signal_handler(signals.update)
+
+    instance_1 = model.objects.create(title='beer')
+    instance_2 = model.objects.create(title='more boar')
+
+    model.objects.all().update(flag=True)
 
     assert signal_handler.call_count == 2
     assert signal_handler.call_args_list[0][1]['pk'] == instance_1.pk
