@@ -126,7 +126,7 @@ def test_rename_field():
         assert len(calls.get('DROP CONSTRAINT', [])) == 0
 
 
-def test_enforcement():
+def test_required_enforcement():
     """Tests whether the constraints are actually
     properly enforced."""
 
@@ -136,3 +136,14 @@ def test_enforcement():
 
     with pytest.raises(IntegrityError):
         model.objects.create(title={'ar': 'hello'})
+
+
+def test_no_required():
+    """Tests whether setting `required` to False casues
+    no requiredness constraints to be added."""
+
+    model = get_fake_model({
+        'title': HStoreField(required=False)
+    })
+
+    model.objects.create(title={'ar': 'hello'})
