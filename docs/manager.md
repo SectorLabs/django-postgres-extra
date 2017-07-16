@@ -238,4 +238,15 @@ The `on_conflict`, `insert` and `insert_or_create` methods were only added in `d
         )
     )
 
+    (
+        MyModel.objects
+        .bulk_upsert(
+            conflict_target=['myfield']
+            rows=[
+                dict(myfield='beer'),
+                dict(myfield='wine')
+            ]
+        )
+    )
+
 These two short hands still exist and **are not** deprecated. They behave exactly the same as `ConflictAction.UPDATE` and are there for convenience. It is up to you to decide what to use.
