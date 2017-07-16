@@ -304,3 +304,29 @@ def test_on_conflict_unique_together_fk(conflict_action):
     )
 
     assert id3 == id4
+
+
+@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+def test_on_conflict_pk_conflict_target(conflict_action):
+    """Tests whether `on_conflict` properly accepts
+    the 'pk' as a conflict target, which should resolve
+    into the primary key of a model."""
+
+    model = get_fake_model({
+        'name': models.CharField(max_length=255)
+    })
+
+    obj1 = (
+        model.objects
+        .on_conflict(['pk'], conflict_action)
+        .insert_and_get(pk=0, name='beer')
+    )
+
+    obj2 = (
+        model.objects
+        .on_conflict(['pk'], conflict_action)
+        .insert_and_get(pk=0, name='beer')
+    )
+
+    assert obj1.name == 'beer'
+    assert obj2.name == 'beer'

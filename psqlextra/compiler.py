@@ -215,6 +215,10 @@ class PostgresInsertCompiler(SQLInsertCompiler):
 
         field_name = self._normalize_field_name(name)
 
+        # 'pk' has special meaning and always refers to the primary
+        # key of a model, we have to respect this de-facto standard behaviour
+        if field_name == 'pk' and self.query.model._meta.pk:
+            return self.query.model._meta.pk
         for field in self.query.model._meta.local_concrete_fields:
             if field.name == field_name or field.column == field_name:
                 return field
