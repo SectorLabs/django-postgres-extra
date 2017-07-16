@@ -219,6 +219,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         # key of a model, we have to respect this de-facto standard behaviour
         if field_name == 'pk' and self.query.model._meta.pk:
             return self.query.model._meta.pk
+
         for field in self.query.model._meta.local_concrete_fields:
             if field.name == field_name or field.column == field_name:
                 return field

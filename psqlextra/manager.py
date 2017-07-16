@@ -328,6 +328,14 @@ class PostgresQuerySet(models.QuerySet):
                 update_fields.append(field)
                 continue
 
+            # special handling for 'pk' which always refers to
+            # the primary key, so if we the user specifies `pk`
+            # instead of a concrete field, we have to handle that
+            if field.primary_key is True and 'pk' in kwargs:
+                insert_fields.append(field)
+                update_fields.append(field)
+                continue
+
             if self._is_magical_field(model_instance, field, is_insert=True):
                 insert_fields.append(field)
 

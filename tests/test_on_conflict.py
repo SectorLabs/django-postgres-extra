@@ -330,3 +330,6 @@ def test_on_conflict_pk_conflict_target(conflict_action):
 
     assert obj1.name == 'beer'
     assert obj2.name == 'beer'
+    assert obj1.id == obj2.id
+    assert obj1.id == 0
+    assert obj2.id == 0
