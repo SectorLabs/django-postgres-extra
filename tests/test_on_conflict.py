@@ -333,3 +333,57 @@ def test_on_conflict_pk_conflict_target(conflict_action):
     assert obj1.id == obj2.id
     assert obj1.id == 0
     assert obj2.id == 0
+
+
+def test_on_conflict_default_value():
+    """Tests whether setting a default for a field and
+    not specifying it explicitely when upserting properly
+    causes the default value to be used."""
+
+    model = get_fake_model({
+        'title': models.CharField(max_length=255, default='great')
+    })
+
+    obj1 = (
+        model.objects
+        .on_conflict(['id'], ConflictAction.UPDATE)
+        .insert_and_get(id=0)
+    )
+
+    assert obj1.title == 'great'
+
+    obj2 = (
+        model.objects
+        .on_conflict(['id'], ConflictAction.UPDATE)
+        .insert_and_get(id=0)
+    )
+
+    assert obj1.id == obj2.id
+    assert obj2.title == 'great'
+
+
+def test_on_conflict_default_value_no_overwrite():
+    """Tests whether setting a default for a field, inserting
+    a non-default value and then trying to update it without
+    specifying that field doesn't result in it being overwritten."""
+
+    model = get_fake_model({
+        'title': models.CharField(max_length=255, default='great')
+    })
+
+    obj1 = (
+        model.objects
+        .on_conflict(['id'], ConflictAction.UPDATE)
+        .insert_and_get(id=0, title='mytitle')
+    )
+
+    assert obj1.title == 'mytitle'
+
+    obj2 = (
+        model.objects
+        .on_conflict(['id'], ConflictAction.UPDATE)
+        .insert_and_get(id=0)
+    )
+
+    assert obj1.id == obj2.id
+    assert obj2.title == 'mytitle'

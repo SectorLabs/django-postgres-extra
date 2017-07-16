@@ -6,6 +6,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import models, transaction
 from django.db.models.sql import UpdateQuery
 from django.db.models.sql.constants import CURSOR
+from django.db.models.fields import NOT_PROVIDED
 
 from . import signals
 from .compiler import (PostgresReturningUpdateCompiler,
@@ -323,9 +324,13 @@ class PostgresQuerySet(models.QuerySet):
         update_fields = []
 
         for field in model_instance._meta.local_concrete_fields:
-            if field.name in kwargs or field.column in kwargs:
+            has_default = field.default != NOT_PROVIDED
+            if (field.name in kwargs or field.column in kwargs):
                 insert_fields.append(field)
                 update_fields.append(field)
+                continue
+            elif has_default:
+                insert_fields.append(field)
                 continue
 
             # special handling for 'pk' which always refers to
