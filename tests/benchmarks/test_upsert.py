@@ -1,9 +1,9 @@
 import uuid
 
-from django.test import TestCase
+import pytest
+
 from django.db import models, transaction
 from django.db.utils import IntegrityError
-import pytest
 
 from ..fake_model import get_fake_model
 

@@ -1,11 +1,8 @@
 import pytest
 
-from collections import namedtuple
-
-from django.db.models import CharField, ForeignKey
+from django.db.models import ForeignKey
 
 from psqlextra import HStoreField
-from psqlextra.expressions import HStoreRef
 
 from .fake_model import get_fake_model
 
@@ -68,7 +65,7 @@ def test_values_hstore_key_through_fk():
     })
 
     fobj = fmodel.objects.create(name={'en': 'swen', 'ar': 'arabic swen'})
-    obj = model.objects.create(fk=fobj)
+    model.objects.create(fk=fobj)
 
     result = list(model.objects.values('fk__name__ar'))[0]
     assert result['fk__name__ar'] == fobj.name['ar']

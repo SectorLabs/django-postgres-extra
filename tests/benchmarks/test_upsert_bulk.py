@@ -2,9 +2,7 @@ import uuid
 
 import pytest
 
-from django.test import TestCase
-from django.db import models, transaction
-from django.db.utils import IntegrityError
+from django.db import models
 
 from psqlextra.query import ConflictAction
 

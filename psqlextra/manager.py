@@ -2,11 +2,11 @@ from typing import Dict, List, Union, Tuple
 
 import django
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
 from django.db import models, transaction
 from django.db.models.sql import UpdateQuery
 from django.db.models.sql.constants import CURSOR
 from django.db.models.fields import NOT_PROVIDED
+from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
 
 from . import signals
 from .compiler import (PostgresReturningUpdateCompiler,
@@ -143,8 +143,13 @@ class PostgresQuerySet(models.QuerySet):
         Returns:
         """
 
-        for row in rows:
-            self.insert(**row)
+        if self.conflict_target or self.conflict_action:
+            compiler = self._build_insert_compiler(rows)
+            compiler.execute_sql(return_id=True)
+            return
+
+        # no special action required, use the standard Django bulk_create(..)
+        super().bulk_create([self.model(**fields) for fields in rows])
 
     def insert(self, **fields):
         """Creates a new record in the database.
@@ -161,7 +166,7 @@ class PostgresQuerySet(models.QuerySet):
         """
 
         if self.conflict_target or self.conflict_action:
-            compiler = self._build_insert_compiler(**fields)
+            compiler = self._build_insert_compiler([fields])
             rows = compiler.execute_sql(return_id=True)
             if 'id' in rows[0]:
                 return rows[0]['id']
@@ -189,7 +194,7 @@ class PostgresQuerySet(models.QuerySet):
             # no special action required, use the standard Django create(..)
             return super().create(**fields)
 
-        compiler = self._build_insert_compiler(**fields)
+        compiler = self._build_insert_compiler([fields])
         rows = compiler.execute_sql(return_id=False)
 
         columns = rows[0]
@@ -248,27 +253,46 @@ class PostgresQuerySet(models.QuerySet):
         self.on_conflict(conflict_target, ConflictAction.UPDATE)
         return self.insert_and_get(**fields)
 
-    def _build_insert_compiler(self, **fields):
+    def _build_insert_compiler(self, rows: List[Dict]):
         """Builds the SQL compiler for a insert query.
+
+        Arguments:
+            rows:
+                A list of dictionaries, where each entry
+                describes a record to insert.
 
         Returns:
             The SQL compiler for the insert.
         """
 
-        # create an empty object to store the result in
-        obj = self.model(**fields)
+        # create model objects, we also have to detect cases
+        # such as:
+        #   [dict(first_name='swen'), dict(fist_name='swen', last_name='kooij')]
+        # we need to be certain that each row specifies the exact same
+        # amount of fields/columns
+        objs = []
+        field_count = len(rows[0])
+        for index, row in enumerate(rows):
+            if field_count != len(row):
+                raise SuspiciousOperation((
+                    'In bulk upserts, you cannot have rows with different field '
+                    'configurations. Row {0} has a different field config than '
+                    'the first row.'
+                ).format(index))
+
+            objs.append(self.model(**row))
 
         # indicate this query is going to perform write
         self._for_write = True
 
         # get the fields to be used during update/insert
-        insert_fields, update_fields = self._get_upsert_fields(fields)
+        insert_fields, update_fields = self._get_upsert_fields(rows[0])
 
         # build a normal insert query
         query = PostgresInsertQuery(self.model)
         query.conflict_action = self.conflict_action
         query.conflict_target = self.conflict_target
-        query.values([obj], insert_fields, update_fields)
+        query.values(objs, insert_fields, update_fields)
 
         # use the postgresql insert query compiler to transform the insert
         # into an special postgresql insert
@@ -401,11 +425,11 @@ class PostgresManager(models.Manager):
         if self._signals_connected is False:
             return
 
-        django.db.models.signals.post_save.disconnect(
-            self._on_model_save, sender=self.model)
+        # django.db.models.signals.post_save.disconnect(
+        #     self._on_model_save, sender=self.model)
 
-        django.db.models.signals.pre_delete.disconnect(
-            self._on_model_delete, sender=self.model)
+        # django.db.models.signals.pre_delete.disconnect(
+        #     self._on_model_delete, sender=self.model)
 
     def get_queryset(self):
         """Gets the query set to be used on this manager."""

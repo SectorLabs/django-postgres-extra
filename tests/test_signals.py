@@ -20,7 +20,6 @@ def mock_signal_handler(signal):
                 'flag': models.BooleanField(default=False)
             })
 
-
     signal_handler = Mock()
     signal.connect(signal_handler, sender=model, weak=False)
 
