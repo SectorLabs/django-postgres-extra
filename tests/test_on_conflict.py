@@ -387,3 +387,29 @@ def test_on_conflict_default_value_no_overwrite():
 
     assert obj1.id == obj2.id
     assert obj2.title == 'mytitle'
+
+
+def test_on_conflict_bulk():
+    """Tests whether using `on_conflict` with `insert_bulk`
+    properly works."""
+
+    model = get_fake_model({
+        'title': models.CharField(max_length=255, unique=True)
+    })
+
+    rows = [
+        dict(title='this is my title'),
+        dict(title='this is another title'),
+        dict(title='and another one')
+    ]
+
+    (
+        model.objects
+        .on_conflict(['title'], ConflictAction.UPDATE)
+        .bulk_insert(rows)
+    )
+
+    assert model.objects.all().count() == len(rows)
+
+    for index, obj in enumerate(list(model.objects.all())):
+        assert obj.title == rows[index]['title']

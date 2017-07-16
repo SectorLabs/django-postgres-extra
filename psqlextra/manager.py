@@ -129,6 +129,23 @@ class PostgresQuerySet(models.QuerySet):
         self.conflict_action = action
         return self
 
+    def bulk_insert(self, rows):
+        """Creates multiple new records in the database.
+
+        This allows specifying custom conflict behavior using .on_conflict().
+        If no special behavior was specified, this uses the normal Django create(..)
+
+        Arguments:
+            rows:
+                An array of dictionaries, where each dictionary
+                describes the fields to insert.
+
+        Returns:
+        """
+
+        for row in rows:
+            self.insert(**row)
+
     def insert(self, **fields):
         """Creates a new record in the database.
 
