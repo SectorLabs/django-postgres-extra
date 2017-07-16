@@ -17,23 +17,31 @@ django-postgres-extra
 
 With seamless we mean that any features we add will work truly seamlessly. You should not have to manually modify your migrations to work with fields and objects provided by this package.
 
-Browse the documentation at: http://django-postgres-extra.readthedocs.io
+**Documentation**: http://django-postgres-extra.readthedocs.io
 
 Major features
 --------------
-* Single query, concurrency safe upserts, or safely ignoring a duplicate insert.
-    * https://www.postgresql.org/docs/9.5/static/sql-insert.html#SQL-ON-CONFLICT
-* Unique and not null constraints for ``HStoreField``.
-* Signals for updates.
-* Support for selecting individual hstore keys using ``.values()`` or ``.values_list()``.
-* Support for ``MIN`` and ``MAX``.
-    * https://www.postgresql.org/docs/8.0/static/functions-aggregate.html
-* Support for custom join conditions.
+* Native upserts
+    * Single query
+    * Concurrency safe
+    * With bulk support (single query)
+
+* Extended support for ``HStoreField``
+    * Unique constraints
+    * Null constraints
+    * Select individual keys using ``.values()`` or ``.values_list()``
+
+* Extra signals
+    * Updates
+
+* Extra expressions
+    * ``MIN``
+    * ``MAX``
+
 
 Desired/future features
 -----------------------
 * Materialized views
-* Bulk upserts
 
 
 Installation
