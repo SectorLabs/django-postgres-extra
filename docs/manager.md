@@ -170,6 +170,49 @@ This is also known as a "upsert".
 
 This is preferable when the data you're about to insert is the same as the one that already exists. This is more performant because it avoids a write in case the row already exists.
 
+### Bulk
+`bulk_insert` allows your to use conflict resolution for bulk inserts:
+
+    from django.db import models
+    from psqlextra.models import PostgresModel
+
+    class MyModel(PostgresModel):
+        name = models.CharField(max_length=255, unique=True)
+
+    obj = (
+        MyModel.objects
+        .on_conflict(['name'], ConflictAction.UPDATE)
+        .bulk_insert([
+            dict(name='swen'),
+            dict(name='henk'),
+            dict(name='adela')
+        ])
+    )
+
+`bulk_insert` uses a single query to insert all specified rows at once.
+
+#### Limitations
+In order to stick to the "everything in one query" principle, various, more advanced usages of `bulk_insert` are impossible. It is not possible to have different rows specify different amounts of columns. The following example does **not work**:
+
+    from django.db import models
+    from psqlextra.models import PostgresModel
+
+    class MyModel(PostgresModel):
+        first_name = models.CharField(max_length=255, unique=True)
+        last_name = models.CharField(max_length=255, default='kooij')
+
+    obj = (
+        MyModel.objects
+        .on_conflict(['name'], ConflictAction.UPDATE)
+        .bulk_insert([
+            dict(name='swen'),
+            dict(name='henk', last_name='poepjes'), # invalid, different column configuration
+            dict(name='adela')
+        ])
+    )
+
+An exception is thrown if `django-postgres-extra` detects this behavior.
+
 ### Shorthand
 The `on_conflict`, `insert` and `insert_or_create` methods were only added in `django-postgres-extra` 1.6. Before that, only `ConflictAction.UPDATE` was supported in the following form:
 
