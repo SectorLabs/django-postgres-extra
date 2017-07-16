@@ -253,6 +253,21 @@ class PostgresQuerySet(models.QuerySet):
         self.on_conflict(conflict_target, ConflictAction.UPDATE)
         return self.insert_and_get(**fields)
 
+    def bulk_upsert(self, conflict_target: List, rows: List[Dict]):
+        """Creates a set of new records or updates the existing
+        ones with the specified data.
+
+        Arguments:
+            conflict_target:
+                Fields to pass into the ON CONFLICT clause.
+
+            rows:
+                Rows to upsert.
+        """
+
+        self.on_conflict(conflict_target, ConflictAction.UPDATE)
+        return self.bulk_insert(rows)
+
     def _build_insert_compiler(self, rows: List[Dict]):
         """Builds the SQL compiler for a insert query.
 
@@ -483,6 +498,20 @@ class PostgresManager(models.Manager):
         """
 
         return self.get_queryset().upsert_and_get(conflict_target, fields)
+
+    def bulk_upsert(self, conflict_target: List, rows: List[Dict]):
+        """Creates a set of new records or updates the existing
+        ones with the specified data.
+
+        Arguments:
+            conflict_target:
+                Fields to pass into the ON CONFLICT clause.
+
+            rows:
+                Rows to upsert.
+        """
+
+        return self.get_queryset().bulk_upsert(conflict_target, fields)
 
     @staticmethod
     def _on_model_save(sender, **kwargs):
