@@ -267,9 +267,9 @@ def test_on_conflict_unique_together(conflict_action):
 
 
 @pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
-def test_on_conflict_unique_together2(conflict_action):
+def test_on_conflict_unique_together_fk(conflict_action):
     """Asserts that inserts on models with a unique_together
-    works properly."""
+    and a foreign key relationship works properly."""
 
     model = get_fake_model({
         'name': models.CharField(max_length=140)
