@@ -1,4 +1,3 @@
-# Materialized views
 `django-postgres-extra` has great support for PostgresSQL's materialized views. It is fully integrated with Django's migration system. This means that when defining materialized views in your code base, you can expect a migration to be automatically generated to create the view in your database. The same goes for updating or deleting the view.
 
 ## Defining a view
