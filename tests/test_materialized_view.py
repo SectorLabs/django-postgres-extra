@@ -59,10 +59,8 @@ def test_materialized_view_create_refresh():
     obj_b.last_name = 'Beer'
     obj_b.save()
 
-    PostgresMaterializedView(MaterializedViewModel).refresh()
-
-    # wait a bit, since views update concurrently
-    time.sleep(0.2)
+    # refresh the materialized view
+    PostgresMaterializedView(MaterializedViewModel).refresh(concurrently=False)
 
     # verify the view was properly updated
     obj.refresh_from_db()
