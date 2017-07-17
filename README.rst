@@ -38,6 +38,10 @@ Major features
     * ``MIN``
     * ``MAX``
 
+* Materialized views
+    * Concurrent refreshing
+    * Automatic migrations
+
 
 Desired/future features
 -----------------------
