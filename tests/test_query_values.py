@@ -2,7 +2,7 @@ import pytest
 
 from django.db.models import ForeignKey
 
-from psqlextra import HStoreField
+from psqlextra.fields import HStoreField
 
 from .fake_model import get_fake_model
 

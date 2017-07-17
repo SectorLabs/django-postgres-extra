@@ -1,37 +1,54 @@
 from typing import Dict
 
-from django.db import connection, models
-import django.db.models.options as options
+from django.db import connection
 
 
-class PostgresMaterializedView(models.Model):
+class PostgresMaterializedView:
     """Base class for PostgreSQL materialized views."""
 
-    class Meta:
-        abstract = True
+    def __init__(self, model):
+        self.model = model
 
-    @classmethod
-    def context(cls) -> Dict[str, str]:
+    def context(self) -> Dict[str, str]:
         """Gets dictionary to be passed to queries."""
         return dict(
-            table_name=connection.ops.quote_name(cls._meta.db_table),
-            index_name=connection.ops.quote_name('%s_index' % cls._meta.db_table),
-            pk_column_name=cls._meta.pk.db_column or cls._meta.pk.name,
-            query=str(cls._meta.query),
+            table_name=connection.ops.quote_name(self.model._meta.db_table),
+            index_name=connection.ops.quote_name('%s_index' % self.model._meta.db_table),
+            pk_column_name=self.model._meta.pk.db_column or self.model._meta.pk.name,
+            query=str(self.model._meta.view_query),
         )
 
-    @classmethod
-    def drop(cls) -> None:
+    def create(self, recreate=False) -> None:
+        """Creates the materialized view if it doesn't exist yet."""
+
+        if recreate:
+            self.drop()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                CREATE MATERIALIZED VIEW IF NOT EXISTS {table_name}
+                AS {query}
+                """.format(**self.context())
+            )
+
+            cursor.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS {index_name}
+                ON {table_name} ({pk_column_name})
+                """.format(**self.context())
+            )
+
+    def drop(self) -> None:
         """Drops the materialized view if it exists."""
         with connection.cursor() as cursor:
             cursor.execute(
                 """
                 DROP MATERIALIZED VIEW IF EXISTS {table_name}
-                """.format(**cls.context())
+                """.format(**self.context())
             )
 
-    @classmethod
-    def refresh(cls, recreate: bool=False, concurrently: bool=True) -> None:
+    def refresh(self, recreate: bool=False, concurrently: bool=True) -> None:
         """Creates and/or refreshes the materialized view.
 
         Arguments:
@@ -43,27 +60,14 @@ class PostgresMaterializedView(models.Model):
                 Indicates whether this materialized view
                 should be refreshed in the background.
         """
-        if recreate:
-            cls.drop()
+
+        # won't touch it, if it already exists, unless recreate=True
+        self.create(recreate=recreate)
 
         with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                CREATE MATERIALIZED VIEW IF NOT EXISTS {table_name}
-                AS {query}
-                """.format(**cls.context())
-            )
-
-            cursor.execute(
-                """
-                CREATE UNIQUE INDEX IF NOT EXISTS {index_name}
-                ON {table_name} ({pk_column_name})
-                """.format(**cls.context())
-            )
-
             concurrent = 'CONCURRENTLY' if concurrently else ''
             cursor.execute(
                 """
                 REFRESH MATERIALIZED VIEW {concurrently} {table_name}
-                """.format(**cls.context(), concurrently=concurrent)
+                """.format(**self.context(), concurrently=concurrent)
             )

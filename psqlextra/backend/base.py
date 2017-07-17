@@ -7,6 +7,7 @@ from django.db.backends.postgresql.base import \
 
 from .hstore_unique import HStoreUniqueSchemaEditorMixin
 from .hstore_required import HStoreRequiredSchemaEditorMixin
+from .materialized_view import MaterializedViewSchemaEditorMixin
 
 
 def _get_backend_base():
@@ -60,6 +61,10 @@ class SchemaEditor(_get_schema_editor_base()):
     """Custom schema editor, see mixins for implementation."""
 
     mixins = [
+        MaterializedViewSchemaEditorMixin()
+    ]
+
+    post_processing_mixins = [
         HStoreUniqueSchemaEditorMixin(),
         HStoreRequiredSchemaEditorMixin()
     ]
@@ -68,25 +73,29 @@ class SchemaEditor(_get_schema_editor_base()):
         super(SchemaEditor, self).__init__(
             connection, collect_sql, atomic)
 
-        for mixin in self.mixins:
+        self.base = super(SchemaEditor, self)
+
+        for mixin in self.post_processing_mixins:
             mixin.execute = self.execute
             mixin.quote_name = self.quote_name
 
     def create_model(self, model):
         """Ran when a new model is created."""
 
-        super(SchemaEditor, self).create_model(model)
-
         for mixin in self.mixins:
+            mixin.create_model(super(), model)
+
+        for mixin in self.post_processing_mixins:
             mixin.create_model(model)
 
     def delete_model(self, model):
         """Ran when a model is being deleted."""
 
-        for mixin in self.mixins:
+        for mixin in self.post_processing_mixins:
             mixin.delete_model(model)
 
-        super(SchemaEditor, self).delete_model(model)
+        for mixin in self.mixins:
+            mixin.delete_model(super(), model)
 
     def alter_db_table(self, model, old_db_table, new_db_table):
         """Ran when the name of a model is changed."""
@@ -95,7 +104,7 @@ class SchemaEditor(_get_schema_editor_base()):
             model, old_db_table, new_db_table
         )
 
-        for mixin in self.mixins:
+        for mixin in self.post_processing_mixins:
             mixin.alter_db_table(
                 model,
                 old_db_table,
@@ -107,13 +116,13 @@ class SchemaEditor(_get_schema_editor_base()):
 
         super(SchemaEditor, self).add_field(model, field)
 
-        for mixin in self.mixins:
+        for mixin in self.post_processing_mixins:
             mixin.add_field(model, field)
 
     def remove_field(self, model, field):
         """Ran when a field is removed from a model."""
 
-        for mixin in self.mixins:
+        for mixin in self.post_processing_mixins:
             mixin.remove_field(model, field)
 
         super(SchemaEditor, self).remove_field(model, field)
@@ -125,7 +134,7 @@ class SchemaEditor(_get_schema_editor_base()):
             model, old_field, new_field, strict
         )
 
-        for mixin in self.mixins:
+        for mixin in self.post_processing_mixins:
             mixin.alter_field(
                 model, old_field, new_field, strict
             )

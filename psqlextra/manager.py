@@ -511,7 +511,7 @@ class PostgresManager(models.Manager):
                 Rows to upsert.
         """
 
-        return self.get_queryset().bulk_upsert(conflict_target, fields)
+        return self.get_queryset().bulk_upsert(conflict_target, rows)
 
     @staticmethod
     def _on_model_save(sender, **kwargs):

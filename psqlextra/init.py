@@ -7,7 +7,7 @@ def setup():
 
     import django.db.models.options as options
     new_meta_options = (
-        'query',
+        'view_query',
     )
 
     options.DEFAULT_NAMES = options.DEFAULT_NAMES + new_meta_options

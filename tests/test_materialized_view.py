@@ -1,11 +1,11 @@
 import time
 import uuid
 
-from django.db import connection, models
+from django.db import models
 
 from psqlextra.materialized_view import PostgresMaterializedView
 
-from .util import get_fake_model, define_fake_model, db_relation_exists
+from .util import get_fake_model, db_relation_exists
 
 
 def get_fake_materialized_view():
@@ -23,17 +23,16 @@ def get_fake_materialized_view():
         'last_name': models.CharField(max_length=255)
     })
 
-    MaterializedViewModel = define_fake_model(
+    MaterializedViewModel = get_fake_model(
         {
             'id': models.IntegerField(primary_key=True),
             'first_name': models.CharField(max_length=255),
             'last_name': models.CharField(max_length=255),
         },
-        PostgresMaterializedView,
+        models.Model,
         {
-            'managed': False,
             'db_table': db_table,
-            'query': str(ModelB.objects.values('id', 'last_name', 'model_a__first_name').query)
+            'view_query': str(ModelB.objects.values('id', 'last_name', 'model_a__first_name').query)
         }
     )
 
@@ -50,7 +49,7 @@ def test_materialized_view_create_refresh():
     obj_a = ModelA.objects.create(first_name='Swen')
     obj_b = ModelB.objects.create(model_a=obj_a, last_name='Kooij')
 
-    MaterializedViewModel.refresh()
+    PostgresMaterializedView(MaterializedViewModel).refresh()
 
     obj = MaterializedViewModel.objects.first()
     assert obj.first_name == obj_a.first_name
@@ -60,7 +59,7 @@ def test_materialized_view_create_refresh():
     obj_b.last_name = 'Beer'
     obj_b.save()
 
-    MaterializedViewModel.refresh()
+    PostgresMaterializedView(MaterializedViewModel).refresh()
 
     # wait a bit, since views update concurrently
     time.sleep(0.2)
@@ -77,8 +76,8 @@ def test_materialized_view_drop():
     ModelA, ModelB, MaterializedViewModel = get_fake_materialized_view()
     table_name = MaterializedViewModel._meta.db_table
 
-    MaterializedViewModel.refresh()
+    PostgresMaterializedView(MaterializedViewModel).refresh()
     assert db_relation_exists(table_name)
 
-    MaterializedViewModel.drop()
+    PostgresMaterializedView(MaterializedViewModel).drop()
     assert not db_relation_exists(table_name)
