@@ -21,3 +21,8 @@ class PostgresMaterializedViewModel(PostgresModel):
         base_manager_name = 'objects'
 
     view = PostgresMaterializedViewManager()
+
+    def __init__(self, *args, **kwargs):
+        """Initializes a new instance of :see:PostgresMaterializedViewModel."""
+
+        super().__init__(*args, **kwargs)

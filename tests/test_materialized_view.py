@@ -1,6 +1,9 @@
 import uuid
 
+import pytest
+
 from django.db import models
+from django.core.exceptions import ImproperlyConfigured
 
 from psqlextra.models import PostgresMaterializedViewModel
 
@@ -64,6 +67,50 @@ def test_materialized_view_create_refresh():
     # verify the view was properly updated
     obj.refresh_from_db()
     assert obj.last_name == obj_b.last_name
+
+
+@pytest.mark.parametrize('view_query_type', ['queryset', 'text'])
+def test_materialized_view_query_good(view_query_type):
+    """Tests whether specifying legal values for `view_query`
+    in a materialized view's `view_query` meta propery works
+    properly."""
+
+    Model = get_fake_model({
+        'name': models.CharField(max_length=255)
+    })
+
+    view_query = None
+    if view_query_type == 'queryset':
+        view_query = Model.objects.values('id', 'name')
+    elif view_query_type == 'text':
+        view_query = str(Model.objects.values('id', 'name').query)
+
+    MaterializedViewModel = get_fake_model(
+        {
+            'id': models.IntegerField(primary_key=True),
+            'name': models.CharField(max_length=255),
+        },
+        PostgresMaterializedViewModel,
+        dict(view_query=view_query)
+    )
+
+    Model.objects.create(name='swen')
+    MaterializedViewModel.view.refresh(concurrently=False)
+    assert MaterializedViewModel.objects.first().name == Model.objects.first().name
+
+
+@pytest.mark.parametrize('view_query', ['', None])
+def test_materialized_view_query_bad(view_query):
+    """Tests whether specifying illegal values for `view_query`
+    in a materialized view's `view_query` meta properly raises
+    an exception."""
+
+    with pytest.raises(ImproperlyConfigured):
+        get_fake_model(
+            dict(),
+            PostgresMaterializedViewModel,
+            dict(view_query=view_query)
+        )
 
 
 def test_materialized_view_drop():

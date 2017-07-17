@@ -2,6 +2,7 @@ from typing import Dict
 
 from django.db import connection
 from django.db.models.query import QuerySet
+from django.core.exceptions import ImproperlyConfigured
 
 from .manager import PostgresManager
 
@@ -76,12 +77,15 @@ class PostgresMaterializedViewManager(PostgresManager):
     def _get_query(self) -> str:
         """Gets the raw SQL query to use for this view."""
 
-        view_query = self.model._meta.view_query
+        view_query = getattr(self.model._meta, 'view_query', None)
 
-        if isinstance(view_query, str):
+        if isinstance(view_query, str) and view_query:
             return view_query
 
         if isinstance(view_query, QuerySet):
             return str(view_query.query)
 
-        return view_query
+        raise ImproperlyConfigured((
+            '\'%s\' is not a valid query or query set for the \'%s\' materialized view. '
+            'Make sure you specify a raw query as a string or a Django queryset.'
+        ) % (str(view_query), str(self.model.__name__)))
