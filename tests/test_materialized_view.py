@@ -73,8 +73,9 @@ def test_materialized_view_drop():
     ModelA, ModelB, MaterializedViewModel = get_fake_materialized_view()
     table_name = MaterializedViewModel._meta.db_table
 
-    MaterializedViewModel.view.refresh(concurrently=False)
+    # the view should have been created by the migrations
     assert db_relation_exists(table_name)
 
+    # ensure dropping the model works properly
     MaterializedViewModel.view.drop()
     assert not db_relation_exists(table_name)
