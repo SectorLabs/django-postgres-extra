@@ -8,10 +8,10 @@ from django.db.models.sql.constants import CURSOR
 from django.db.models.fields import NOT_PROVIDED
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
 
-from . import signals
-from .compiler import (PostgresReturningUpdateCompiler,
-                       PostgresInsertCompiler)
-from .query import PostgresQuery, PostgresInsertQuery, ConflictAction
+from psqlextra import signals
+from psqlextra.compiler import (PostgresReturningUpdateCompiler,
+                                PostgresInsertCompiler)
+from psqlextra.query import PostgresQuery, PostgresInsertQuery, ConflictAction
 
 
 class PostgresQuerySet(models.QuerySet):

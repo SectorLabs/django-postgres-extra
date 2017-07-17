@@ -1,9 +1,8 @@
-import time
 import uuid
 
 from django.db import models
 
-from psqlextra.materialized_view import PostgresMaterializedView
+from psqlextra.models import PostgresMaterializedViewModel
 
 from .util import get_fake_model, db_relation_exists
 
@@ -29,7 +28,7 @@ def get_fake_materialized_view():
             'first_name': models.CharField(max_length=255),
             'last_name': models.CharField(max_length=255),
         },
-        models.Model,
+        PostgresMaterializedViewModel,
         {
             'db_table': db_table,
             'view_query': str(ModelB.objects.values('id', 'last_name', 'model_a__first_name').query)
@@ -49,7 +48,7 @@ def test_materialized_view_create_refresh():
     obj_a = ModelA.objects.create(first_name='Swen')
     obj_b = ModelB.objects.create(model_a=obj_a, last_name='Kooij')
 
-    PostgresMaterializedView(MaterializedViewModel).refresh()
+    MaterializedViewModel.view.refresh(concurrently=False)
 
     obj = MaterializedViewModel.objects.first()
     assert obj.first_name == obj_a.first_name
@@ -60,7 +59,7 @@ def test_materialized_view_create_refresh():
     obj_b.save()
 
     # refresh the materialized view
-    PostgresMaterializedView(MaterializedViewModel).refresh(concurrently=False)
+    MaterializedViewModel.view.refresh(concurrently=False)
 
     # verify the view was properly updated
     obj.refresh_from_db()
@@ -74,8 +73,8 @@ def test_materialized_view_drop():
     ModelA, ModelB, MaterializedViewModel = get_fake_materialized_view()
     table_name = MaterializedViewModel._meta.db_table
 
-    PostgresMaterializedView(MaterializedViewModel).refresh()
+    MaterializedViewModel.view.refresh(concurrently=False)
     assert db_relation_exists(table_name)
 
-    PostgresMaterializedView(MaterializedViewModel).drop()
+    MaterializedViewModel.view.drop()
     assert not db_relation_exists(table_name)

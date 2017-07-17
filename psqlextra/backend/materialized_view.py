@@ -1,6 +1,3 @@
-from ..materialized_view import PostgresMaterializedView
-
-
 class MaterializedViewSchemaEditorMixin:
     def create_model(self, base, model):
         """Ran when a new model is created."""
@@ -8,7 +5,7 @@ class MaterializedViewSchemaEditorMixin:
         if not self._is_materialized_view(model):
             return base.create_model(model)
 
-        PostgresMaterializedView(model).create()
+        model.view.create()
 
     def delete_model(self, base, model):
         """Ran when a model is deleted."""
@@ -16,7 +13,7 @@ class MaterializedViewSchemaEditorMixin:
         if not self._is_materialized_view(model):
             return base.delete_model(model)
 
-        PostgresMaterializedView(model).drop()
+        model.view.drop()
 
     def _is_materialized_view(self, model) -> bool:
         """Gets whether the specified model is a materialized view."""

@@ -1,21 +1,22 @@
 from typing import Dict
 
 from django.db import connection
+from django.db.models.query import QuerySet
+
+from .manager import PostgresManager
 
 
-class PostgresMaterializedView:
-    """Base class for PostgreSQL materialized views."""
-
-    def __init__(self, model):
-        self.model = model
+class PostgresMaterializedViewManager(PostgresManager):
+    """Special manager for materialized views."""
 
     def context(self) -> Dict[str, str]:
         """Gets dictionary to be passed to queries."""
+
         return dict(
             table_name=connection.ops.quote_name(self.model._meta.db_table),
             index_name=connection.ops.quote_name('%s_index' % self.model._meta.db_table),
             pk_column_name=self.model._meta.pk.db_column or self.model._meta.pk.name,
-            query=str(self.model._meta.view_query),
+            query=self._get_query()
         )
 
     def create(self, recreate=False) -> None:
@@ -71,3 +72,16 @@ class PostgresMaterializedView:
                 REFRESH MATERIALIZED VIEW {concurrently} {table_name}
                 """.format(**self.context(), concurrently=concurrent)
             )
+
+    def _get_query(self) -> str:
+        """Gets the raw SQL query to use for this view."""
+
+        view_query = self.model._meta.view_query
+
+        if isinstance(view_query, str):
+            return view_query
+
+        if isinstance(view_query, QuerySet):
+            return str(view_query.query)
+
+        return view_query
