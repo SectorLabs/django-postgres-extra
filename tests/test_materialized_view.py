@@ -31,7 +31,7 @@ def get_fake_materialized_view():
         PostgresMaterializedViewModel,
         {
             'db_table': db_table,
-            'view_query': str(ModelB.objects.values('id', 'last_name', 'model_a__first_name').query)
+            'view_query': ModelB.objects.values('id', 'last_name', 'model_a__first_name')
         }
     )
 
