@@ -4,3 +4,4 @@ pages:
 - Manager: manager.md
 - HStore: hstore.md
 - Signals: signals.md
+- Materialized Views: materialized_views.md

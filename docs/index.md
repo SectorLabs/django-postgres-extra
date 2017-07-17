@@ -17,6 +17,8 @@ Explore the documentation to learn about all features:
     * [Update](/signals/#psqlextrasignalsupdate)
     * [Delete](/signals/#psqlextrasignalsdelete)
 
+* [Materialized views](/materialized_views)
+
 ## Installation
 
 1. Install the package from PyPi:
