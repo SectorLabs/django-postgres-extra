@@ -3,6 +3,7 @@ import uuid
 import pytest
 
 from django.db import models
+from django.db.models import F
 from django.core.exceptions import ImproperlyConfigured
 
 from psqlextra.models import PostgresMaterializedViewModel
@@ -39,6 +40,31 @@ def get_fake_materialized_view():
     )
 
     return ModelA, ModelB, MaterializedViewModel
+
+
+def test_materialized_view_annotate():
+    """Tests whether materialized views work properly
+    when the view query has an annotation in it."""
+
+    Model = get_fake_model({
+        'name': models.CharField(max_length=255)
+    })
+
+    MaterializedViewModel = get_fake_model(
+        {
+            'id': models.IntegerField(primary_key=True),
+            'name': models.CharField(max_length=255),
+        },
+        PostgresMaterializedViewModel,
+        {
+            'view_query': Model.objects.annotate(name=F('name')).values('id', 'name')
+        }
+    )
+
+    table_name = MaterializedViewModel._meta.db_table
+
+    # the view should have been created by the migrations
+    assert db_relation_exists(table_name)
 
 
 def test_materialized_view_create_refresh():
