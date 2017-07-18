@@ -45,7 +45,8 @@ Major features
 
 Desired/future features
 -----------------------
-* Materialized views
+
+* `Desired enhancements <https://github.com/SectorLabs/django-postgres-extra/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement/>`_
 
 
 Installation
