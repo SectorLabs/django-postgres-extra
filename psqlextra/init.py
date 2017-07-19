@@ -11,7 +11,3 @@ def setup():
     )
 
     options.DEFAULT_NAMES = options.DEFAULT_NAMES + new_meta_options
-
-# this has to be here to make sure that setup() is called
-# before django initializes, bit of a hack, but hey it works
-setup()

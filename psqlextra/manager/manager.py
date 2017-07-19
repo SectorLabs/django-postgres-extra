@@ -409,6 +409,8 @@ class PostgresQuerySet(models.QuerySet):
 class PostgresManager(models.Manager):
     """Adds support for PostgreSQL specifics."""
 
+    use_in_migrations = True
+
     def __init__(self, *args, **kwargs):
         """Initializes a new instance of :see:PostgresManager."""
 

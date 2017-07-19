@@ -19,6 +19,9 @@ class PostgresMaterializedViewModel(PostgresModel):
     class Meta:
         abstract = True
         base_manager_name = 'objects'
+        view_query = None
+
+    use_in_migrations = True
 
     view = PostgresMaterializedViewManager()
 

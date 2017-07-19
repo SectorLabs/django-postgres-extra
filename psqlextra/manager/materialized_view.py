@@ -10,6 +10,8 @@ from .manager import PostgresManager
 class PostgresMaterializedViewManager(PostgresManager):
     """Special manager for materialized views."""
 
+    use_in_migrations = True
+
     def context(self) -> Dict[str, str]:
         """Gets dictionary to be passed to queries."""
 

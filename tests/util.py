@@ -19,6 +19,7 @@ def define_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
 
     if fields:
         attributes.update(fields)
+
     model = type(name, (model_base,), attributes)
 
     return model

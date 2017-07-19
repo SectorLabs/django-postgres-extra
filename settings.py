@@ -1,5 +1,8 @@
 import dj_database_url
 
+import psqlextra
+psqlextra.setup()
+
 DEBUG = True
 TEMPLATE_DEBUG = True
 
