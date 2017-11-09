@@ -19,6 +19,9 @@ Explore the documentation to learn about all features:
 
 * [Materialized views](/materialized_views)
 
+* [Indexes](/indexes)
+    * [ConditionalUniqueIndex](/indexes/#conditional-unique-index)
+
 ## Installation
 
 1. Install the package from PyPi:

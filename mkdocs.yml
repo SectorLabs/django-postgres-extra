@@ -5,3 +5,4 @@ pages:
 - HStore: hstore.md
 - Signals: signals.md
 - Materialized Views: materialized_views.md
+- Indexes: indexes.md

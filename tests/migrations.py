@@ -357,17 +357,29 @@ class MigrationSimulator:
         self.project_state = new_project_state
         return migration
 
-    def migrate(self):
-        """Executes the recorded migrations."""
+    def migrate(self, *filters: List[str]):
+        """
+        Executes the recorded migrations.
 
+        Arguments:
+            filters: List of strings to filter SQL statements on.
+
+        Returns:
+            The filtered calls of every migration
+        """
+
+        calls_for_migrations = []
         while len(self.migrations) > 0:
             migration = self.migrations.pop()
 
-            with connection.schema_editor() as schema_editor:
+            with filtered_schema_editor(*filters) as (schema_editor, calls):
                 migration_executor = MigrationExecutor(schema_editor.connection)
                 migration_executor.apply_migration(
                     self.project_state, migration
                 )
+                calls_for_migrations.append(calls)
+
+        return calls_for_migrations
 
     def _generate_random_name(self):
         return str(uuid.uuid4()).replace('-', '')[:8]
