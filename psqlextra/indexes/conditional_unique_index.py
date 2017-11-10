@@ -9,8 +9,8 @@ class ConditionalUniqueIndex(Index):
     NULL as a valid value. In that case, you can just use:
     >>> class Meta:
     ...    indexes = [
-    ...        ConditionalUniqueIndex(fields=['a', 'b', 'c'], condition='c IS NOT NULL'),
-    ...        ConditionalUniqueIndex(fields=['a', 'b'], condition='c IS NULL')
+    ...        ConditionalUniqueIndex(fields=['a', 'b', 'c'], condition='"c" IS NOT NULL'),
+    ...        ConditionalUniqueIndex(fields=['a', 'b'], condition='"c" IS NULL')
     ...    ]
     """
 

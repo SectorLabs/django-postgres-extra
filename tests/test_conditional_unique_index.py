@@ -1,7 +1,9 @@
-from psqlextra.indexes import ConditionalUniqueIndex
-from .migrations import MigrationSimulator, filtered_schema_editor
+import pytest
 
-from django.db import models
+from psqlextra.indexes import ConditionalUniqueIndex
+from .migrations import MigrationSimulator
+
+from django.db import models, IntegrityError, transaction
 from django.db.migrations import AddIndex, CreateModel
 
 def test_deconstruct():
@@ -23,7 +25,7 @@ def test_migrations():
     Model = simulator.define_model(
         fields={
             'id': models.IntegerField(primary_key=True),
-            'name': models.CharField(max_length=255),
+            'name': models.CharField(max_length=255, null=True),
             'other_name': models.CharField(max_length=255)
         },
        meta_options={
@@ -60,3 +62,13 @@ def test_migrations():
     assert calls[1] == 'CREATE UNIQUE INDEX "index2" ON "{0}" ("other_name") WHERE "name" IS NULL'.format(
         db_table
     )
+
+    with transaction.atomic():
+        Model.objects.create(id=1, name="name", other_name="other_name")
+        with pytest.raises(IntegrityError):
+            Model.objects.create(id=2, name="name", other_name="other_name")
+
+    with transaction.atomic():
+        Model.objects.create(id=1, name=None, other_name="other_name")
+        with pytest.raises(IntegrityError):
+            Model.objects.create(id=2, name=None, other_name="other_name")
