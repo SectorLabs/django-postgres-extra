@@ -38,4 +38,3 @@ After:
     b = B()
     Model.objects.create(a=None, b=b)
     Model.objects.create(a=None, b=b)
-    ```
