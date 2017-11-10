@@ -42,6 +42,9 @@ Major features
     * Concurrent refreshing
     * Automatic migrations
 
+* Indexes
+    * Custom indexes with conditions.
+
 
 Desired/future features
 -----------------------
