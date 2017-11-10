@@ -6,6 +6,7 @@ from .migrations import MigrationSimulator
 from django.db import models, IntegrityError, transaction
 from django.db.migrations import AddIndex, CreateModel
 
+
 def test_deconstruct():
     """Tests whether the :see:HStoreField's deconstruct()
     method works properly."""
@@ -28,20 +29,20 @@ def test_migrations():
             'name': models.CharField(max_length=255, null=True),
             'other_name': models.CharField(max_length=255)
         },
-       meta_options={
-           'indexes': [
-               ConditionalUniqueIndex(
+        meta_options={
+            'indexes': [
+                ConditionalUniqueIndex(
                     fields=['name', 'other_name'],
                     condition='"name" IS NOT NULL',
                     name='index1'
-               ),
-               ConditionalUniqueIndex(
+                ),
+                ConditionalUniqueIndex(
                     fields=['other_name'],
                     condition='"name" IS NULL',
                     name='index2'
                 )
-           ]
-       }
+            ]
+        }
     )
 
     migration = simulator.make_migrations()
