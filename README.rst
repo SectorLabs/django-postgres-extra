@@ -38,10 +38,6 @@ Major features
     * ``MIN``
     * ``MAX``
 
-* Materialized views
-    * Concurrent refreshing
-    * Automatic migrations
-
 * Indexes
     * Custom indexes with conditions.
 
