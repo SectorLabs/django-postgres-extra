@@ -7,7 +7,6 @@ from django.db.backends.postgresql.base import \
 
 from .hstore_unique import HStoreUniqueSchemaEditorMixin
 from .hstore_required import HStoreRequiredSchemaEditorMixin
-from .materialized_view import MaterializedViewSchemaEditorMixin
 
 
 def _get_backend_base():
@@ -60,10 +59,6 @@ def _get_schema_editor_base():
 class SchemaEditor(_get_schema_editor_base()):
     """Custom schema editor, see mixins for implementation."""
 
-    mixins = [
-        MaterializedViewSchemaEditorMixin()
-    ]
-
     post_processing_mixins = [
         HStoreUniqueSchemaEditorMixin(),
         HStoreRequiredSchemaEditorMixin()
@@ -82,8 +77,7 @@ class SchemaEditor(_get_schema_editor_base()):
     def create_model(self, model):
         """Ran when a new model is created."""
 
-        for mixin in self.mixins:
-            mixin.create_model(super(), model)
+        super().create_model(model)
 
         for mixin in self.post_processing_mixins:
             mixin.create_model(model)
@@ -94,8 +88,7 @@ class SchemaEditor(_get_schema_editor_base()):
         for mixin in self.post_processing_mixins:
             mixin.delete_model(model)
 
-        for mixin in self.mixins:
-            mixin.delete_model(super(), model)
+        super().delete_model(model)
 
     def alter_db_table(self, model, old_db_table, new_db_table):
         """Ran when the name of a model is changed."""
