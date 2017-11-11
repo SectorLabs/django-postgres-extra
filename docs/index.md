@@ -17,8 +17,6 @@ Explore the documentation to learn about all features:
     * [Update](/signals/#psqlextrasignalsupdate)
     * [Delete](/signals/#psqlextrasignalsdelete)
 
-* [Materialized views](/materialized_views)
-
 * [Indexes](/indexes)
     * [ConditionalUniqueIndex](/indexes/#conditional-unique-index)
 
