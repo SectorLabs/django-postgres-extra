@@ -45,7 +45,7 @@ Major features
 Desired/future features
 -----------------------
 
-* `Desired enhancements <https://github.com/SectorLabs/django-postgres-extra/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement/>`_
+* `Desired enhancements <https://github.com/SectorLabs/django-postgres-extra/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement>`_
 
 
 Installation
