@@ -4,6 +4,9 @@ Contributions to `django-postgres-extra` are definitely welcome! Any contributio
 
 Please use GitHub pull requests to contribute changes.
 
+##
+Information on how to run tests and how to hack on the code can be found at the bottom of the [README](https://github.com/SectorLabs/django-postgres-extra#working-with-the-code).
+
 ## 
 If you're unsure whether your change would be a good fit for `django-postgres-extra`, please submit an issue with the [idea](https://github.com/SectorLabs/django-postgres-extra/labels/idea) label and we can talk about it.
 
