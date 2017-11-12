@@ -35,8 +35,7 @@ Major features
     * Updates
 
 * Extra expressions
-    * ``MIN``
-    * ``MAX``
+    * ``MIN`` and ``MAX`` for multiple value fields such as hstore and array.
 
 * Indexes
     * Custom indexes with conditions.
