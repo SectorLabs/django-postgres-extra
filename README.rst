@@ -126,7 +126,7 @@ FAQ - Frequently asked questions
 
 
 Working with the code
-----------
+---------------------
 
 **Prerequisites**
 
