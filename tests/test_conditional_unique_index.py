@@ -6,6 +6,8 @@ from .migrations import MigrationSimulator
 from django.db import models, IntegrityError, transaction
 from django.db.migrations import AddIndex, CreateModel
 
+from .util import get_fake_model
+
 
 def test_deconstruct():
     """Tests whether the :see:HStoreField's deconstruct()
@@ -73,3 +75,82 @@ def test_migrations():
         Model.objects.create(id=1, name=None, other_name="other_name")
         with pytest.raises(IntegrityError):
             Model.objects.create(id=2, name=None, other_name="other_name")
+
+
+def test_upserting():
+    """Tests upserting respects the :see:ConditionalUniqueIndex rules"""
+    model = get_fake_model(
+        fields={
+            'a': models.IntegerField(),
+            'b': models.IntegerField(null=True),
+            'c': models.IntegerField(),
+        },
+        meta_options={
+            'indexes': [
+                ConditionalUniqueIndex(
+                    fields=['a', 'b'],
+                    condition='"b" IS NOT NULL'
+                ),
+                ConditionalUniqueIndex(
+                    fields=['a'],
+                    condition='"b" IS NULL'
+                )
+            ]
+        }
+    )
+
+    model.objects.upsert(conflict_target=['a'], index_predicate='"b" IS NULL', fields=dict(a=1, c=1))
+    assert model.objects.all().count() == 1
+    assert model.objects.filter(a=1, c=1).count() == 1
+
+    model.objects.upsert(conflict_target=['a'], index_predicate='"b" IS NULL', fields=dict(a=1, c=2))
+    assert model.objects.all().count() == 1
+    assert model.objects.filter(a=1, c=1).count() == 0
+    assert model.objects.filter(a=1, c=2).count() == 1
+
+    model.objects.upsert(conflict_target=['a', 'b'], index_predicate='"b" IS NOT NULL', fields=dict(a=1, b=1, c=1))
+    assert model.objects.all().count() == 2
+    assert model.objects.filter(a=1, c=2).count() == 1
+    assert model.objects.filter(a=1, b=1, c=1).count() == 1
+
+    model.objects.upsert(conflict_target=['a', 'b'], index_predicate='"b" IS NOT NULL', fields=dict(a=1, b=1, c=2))
+    assert model.objects.all().count() == 2
+    assert model.objects.filter(a=1, c=1).count() == 0
+    assert model.objects.filter(a=1, b=1, c=2).count() == 1
+
+
+def test_inserting():
+    """Tests inserting respects the :see:ConditionalUniqueIndex rules"""
+
+    model = get_fake_model(
+        fields={
+            'a': models.IntegerField(),
+            'b': models.IntegerField(null=True),
+            'c': models.IntegerField(),
+        },
+        meta_options={
+            'indexes': [
+                ConditionalUniqueIndex(
+                    fields=['a', 'b'],
+                    condition='"b" IS NOT NULL'
+                ),
+                ConditionalUniqueIndex(
+                    fields=['a'],
+                    condition='"b" IS NULL'
+                )
+            ]
+        }
+    )
+
+    model.objects.create(a=1, c=1)
+    with transaction.atomic():
+        with pytest.raises(IntegrityError):
+            model.objects.create(a=1, c=2)
+    model.objects.create(a=2, c=1)
+
+    model.objects.create(a=1, b=1, c=1)
+    with transaction.atomic():
+        with pytest.raises(IntegrityError):
+            model.objects.create(a=1, b=1, c=2)
+
+    model.objects.create(a=1, b=2, c=1)

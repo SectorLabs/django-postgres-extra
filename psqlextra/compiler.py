@@ -103,15 +103,26 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         # for conflicts
         conflict_target = self._build_conflict_target()
 
+        index_predicate = self.query.index_predicate
+
+        sql_template = (
+            '{insert} ON CONFLICT {conflict_target} DO UPDATE '
+            'SET {update_columns} RETURNING {returning}'
+        )
+
+        if index_predicate:
+            sql_template = (
+                '{insert} ON CONFLICT {conflict_target} WHERE {index_predicate} DO UPDATE '
+                'SET {update_columns} RETURNING {returning}'
+            )
+
         return (
-            (
-                '{insert} ON CONFLICT {conflict_target} DO UPDATE'
-                ' SET {update_columns} RETURNING {returning}'
-            ).format(
+            sql_template.format(
                 insert=sql,
                 conflict_target=conflict_target,
                 update_columns=update_columns,
-                returning=returning
+                returning=returning,
+                index_predicate=index_predicate,
             ),
             params
         )
