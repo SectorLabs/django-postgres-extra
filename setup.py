@@ -7,7 +7,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as readme:
 
 setup(
     name='django-postgres-extra',
-    version='1.17',
+    version='1.18',
     packages=find_packages(),
     include_package_data=True,
     license='MIT License',
