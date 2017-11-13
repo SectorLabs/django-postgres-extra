@@ -26,6 +26,7 @@ class PostgresQuerySet(models.QuerySet):
 
         self.conflict_target = None
         self.conflict_action = None
+        self.index_predicate = None
 
     def annotate(self, **annotations):
         """Custom version of the standard annotate function
@@ -113,7 +114,7 @@ class PostgresQuerySet(models.QuerySet):
         # affected, let's do the same
         return len(rows)
 
-    def on_conflict(self, fields: List[Union[str, Tuple[str]]], action):
+    def on_conflict(self, fields: List[Union[str, Tuple[str]]], action, index_predicate=None):
         """Sets the action to take when conflicts arise when attempting
         to insert/create a new row.
 
@@ -123,10 +124,16 @@ class PostgresQuerySet(models.QuerySet):
 
             action:
                 The action to take when the conflict occurs.
+
+            index_predicate:
+                The index predicate to satisfy an arbiter partial index (i.e. what partial index to use for checking
+                conflicts)
         """
 
         self.conflict_target = fields
         self.conflict_action = action
+        self.index_predicate = index_predicate
+
         return self
 
     def bulk_insert(self, rows):
@@ -216,7 +223,7 @@ class PostgresQuerySet(models.QuerySet):
 
         return self.model(**model_init_fields)
 
-    def upsert(self, conflict_target: List, fields: Dict) -> int:
+    def upsert(self, conflict_target: List, fields: Dict, index_predicate=None) -> int:
         """Creates a new record or updates the existing one
         with the specified data.
 
@@ -227,11 +234,15 @@ class PostgresQuerySet(models.QuerySet):
             fields:
                 Fields to insert/update.
 
+            index_predicate:
+                The index predicate to satisfy an arbiter partial index (i.e. what partial index to use for checking
+                conflicts)
+
         Returns:
             The primary key of the row that was created/updated.
         """
 
-        self.on_conflict(conflict_target, ConflictAction.UPDATE)
+        self.on_conflict(conflict_target, ConflictAction.UPDATE, index_predicate)
         return self.insert(**fields)
 
     def upsert_and_get(self, conflict_target: List, fields: Dict):
@@ -307,6 +318,7 @@ class PostgresQuerySet(models.QuerySet):
         query = PostgresInsertQuery(self.model)
         query.conflict_action = self.conflict_action
         query.conflict_target = self.conflict_target
+        query.index_predicate = self.index_predicate
         query.values(objs, insert_fields, update_fields)
 
         # use the postgresql insert query compiler to transform the insert
@@ -466,7 +478,7 @@ class PostgresManager(models.Manager):
         """
         return self.get_queryset().on_conflict(fields, action)
 
-    def upsert(self, conflict_target: List, fields: Dict) -> int:
+    def upsert(self, conflict_target: List, fields: Dict, index_predicate=None) -> int:
         """Creates a new record or updates the existing one
         with the specified data.
 
@@ -477,11 +489,14 @@ class PostgresManager(models.Manager):
             fields:
                 Fields to insert/update.
 
+            index_predicate:
+                The index predicate to satisfy an arbiter partial index.
+
         Returns:
             The primary key of the row that was created/updated.
         """
 
-        return self.get_queryset().upsert(conflict_target, fields)
+        return self.get_queryset().upsert(conflict_target, fields, index_predicate)
 
     def upsert_and_get(self, conflict_target: List, fields: Dict):
         """Creates a new record or updates the existing one
