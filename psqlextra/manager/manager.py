@@ -114,7 +114,7 @@ class PostgresQuerySet(models.QuerySet):
         # affected, let's do the same
         return len(rows)
 
-    def on_conflict(self, fields: List[Union[str, Tuple[str]]], action, index_predicate=None):
+    def on_conflict(self, fields: List[Union[str, Tuple[str]]], action, index_predicate: str=None):
         """Sets the action to take when conflicts arise when attempting
         to insert/create a new row.
 
@@ -223,7 +223,7 @@ class PostgresQuerySet(models.QuerySet):
 
         return self.model(**model_init_fields)
 
-    def upsert(self, conflict_target: List, fields: Dict, index_predicate=None) -> int:
+    def upsert(self, conflict_target: List, fields: Dict, index_predicate: str=None) -> int:
         """Creates a new record or updates the existing one
         with the specified data.
 
@@ -478,7 +478,7 @@ class PostgresManager(models.Manager):
         """
         return self.get_queryset().on_conflict(fields, action)
 
-    def upsert(self, conflict_target: List, fields: Dict, index_predicate=None) -> int:
+    def upsert(self, conflict_target: List, fields: Dict, index_predicate: str=None) -> int:
         """Creates a new record or updates the existing one
         with the specified data.
 
