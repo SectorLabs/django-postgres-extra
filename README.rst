@@ -1,5 +1,11 @@
-Django Postgres Extra
-=====================
+
+.. raw:: html
+   
+    <h1 align="center">
+      <img width="400" src="https://i.imgur.com/79S6OVM.png" alt="django-postgres-extra">
+      <br>
+      <br>
+   </h1>
 
 =================  ===================
 **Quality**           |QualityBadge|_
