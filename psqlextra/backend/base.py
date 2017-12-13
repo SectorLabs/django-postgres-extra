@@ -1,12 +1,16 @@
 import importlib
+import logging
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.db import ProgrammingError
 from django.db.backends.postgresql.base import \
     DatabaseWrapper as Psycopg2DatabaseWrapper
 
 from .hstore_unique import HStoreUniqueSchemaEditorMixin
 from .hstore_required import HStoreRequiredSchemaEditorMixin
+
+logger = logging.getLogger(__name__)
 
 
 def _get_backend_base():
@@ -150,4 +154,13 @@ class DatabaseWrapper(_get_backend_base()):
 
         super().prepare_database()
         with self.cursor() as cursor:
-            cursor.execute('CREATE EXTENSION IF NOT EXISTS hstore')
+            try:
+                cursor.execute('CREATE EXTENSION IF NOT EXISTS hstore')
+            except ProgrammingError:  # permission denied
+                logger.warning(
+                    'Failed to create "hstore" extension. '
+                    'Tables with hstore columns may fail to migrate. '
+                    'If hstore is needed, make sure you are connected '
+                    'to the database as a superuser '
+                    'or add the extension manually.',
+                    exc_info=True)
