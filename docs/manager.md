@@ -248,7 +248,7 @@ class MyModel(PostgresModel):
 obj = (
     MyModel.objects
     .upsert_and_get(
-        conflict_target=['myfield']
+        conflict_target=['myfield'],
         fields=dict(myfield='beer')
     )
 )
@@ -256,7 +256,7 @@ obj = (
 id = (
     MyModel.objects
     .upsert(
-        conflict_target=['myfield']
+        conflict_target=['myfield'],
         fields=dict(myfield='beer')
     )
 )
@@ -264,7 +264,7 @@ id = (
 (
     MyModel.objects
     .bulk_upsert(
-        conflict_target=['myfield']
+        conflict_target=['myfield'],
         rows=[
             dict(myfield='beer'),
             dict(myfield='wine')
