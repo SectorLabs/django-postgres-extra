@@ -48,7 +48,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             rows = []
             for sql, params in self.as_sql(return_id):
                 cursor.execute(sql, params)
-                rows.append(cursor.fetchone())
+                rows.extend(cursor.fetchall())
 
         # create a mapping between column names and column value
         return [
