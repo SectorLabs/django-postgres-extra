@@ -5,7 +5,7 @@ class HStoreRequiredSchemaEditorMixin:
     sql_hstore_required_create = (
         'ALTER TABLE {table} '
         'ADD CONSTRAINT {name} '
-        'CHECK ({field}->\'{key}\' '
+        'CHECK (({field}->\'{key}\') '
         'IS NOT NULL)'
     )
 
