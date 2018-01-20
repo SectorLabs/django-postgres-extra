@@ -128,7 +128,7 @@ FAQ - Frequently asked questions
 
 4. **Does this package work with Django 1.X?**
 
-   No. Only Django 1.10 or newer is supported.
+   No. Only Django 1.11 or newer is supported.
 
 
 Working with the code
@@ -137,7 +137,7 @@ Working with the code
 **Prerequisites**
 
 * PostgreSQL 9.6 or newer.
-* Django 1.10 or newer.
+* Django 1.11 or newer.
 * Python 3.5 or newer.
 
 **Getting started**
