@@ -17,7 +17,7 @@ def test_annotate_hstore_key_ref():
     })
 
     model = get_fake_model({
-        'fk': models.ForeignKey(model_fk)
+        'fk': models.ForeignKey(model_fk, on_delete=models.CASCADE)
     })
 
     fk = model_fk.objects.create(title={'en': 'english', 'ar': 'arabic'})

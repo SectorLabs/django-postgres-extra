@@ -315,6 +315,7 @@ class MigrationSimulator:
 
         self.apps = Apps()
         self.apps.ready = False
+        self.apps.loading = False
         self.apps.populate(installed_apps=[self.app_config])
 
         self.project_state = ProjectState()
