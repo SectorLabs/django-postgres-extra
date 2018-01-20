@@ -93,7 +93,7 @@ def test_on_conflict_foreign_key(conflict_action):
 
     model2 = get_fake_model({
         'name': models.CharField(max_length=255, unique=True),
-        'model1': models.ForeignKey(model1)
+        'model1': models.ForeignKey(model1, on_delete=models.CASCADE)
     })
 
     model1_row = (
@@ -277,8 +277,8 @@ def test_on_conflict_unique_together_fk(conflict_action):
 
     model2 = get_fake_model(
         {
-            'model1': models.ForeignKey(model),
-            'model2': models.ForeignKey(model)
+            'model1': models.ForeignKey(model, on_delete=models.CASCADE),
+            'model2': models.ForeignKey(model, on_delete=models.CASCADE)
         },
         PostgresModel,
         {

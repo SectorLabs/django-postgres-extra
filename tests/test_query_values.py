@@ -1,6 +1,6 @@
 import pytest
 
-from django.db.models import ForeignKey
+from django.db import models
 
 from psqlextra.fields import HStoreField
 
@@ -61,7 +61,7 @@ def test_values_hstore_key_through_fk():
     })
 
     model = get_fake_model({
-        'fk': ForeignKey(fmodel)
+        'fk': models.ForeignKey(fmodel, on_delete=models.CASCADE)
     })
 
     fobj = fmodel.objects.create(name={'en': 'swen', 'ar': 'arabic swen'})

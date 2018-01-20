@@ -24,13 +24,10 @@ class ConditionalUniqueIndex(Index):
 
     def create_sql(self, model, schema_editor, using=''):
         """Creates the actual SQL used when applying the migration."""
-
-        sql_create_index = self.sql_create_index
-        sql_parameters = {
-            **Index.get_sql_create_template_values(self, model, schema_editor, using),
-            'condition': self.condition
-        }
-        return sql_create_index % sql_parameters
+        statement = super().create_sql(model, schema_editor, using)
+        statement.template = self.sql_create_index
+        statement.parts['condition'] = self.condition
+        return statement
 
     def deconstruct(self):
         """Serializes the :see:ConditionalUniqueIndex for the migrations file."""
