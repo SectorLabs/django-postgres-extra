@@ -7,13 +7,13 @@
       <br>
    </h1>
 
-===================  ===================
+====================  ===================
 **Quality**           |QualityBadge|_
 **Test coverage**     |CoverageBadge|_
 **License**           |LicenseBadge|_
 **PyPi**              |PyPiBadge|_
 **Django versions**   >=1.11 (including 2.0)
-**Python versions**   >3.5
+**Python versions**   >=3.5
 ====================  ===================
 
 .. |QualityBadge| image:: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/badges/quality-score.png
