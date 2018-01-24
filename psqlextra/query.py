@@ -99,7 +99,7 @@ class PostgresQuery(sql.Query):
 
         alias = self.get_initial_alias()
         opts = self.get_meta()
-
+        cols = []
         for name in field_names:
             parts = name.split(LOOKUP_SEP)
 
@@ -108,7 +108,7 @@ class PostgresQuery(sql.Query):
                 column_name, hstore_key = parts[:2]
                 is_hstore, field = self._is_hstore_field(column_name)
                 if is_hstore:
-                    self.add_select(
+                    cols.append(
                         HStoreColumn(self.model._meta.db_table or self.model.name, field, hstore_key)
                     )
                     continue
@@ -117,7 +117,9 @@ class PostgresQuery(sql.Query):
             targets, final_alias, joins = self.trim_joins(targets, joins, path)
 
             for target in targets:
-                self.add_select(target.get_col(final_alias))
+                cols.append(target.get_col(final_alias))
+        if cols:
+            self.set_select(cols)
 
     def _is_hstore_field(self, field_name: str) -> Tuple[bool, Optional[models.Field]]:
         """Gets whether the field with the specified name is a
