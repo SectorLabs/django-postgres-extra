@@ -268,10 +268,12 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         field_name = self._normalize_field_name(field_name)
         field = self._get_model_field(field_name)
 
+        value = getattr(self.query.objs[0], field_name)
+
         return SQLInsertCompiler.prepare_value(
             self,
             field,
-            getattr(self.query.objs[0], field_name)
+            self.pre_save_val(field, value)
         )
 
     def _normalize_field_name(self, field_name) -> str:
