@@ -155,12 +155,13 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             (
                 'WITH insdata AS ('
                 '{insert} ON CONFLICT {conflict_target} DO UPDATE'
-                ' SET id = NULL WHERE FALSE RETURNING {returning})'
+                ' SET {pk_column} = NULL WHERE FALSE RETURNING {returning})'
                 ' SELECT * FROM insdata UNION ALL'
                 ' SELECT {returning} FROM {table} WHERE {where_clause} LIMIT 1;'
             ).format(
                 insert=sql,
                 conflict_target=conflict_target,
+                pk_column=self.qn(self.query.model._meta.pk.column),
                 returning=returning,
                 table=self.query.objs[0]._meta.db_table,
                 where_clause=where_clause
