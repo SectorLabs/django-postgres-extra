@@ -1,19 +1,17 @@
 -r base.txt
 
-coverage==4.2
-Django==1.11.1
-django-coverage-plugin==1.3.1
 psycopg2==2.7.3.2
-pylint==1.6.4
-pylint-common==0.2.2
-pylint-django==0.7.2
-pylint-plugin-utils==0.2.4
-coverage==4.2
+pylint==1.8.1
+pylint-common==0.2.5
+pylint-django==0.8.0
+pylint-plugin-utils==0.2.6
+coverage==4.4.2
 django-coverage-plugin==1.3.1
-flake8==3.0.4
-pep8==1.7.0
-dj-database-url==0.4.1
-pytest==3.0.6
-pytest-benchmark==3.0.0
+flake8==3.5.0
+pep8==1.7.1
+dj-database-url==0.4.2
+pytest==3.3.2
+pytest-benchmark==3.1.1
 pytest-django==3.1.2
-pytest-cov==2.4.0
+pytest-cov==2.5.1
+tox==2.9.1

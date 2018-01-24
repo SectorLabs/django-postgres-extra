@@ -166,7 +166,7 @@ Working with the code
 
    .. code-block:: bash
     
-       λ py.test
+       λ tox
     
 5. Run the benchmarks:
 
