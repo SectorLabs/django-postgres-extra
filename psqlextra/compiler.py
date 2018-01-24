@@ -271,7 +271,12 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         return SQLInsertCompiler.prepare_value(
             self,
             field,
-            getattr(self.query.objs[0], field_name)
+            # Note: this deliberately doesn't use `pre_save_val` as we don't
+            # want things like auto_now on DateTimeField (etc.) to change the
+            # value. We rely on pre_save having already been done by the
+            # underlying compiler so that things like FileField have already had
+            # the opportunity to save out their data.
+            getattr(self.query.objs[0], field.attname)
         )
 
     def _normalize_field_name(self, field_name) -> str:
