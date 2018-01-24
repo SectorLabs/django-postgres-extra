@@ -1,18 +1,20 @@
 
 .. raw:: html
-   
+
     <h1 align="center">
       <img width="400" src="https://i.imgur.com/79S6OVM.png" alt="django-postgres-extra">
       <br>
       <br>
    </h1>
 
-=================  ===================
+===================  ===================
 **Quality**           |QualityBadge|_
 **Test coverage**     |CoverageBadge|_
 **License**           |LicenseBadge|_
 **PyPi**              |PyPiBadge|_
-=================  =================== 
+**Django versions**   >=1.11 (including 2.0)
+**Python versions**   >3.5
+====================  ===================
 
 .. |QualityBadge| image:: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/badges/quality-score.png
 .. _QualityBadge: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/
@@ -37,7 +39,7 @@ Documentation
 -------------
 
 * **ReadTheDocs HTML**
-   
+
   http://django-postgres-extra.readthedocs.io
 
 * **Plain MarkDown**
@@ -53,7 +55,7 @@ Major features
    * Concurrency safe
    * With bulk support (single query)
 
-2. **Extended support for ``HStoreField``**
+2. **Extended support for HStoreField**
 
    * Unique constraints
    * Null constraints
@@ -126,9 +128,9 @@ FAQ - Frequently asked questions
 
    No. Only Python 3.5 or newer is supported. We're using type hints. These do not work well under older versions of Python.
 
-4. **Does this package work with Django 1.X?**
+4. **Which Django versions does this package work with?**
 
-   No. Only Django 1.11 or newer is supported.
+   Django 1.11 or newer (that includes Django 2.0).
 
 
 Working with the code
@@ -145,13 +147,13 @@ Working with the code
 1. Clone the repository:
 
    .. code-block:: bash
-    
+
         λ git clone https://github.com/SectorLabs/django-postgres-extra.git
 
 2. Create a virtual environment:
 
    .. code-block:: bash
-    
+
        λ cd django-postgres-extra
        λ virtualenv env
        λ source env/bin/activate
@@ -159,17 +161,17 @@ Working with the code
 3. Install the development/test dependencies:
 
    .. code-block:: bash
-    
+
        λ pip install -r requirements/test.txt
-    
+
 4. Run the tests:
 
    .. code-block:: bash
-    
+
        λ tox
-    
+
 5. Run the benchmarks:
 
    .. code-block:: bash
-    
+
        λ py.test -c pytest-benchmark.ini
