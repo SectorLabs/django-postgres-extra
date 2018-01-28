@@ -5,7 +5,7 @@
       <img width="400" src="https://i.imgur.com/79S6OVM.png" alt="django-postgres-extra">
       <br>
       <br>
-   </h1>
+    </h1>
 
 ====================  ===================
 **Quality**           |QualityBadge|_
@@ -158,19 +158,30 @@ Working with the code
        λ virtualenv env
        λ source env/bin/activate
 
-3. Install the development/test dependencies:
+3. Create a postgres user for use in tests (skip if your default user is a postgres superuser):
+
+   .. code-block:: bash
+
+       λ createuser --superuser psqlextra --pwprompt
+       λ export DATABASE_URL=postgres://psqlextra:<password>@localhost/psqlextra
+
+   Hint: if you're using virtualenvwrapper, you might find it beneficial to put
+   the ``export`` line in ``$VIRTUAL_ENV/bin/postactivate`` so that it's always
+   available when using this virtualenv.
+
+4. Install the development/test dependencies:
 
    .. code-block:: bash
 
        λ pip install -r requirements/test.txt
 
-4. Run the tests:
+5. Run the tests:
 
    .. code-block:: bash
 
        λ tox
 
-5. Run the benchmarks:
+6. Run the benchmarks:
 
    .. code-block:: bash
 
