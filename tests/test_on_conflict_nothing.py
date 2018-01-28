@@ -62,8 +62,8 @@ def test_on_conflict_nothing_foreign_primary_key():
 
     obj1 = (
         model.objects
-        .on_conflict(['parent'], ConflictAction.NOTHING)
-        .insert_and_get(parent=referenced_obj, cookies='cheers')
+        .on_conflict(['parent_id'], ConflictAction.NOTHING)
+        .insert_and_get(parent_id=referenced_obj.pk, cookies='cheers')
     )
 
     obj1.refresh_from_db()
@@ -72,8 +72,8 @@ def test_on_conflict_nothing_foreign_primary_key():
 
     obj2 = (
         model.objects
-        .on_conflict(['parent'], ConflictAction.NOTHING)
-        .insert_and_get(parent=referenced_obj, cookies='choco')
+        .on_conflict(['parent_id'], ConflictAction.NOTHING)
+        .insert_and_get(parent_id=referenced_obj.pk, cookies='choco')
     )
 
     obj1.refresh_from_db()
