@@ -42,6 +42,49 @@ def test_on_conflict_nothing():
     assert obj2.cookies == 'cheers'
 
 
+def test_on_conflict_nothing_foreign_primary_key():
+    """
+    Tests whether simple insert NOTHING works correctly when the primary key of
+    a field is a foreign key with a custom name.
+    """
+
+    referenced_model = get_fake_model({})
+
+    model = get_fake_model({
+        'parent': models.OneToOneField(
+            referenced_model,
+            primary_key=True,
+            on_delete=models.CASCADE,
+        ),
+        'cookies': models.CharField(max_length=255),
+    })
+
+    referenced_obj = referenced_model.objects.create()
+
+    obj1 = (
+        model.objects
+        .on_conflict(['parent_id'], ConflictAction.NOTHING)
+        .insert_and_get(parent_id=referenced_obj.pk, cookies='cheers')
+    )
+
+    obj1.refresh_from_db()
+    assert obj1.parent == referenced_obj
+    assert obj1.cookies == 'cheers'
+
+    obj2 = (
+        model.objects
+        .on_conflict(['parent_id'], ConflictAction.NOTHING)
+        .insert_and_get(parent_id=referenced_obj.pk, cookies='choco')
+    )
+
+    obj1.refresh_from_db()
+    obj2.refresh_from_db()
+
+    assert obj1.pk == obj2.pk
+    assert obj1.cookies == 'cheers'
+    assert obj2.cookies == 'cheers'
+
+
 def test_on_conflict_nothing_foreign_key_by_object():
     """
     Tests whether simple insert NOTHING works correctly when the potentially
