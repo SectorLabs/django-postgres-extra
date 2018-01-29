@@ -3,7 +3,7 @@ import os
 from setuptools import find_packages, setup
 
 with open(os.path.join(os.path.dirname(__file__), 'README.rst'), encoding='utf-8') as readme:
-    README = readme.read()
+    README = readme.read().split('h1>', 2)[1]
 
 setup(
     name='django-postgres-extra',
