@@ -3,11 +3,11 @@ import os
 from setuptools import find_packages, setup
 
 with open(os.path.join(os.path.dirname(__file__), 'README.rst'), encoding='utf-8') as readme:
-    README = readme.read().split('h1>', 2)[1]
+    README = readme.read().split('h1>\n\n', 2)[1]
 
 setup(
     name='django-postgres-extra',
-    version='1.21a3',
+    version='1.21a4',
     packages=find_packages(),
     include_package_data=True,
     license='MIT License',
