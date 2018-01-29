@@ -4,6 +4,7 @@ from typing import List
 from unittest import mock
 from contextlib import contextmanager
 
+import django
 from django.db import connection, migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
@@ -315,6 +316,8 @@ class MigrationSimulator:
 
         self.apps = Apps()
         self.apps.ready = False
+        if django.VERSION >= (2, 0):
+            self.apps.loading = False
         self.apps.populate(installed_apps=[self.app_config])
 
         self.project_state = ProjectState()

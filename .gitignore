@@ -19,3 +19,6 @@ dist/
 
 # Ignore benchmark results
 .benchmarks/
+
+# Ignore temporary tox environments
+.tox/

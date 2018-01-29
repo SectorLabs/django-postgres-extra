@@ -93,7 +93,10 @@ class PostgresQuerySet(models.QuerySet):
 
         # build up the query to execute
         self._for_write = True
-        query = self.query.clone(UpdateQuery)
+        if django.VERSION >= (2, 0):
+            query = self.query.chain(UpdateQuery)
+        else:
+            query = self.query.clone(UpdateQuery)
         query._annotations = None
         query.add_update_values(fields)
 
