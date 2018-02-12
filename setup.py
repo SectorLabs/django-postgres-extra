@@ -7,7 +7,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst'), encoding='utf-8
 
 setup(
     name='django-postgres-extra',
-    version='1.21a4',
+    version='1.21a5',
     packages=find_packages(),
     include_package_data=True,
     license='MIT License',
