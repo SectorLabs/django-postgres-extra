@@ -48,3 +48,56 @@ def test_upsert():
     assert obj1.cookies == 'choco'
     assert obj2.title['key1'] == 'beer'
     assert obj2.cookies == 'choco'
+
+
+def test_upsert_bulk():
+    """Tests whether bulk_upsert works properly."""
+
+    model = get_fake_model({
+        'first_name': models.CharField(max_length=255, null=True, unique=True),
+        'last_name': models.CharField(max_length=255, null=True)
+    })
+
+    model.objects.bulk_upsert(
+        conflict_target=['first_name'],
+        rows=[
+            dict(first_name='Swen', last_name='Kooij'),
+            dict(first_name='Henk', last_name='Test')
+        ]
+    )
+
+    row_a = model.objects.get(first_name='Swen')
+    row_b = model.objects.get(first_name='Henk')
+
+    model.objects.bulk_upsert(
+        conflict_target=['first_name'],
+        rows=[
+            dict(first_name='Swen', last_name='Test'),
+            dict(first_name='Henk', last_name='Kooij')
+        ]
+    )
+
+    row_a.refresh_from_db()
+    assert row_a.last_name == 'Test'
+
+    row_b.refresh_from_db()
+    assert row_b.last_name == 'Kooij'
+
+
+def test_upsert_bulk_no_rows():
+    """Tests whether bulk_upsert doesn't crash when specifying
+    no rows or a falsy value."""
+
+    model = get_fake_model({
+        'name': models.CharField(max_length=255, null=True, unique=True)
+    })
+
+    model.objects.bulk_upsert(
+        conflict_target=['name'],
+        rows=[]
+    )
+
+    model.objects.bulk_upsert(
+        conflict_target=['name'],
+        rows=None
+    )
