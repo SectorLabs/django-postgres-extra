@@ -413,3 +413,37 @@ def test_on_conflict_bulk():
 
     for index, obj in enumerate(list(model.objects.all())):
         assert obj.title == rows[index]['title']
+
+def test_bulk_return():
+    """Tests if primary keys are properly returned from 'bulk_insert'
+    """
+
+    model = get_fake_model({
+        'id': models.BigAutoField(primary_key=True),
+        'name': models.CharField(max_length=255, unique=True)
+    })
+
+    rows = [
+        dict(name='John Smith'),
+        dict(name='Jane Doe')
+    ]
+
+    objs = (
+        model.objects
+        .on_conflict(['name'], ConflictAction.UPDATE)
+        .bulk_insert(rows)
+    )
+
+    for index, obj in enumerate(objs, 1):
+        assert obj['id'] == index
+
+    """Add objects again, update should return the same ids
+    as we're just updating."""
+    objs = (
+        model.objects
+        .on_conflict(['name'], ConflictAction.UPDATE)
+        .bulk_insert(rows)
+    )
+
+    for index, obj in enumerate(objs, 1):
+        assert obj['id'] == index
