@@ -163,9 +163,9 @@ class PostgresQuerySet(models.QuerySet):
             compiler = self._build_insert_compiler(rows)
             objs = compiler.execute_sql(return_id=True)
             if return_model:
-                return [ self.model(**dict(r, **k)) for r,k in zip(rows,objs) ]
+                return [self.model(**dict(r, **k)) for r, k in zip(rows, objs)]
             else:
-                return [ dict(r, **k) for r,k in zip(rows,objs) ]
+                return [dict(r, **k) for r, k in zip(rows, objs)]
 
         # no special action required, use the standard Django bulk_create(..)
         return super().bulk_create([self.model(**fields) for fields in rows])
