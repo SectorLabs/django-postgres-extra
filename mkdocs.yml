@@ -5,3 +5,4 @@ pages:
 - HStore: hstore.md
 - Signals: signals.md
 - Indexes: indexes.md
+- Database engine: db-engine.md

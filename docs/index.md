@@ -20,6 +20,8 @@ Explore the documentation to learn about all features:
 * [Indexes](/indexes)
     * [ConditionalUniqueIndex](/indexes/#conditional-unique-index)
 
+* [Database engine](/db-engine)
+
 ## Installation
 
 1. Install the package from PyPi:
@@ -45,6 +47,8 @@ Explore the documentation to learn about all features:
         }
 
 4. Make sure all models that inherit from `psqlextra.models.PostgresModel` or use the `psqlextra.manager.PostgresManager`. Without this, most features **do not work**.
+
+5. Read the documentation about the custom database engine to avoid common pitfalls: [Database engine](/db-engine) .
 
 ## Requirements
 In order to use this package, your project must be using:
