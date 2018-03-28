@@ -155,8 +155,8 @@ class PostgresQuerySet(models.QuerySet):
 
         if self.conflict_target or self.conflict_action:
             compiler = self._build_insert_compiler(rows)
-            compiler.execute_sql(return_id=True)
-            return
+            return compiler.execute_sql(return_id=True)
+
 
         # no special action required, use the standard Django bulk_create(..)
         super().bulk_create([self.model(**fields) for fields in rows])
