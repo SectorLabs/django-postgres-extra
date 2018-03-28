@@ -139,7 +139,7 @@ class PostgresQuerySet(models.QuerySet):
 
         return self
 
-    def bulk_insert(self, rows):
+    def bulk_insert(self, rows, return_model=False):
         """Creates multiple new records in the database.
 
         This allows specifying custom conflict behavior using .on_conflict().
@@ -150,16 +150,25 @@ class PostgresQuerySet(models.QuerySet):
                 An array of dictionaries, where each dictionary
                 describes the fields to insert.
 
+            return_model (default: False):
+                If model instances should be returned rather than
+                just dicts.
+
         Returns:
+            A list of either the dicts of the rows inserted, including the pk or
+            the models of the rows inserted with defaults for any fields not specified
         """
 
         if self.conflict_target or self.conflict_action:
             compiler = self._build_insert_compiler(rows)
-            compiler.execute_sql(return_id=True)
-            return
+            objs = compiler.execute_sql(return_id=True)
+            if return_model:
+                return [self.model(**dict(r, **k)) for r, k in zip(rows, objs)]
+            else:
+                return [dict(r, **k) for r, k in zip(rows, objs)]
 
         # no special action required, use the standard Django bulk_create(..)
-        super().bulk_create([self.model(**fields) for fields in rows])
+        return super().bulk_create([self.model(**fields) for fields in rows])
 
     def insert(self, **fields):
         """Creates a new record in the database.

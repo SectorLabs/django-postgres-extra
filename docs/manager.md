@@ -209,7 +209,7 @@ obj = (
 )
 ```
 
-`bulk_insert` uses a single query to insert all specified rows at once.
+`bulk_insert` uses a single query to insert all specified rows at once. It returns a `list` of `dict()` with each `dict()` being a merge of the `dict()` passed in along with any index returned from Postgres.
 
 #### Limitations
 In order to stick to the "everything in one query" principle, various, more advanced usages of `bulk_insert` are impossible. It is not possible to have different rows specify different amounts of columns. The following example does **not work**:
