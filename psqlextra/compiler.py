@@ -1,6 +1,8 @@
 from django.core.exceptions import SuspiciousOperation
 from django.db.models.sql.compiler import SQLInsertCompiler, SQLUpdateCompiler
 
+from psqlextra.expressions import HStoreValue
+
 
 class PostgresReturningUpdateCompiler(SQLUpdateCompiler):
     """Compiler for SQL UPDATE statements that return
@@ -15,6 +17,31 @@ class PostgresReturningUpdateCompiler(SQLUpdateCompiler):
             primary_keys = cursor.fetchall()
 
         return primary_keys
+
+    def as_sql(self):
+        self._prepare_query_values()
+        return super().as_sql()
+
+    def _prepare_query_values(self):
+        """Extra prep on query values by converting
+        dictionaries into :see:HStoreValue expressions.
+
+        This allows putting expressions in a dictionary.
+        The :see:HStoreValue will take care of resolving
+        the expressions inside the dictionary."""
+
+        new_query_values = []
+        for field, model, val in self.query.values:
+            if isinstance(val, dict):
+                val = HStoreValue(val)
+
+            new_query_values.append((
+                field,
+                model,
+                val
+            ))
+
+        self.query.values = new_query_values
 
     def _form_returning(self):
         """Builds the RETURNING part of the query."""

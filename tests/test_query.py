@@ -31,3 +31,25 @@ def test_annotate_hstore_key_ref():
     )
 
     assert queryset['english_title'] == 'english'
+
+
+def test_hstore_f_ref():
+    """Tests whether F(..) expressions can be used in
+    hstore values when performing update queries."""
+
+    model = get_fake_model({
+        'name': models.CharField(max_length=255),
+        'name_new': HStoreField()
+    })
+
+    model.objects.create(
+        name='waqas',
+        name_new=dict(en='swen')
+    )
+
+    model.objects.update(
+        name_new=dict(en=models.F('name'))
+    )
+
+    inst = model.objects.all().first()
+    assert inst.name_new.get('en') == 'waqas'
