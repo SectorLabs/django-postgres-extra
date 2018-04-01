@@ -46,15 +46,15 @@ class HStoreValue(expressions.Expression):
         for key, value in self.value.items():
             if hasattr(value, 'as_sql'):
                 sql, params = value.as_sql(compiler, connection)
-                result.append('ARRAY[\'%s\', %s]' % (
+                result.append('hstore(\'%s\', %s)' % (
                     key, sql % params))
             elif value is not None:
-                result.append('ARRAY[\'%s\', \'%s\']' % ((
+                result.append('hstore(\'%s\', \'%s\')' % ((
                     key, value)))
             else:
-                result.append('ARRAY[\'%s\', NULL]' % key)
+                result.append('hstore(\'%s\', NULL)' % key)
 
-        return 'hstore(%s)' % ','.join(result), []
+        return '%s' % ' || '.join(result), []
 
 
 class HStoreColumn(expressions.Col):
