@@ -1,5 +1,7 @@
 from typing import List, Tuple, Union
 
+from django.db.models.expressions import Expression
+from django.db.models.fields import Field
 from django.contrib.postgres.fields import HStoreField as DjangoHStoreField
 
 from psqlextra.expressions import HStoreValue
@@ -24,15 +26,29 @@ class HStoreField(DjangoHStoreField):
         self.uniqueness = uniqueness
         self.required = required
 
-    def get_db_prep_value(self, value, connection, prepared=False):
+    def get_prep_value(self, value):
         """Override the base class so it doesn't cast all values
         to strings.
 
         psqlextra supports expressions in hstore fields, so casting
         all values to strings is a bad idea."""
 
-        if not value:
-            return None
+        value = Field.get_prep_value(self, value)
+
+        if isinstance(value, dict):
+            prep_value = {}
+            for key, val in value.items():
+                if isinstance(val, Expression):
+                    prep_value[key] = val
+                elif val is not None:
+                    prep_value[key] = str(val)
+
+                prep_value[key] = val
+
+            value = prep_value
+
+        if isinstance(value, list):
+            value = [str(item) for item in value]
 
         return value
 
