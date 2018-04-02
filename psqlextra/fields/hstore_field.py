@@ -59,7 +59,10 @@ class HStoreField(DjangoHStoreField):
         name, path, args, kwargs = super(
             HStoreField, self).deconstruct()
 
-        kwargs['uniqueness'] = self.uniqueness or []
-        kwargs['required'] = self.required or []
+        if self.uniqueness:
+            kwargs['uniqueness'] = self.uniqueness
+
+        if self.required:
+            kwargs['required'] = self.required
 
         return name, path, args, kwargs

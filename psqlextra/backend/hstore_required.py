@@ -85,8 +85,8 @@ class HStoreRequiredSchemaEditorMixin:
         if not is_old_field_hstore and not is_new_field_hstore:
             return
 
-        old_required = getattr(old_field, 'required', [])
-        new_required = getattr(new_field, 'required', [])
+        old_required = getattr(old_field, 'required', []) or []
+        new_required = getattr(new_field, 'required', []) or []
 
         # handle field renames before moving on
         if str(old_field.column) != str(new_field.column):
