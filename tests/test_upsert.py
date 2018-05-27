@@ -50,6 +50,51 @@ def test_upsert():
     assert obj2.cookies == 'choco'
 
 
+def test_upsert_explicit_pk():
+    """Tests whether upserts works when the primary key is explicitly specified."""
+
+    model = get_fake_model({
+        'name': models.CharField(max_length=255, primary_key=True),
+        'cookies': models.CharField(max_length=255, null=True),
+    })
+
+    obj1 = (
+        model.objects
+        .upsert_and_get(
+            conflict_target=[('name')],
+            fields=dict(
+                name='the-object',
+                cookies='first-cheers',
+            )
+        )
+    )
+
+    obj1.refresh_from_db()
+    assert obj1.name == 'the-object'
+    assert obj1.cookies == 'first-cheers'
+
+    obj2 = (
+        model.objects
+        .upsert_and_get(
+            conflict_target=[('name')],
+            fields=dict(
+                name='the-object',
+                cookies='second-boo',
+            )
+        )
+    )
+
+    obj1.refresh_from_db()
+    obj2.refresh_from_db()
+
+    # assert both objects are the same
+    assert obj1.pk == obj2.pk
+    assert obj1.name == 'the-object'
+    assert obj1.cookies == 'second-boo'
+    assert obj2.name == 'the-object'
+    assert obj2.cookies == 'second-boo'
+
+
 def test_upsert_bulk():
     """Tests whether bulk_upsert works properly."""
 

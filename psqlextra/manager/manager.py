@@ -187,12 +187,12 @@ class PostgresQuerySet(models.QuerySet):
         if self.conflict_target or self.conflict_action:
             compiler = self._build_insert_compiler([fields])
             rows = compiler.execute_sql(return_id=True)
-            if 'id' in rows[0]:
-                return rows[0]['id']
-            return None
+
+            pk_field_name = self.model._meta.pk.name
+            return rows[0][pk_field_name]
 
         # no special action required, use the standard Django create(..)
-        return super().create(**fields).id
+        return super().create(**fields).pk
 
     def insert_and_get(self, **fields):
         """Creates a new record in the database and then gets
