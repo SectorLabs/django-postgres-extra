@@ -42,8 +42,8 @@ class HStoreField(DjangoHStoreField):
                     prep_value[key] = val
                 elif val is not None:
                     prep_value[key] = str(val)
-
-                prep_value[key] = val
+                else:
+                    prep_value[key] = val
 
             value = prep_value
 
