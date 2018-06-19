@@ -39,7 +39,7 @@ class HStoreValue(expressions.Expression):
 
         The resulting SQL will be:
 
-            hstore(ARRAY['key1', 'val1'], ARRAY['key2', 'val2'])
+            hstore(hstore('key1', 'val1'), hstore('key2', 'val2'))
         """
 
         result = []
