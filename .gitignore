@@ -22,3 +22,4 @@ dist/
 
 # Ignore temporary tox environments
 .tox/
+.pytest_cache/
