@@ -19,7 +19,7 @@ class HStoreRequiredSchemaEditorMixin:
 
     sql_hstore_required_drop = (
         'ALTER TABLE {table} '
-        'DROP CONSTRAINT {name}'
+        'DROP CONSTRAINT IF EXISTS {name}'
     )
 
     def create_model(self, model):
