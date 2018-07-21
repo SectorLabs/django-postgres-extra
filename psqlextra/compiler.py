@@ -47,7 +47,7 @@ class PostgresReturningUpdateCompiler(SQLUpdateCompiler):
         """Builds the RETURNING part of the query."""
 
         qn = self.connection.ops.quote_name
-        return ' RETURNING %s' % qn(self.query.model._meta.pk.name)
+        return ' RETURNING %s' % qn(self.query.model._meta.pk.attname)
 
 
 class PostgresInsertCompiler(SQLInsertCompiler):
@@ -105,7 +105,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             A tuple of the rewritten SQL query and new params.
         """
 
-        returning = self.qn(self.query.model._meta.pk.name) if return_id else '*'
+        returning = self.qn(self.query.model._meta.pk.attname) if return_id else '*'
 
         if self.query.conflict_action.value == 'UPDATE':
             return self._rewrite_insert_update(sql, params, returning)
