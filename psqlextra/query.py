@@ -61,11 +61,11 @@ class PostgresQuery(sql.Query):
 
         for name, value in conditions.items():
             parts = name.split(LOOKUP_SEP)
-            _, targets, _, joins, path = self.setup_joins(parts, opts, alias, allow_many=True)
-            self.trim_joins(targets, joins, path)
+            join_info = self.setup_joins(parts, opts, alias, allow_many=True)
+            self.trim_joins(join_info.targets, join_info.joins, join_info.path)
 
-            target_table = joins[-1]
-            field = targets[-1]
+            target_table = join_info.joins[-1]
+            field = join_info.targets[-1]
             join = self.alias_map.get(target_table)
 
             if not join:
@@ -115,8 +115,10 @@ class PostgresQuery(sql.Query):
                     )
                     continue
 
-            _, targets, _, joins, path = self.setup_joins(parts, opts, alias, allow_many=allow_m2m)
-            targets, final_alias, joins = self.trim_joins(targets, joins, path)
+            join_info = self.setup_joins(parts, opts, alias, allow_many=allow_m2m)
+            targets, final_alias, joins = self.trim_joins(
+                join_info.targets, join_info.joins, join_info.path
+            )
 
             for target in targets:
                 cols.append(target.get_col(final_alias))
