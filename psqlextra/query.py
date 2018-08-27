@@ -114,9 +114,10 @@ class PostgresQuery(sql.Query):
                         HStoreColumn(self.model._meta.db_table or self.model.name, field, hstore_key)
                     )
                     continue
-
-            _, targets, _, joins, path = self.setup_joins(parts, opts, alias, allow_many=allow_m2m)
-            targets, final_alias, joins = self.trim_joins(targets, joins, path)
+            join_info = self.setup_joins(parts, opts, alias, allow_many=allow_m2m)
+            targets, final_alias, joins = self.trim_joins(
+                join_info.targets, join_info.joins, join_info.path
+            )
 
             for target in targets:
                 cols.append(target.get_col(final_alias))
