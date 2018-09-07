@@ -218,20 +218,20 @@ class PostgresQuerySet(models.QuerySet):
 
         columns = rows[0]
 
-        # get a list of columns that are officially part of the model
-        model_columns = [
-            field.column
-            for field in self.model._meta.local_concrete_fields
-        ]
+        # get a list of columns that are officially part of the model and preserve the fact that the attribute name
+        # might be different than the database column name
+        model_columns = {}
+        for field in self.model._meta.local_concrete_fields:
+            model_columns[field.column] = field.attname
 
         # strip out any columns/fields returned by the db that
         # are not present in the model
         model_init_fields = {}
         for column_name, column_value in columns.items():
-            if column_name not in model_columns:
-                continue
-
-            model_init_fields[column_name] = column_value
+            try:
+                model_init_fields[model_columns[column_name]] = column_value
+            except KeyError:
+                pass
 
         return self.model(**model_init_fields)
 
