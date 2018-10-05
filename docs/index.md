@@ -28,7 +28,7 @@ Explore the documentation to learn about all features:
 
         $ pip install django-postgres-extra
 
-2. Add `postgres_extra` and `django.contrib.postgres` to your `INSTALLED_APPS`:
+2. Add `psqlextra` and `django.contrib.postgres` to your `INSTALLED_APPS`:
 
         INSTALLED_APPS = [
             ....
