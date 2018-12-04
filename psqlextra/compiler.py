@@ -1,4 +1,6 @@
 from django.core.exceptions import SuspiciousOperation
+from django.db.models import Model
+from django.db.models.fields.related import RelatedField
 from django.db.models.sql.compiler import SQLInsertCompiler, SQLUpdateCompiler
 
 from psqlextra.expressions import HStoreValue
@@ -296,6 +298,11 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         field_name = self._normalize_field_name(field_name)
         field = self._get_model_field(field_name)
 
+        value = getattr(self.query.objs[0], field.attname)
+
+        if isinstance(field, RelatedField) and isinstance(value, Model):
+            value = value.pk
+
         return SQLInsertCompiler.prepare_value(
             self,
             field,
@@ -304,7 +311,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             # value. We rely on pre_save having already been done by the
             # underlying compiler so that things like FileField have already had
             # the opportunity to save out their data.
-            getattr(self.query.objs[0], field.attname)
+            value
         )
 
     def _normalize_field_name(self, field_name) -> str:
