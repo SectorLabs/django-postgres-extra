@@ -26,7 +26,7 @@ After:
     
 ```python
 from django.db import models
-from from psqlextra.indexes import ConditionalUniqueIndex
+from psqlextra.indexes import ConditionalUniqueIndex
 
 class Model(models.Model):
     class Meta:
