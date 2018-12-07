@@ -98,3 +98,27 @@ def test_insert_on_conflict_explicit_pk():
     assert obj1.pk == 'the-object'
     assert obj1.name == 'the-object'
     assert obj1.cookies == 'some-cookies'
+
+
+def test_insert_with_different_column_name():
+    """Tests whether inserts works when the primary key is explicitly specified."""
+
+    model = get_fake_model({
+        'name': models.CharField(max_length=255, primary_key=True),
+        'cookies': models.CharField(max_length=255, null=True, db_column='brownies'),
+    })
+
+    cookie_string = 'these-are-brownies'
+
+    results = model.objects \
+        .on_conflict(['name'], ConflictAction.NOTHING) \
+        .insert_and_get(
+            name='the-object',
+            cookies=cookie_string
+        )
+
+    assert results is not None
+    assert results.cookies == cookie_string
+
+    obj1 = model.objects.get()
+    assert obj1.cookies == cookie_string
