@@ -16,13 +16,8 @@
 **Python versions**   >=3.5
 ====================  ===================
 
-.. |QualityBadge| image:: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/badges/quality-score.png
-.. _QualityBadge: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/
-
-
-.. |CoverageBadge| image:: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/badges/coverage.png
-.. _CoverageBadge: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/
-
+.. image:: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master.svg?style=svg
+    :target: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master
 
 .. |LicenseBadge| image:: https://img.shields.io/:license-mit-blue.svg
 .. _LicenseBadge: http://doge.mit-license.org
