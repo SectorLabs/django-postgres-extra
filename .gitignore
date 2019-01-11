@@ -1,5 +1,6 @@
 # Ignore virtual environments
 env/
+.env/
 
 # Ignore Python byte code cache
 *.pyc
