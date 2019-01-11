@@ -4,8 +4,6 @@ from django.db.models.expressions import Expression
 from django.db.models.fields import Field
 from django.contrib.postgres.fields import HStoreField as DjangoHStoreField
 
-from psqlextra.expressions import HStoreValue
-
 
 class HStoreField(DjangoHStoreField):
     """Improved version of Django's :see:HStoreField that

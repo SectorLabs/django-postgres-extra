@@ -16,9 +16,9 @@ def mock_signal_handler(signal):
     """
 
     model = get_fake_model({
-                'title': models.CharField(max_length=255),
-                'flag': models.BooleanField(default=False)
-            })
+        'title': models.CharField(max_length=255),
+        'flag': models.BooleanField(default=False)
+    })
 
     signal_handler = Mock()
     signal.connect(signal_handler, sender=model, weak=False)

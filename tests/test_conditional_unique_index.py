@@ -59,10 +59,13 @@ def test_migrations():
     calls = [call[0] for _, call, _ in simulator.migrate('CREATE UNIQUE INDEX')[0]['CREATE UNIQUE INDEX']]
 
     db_table = Model._meta.db_table
-    assert str(calls[0]) == 'CREATE UNIQUE INDEX "index1" ON "{0}" ("name", "other_name") WHERE "name" IS NOT NULL'.format(
+    query = 'CREATE UNIQUE INDEX "index1" ON "{0}" ("name", "other_name") WHERE "name" IS NOT NULL'
+    assert str(calls[0]) == query.format(
         db_table
     )
-    assert str(calls[1]) == 'CREATE UNIQUE INDEX "index2" ON "{0}" ("other_name") WHERE "name" IS NULL'.format(
+
+    query = 'CREATE UNIQUE INDEX "index2" ON "{0}" ("other_name") WHERE "name" IS NULL'
+    assert str(calls[1]) == query.format(
         db_table
     )
 

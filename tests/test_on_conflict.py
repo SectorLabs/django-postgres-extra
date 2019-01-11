@@ -414,9 +414,9 @@ def test_on_conflict_bulk():
     for index, obj in enumerate(list(model.objects.all())):
         assert obj.title == rows[index]['title']
 
+
 def test_bulk_return():
-    """Tests if primary keys are properly returned from 'bulk_insert'
-    """
+    """Tests if primary keys are properly returned from 'bulk_insert'"""
 
     model = get_fake_model({
         'id': models.BigAutoField(primary_key=True),

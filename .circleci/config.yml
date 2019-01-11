@@ -1,6 +1,6 @@
 version: 2
 jobs:
-    python35:
+    test-python35:
         docker:
             - image: python:3.5-alpine
             - image: postgres:11.0
@@ -22,7 +22,7 @@ jobs:
                 environment:
                     DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
 
-    python36:
+    test-python36:
         docker:
             - image: python:3.6-alpine
             - image: postgres:11.0
@@ -44,7 +44,7 @@ jobs:
                 environment:
                     DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
 
-    python37:
+    test-python37:
         docker:
             - image: python:3.7-alpine
             - image: postgres:11.0
@@ -66,11 +66,27 @@ jobs:
                 environment:
                     DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
 
+    lint:
+        docker:
+            - image: python3.5-alpine
+        steps:
+            - checkout
+            - run:
+                name: Install packages
+                command: apk add postgresql-libs gcc musl-dev postgresql-dev git
+            - run:
+                name: Install Python packages
+                command: pip install -r requirements/test.txt
+            - run:
+                name: Lint code
+                command: python setup.py lint
+
 
 workflows:
     version: 2
     build:
         jobs:
-            - python35
-            - python36
-            - python37
+            - test-python35
+            - test-python36
+            - test-python37
+            - lint
