@@ -8,16 +8,15 @@
     </h1>
 
 ====================  ===================
-**Quality**           |QualityBadge|_
-**Test coverage**     |CoverageBadge|_
+**Tests**             |TestsPassing|_
 **License**           |LicenseBadge|_
 **PyPi**              |PyPiBadge|_
 **Django versions**   >=1.11, >=2.0, >=2.1
 **Python versions**   >=3.5
 ====================  ===================
 
-.. image:: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master.svg?style=svg
-    :target: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master
+.. |TestsPassing| image:: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master.svg?style=svg
+.. _TestsPassing: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master
 
 .. |LicenseBadge| image:: https://img.shields.io/:license-mit-blue.svg
 .. _LicenseBadge: http://doge.mit-license.org
