@@ -1,0 +1,76 @@
+version: 2
+jobs:
+    python35:
+        docker:
+            - image: python:3.5-alpine
+            - image: postgres:11.0
+              environment:
+                  POSTGRES_DB: 'psqlextra'
+                  POSTGRES_USER: 'psqlextra'
+                  POSTGRES_PASSWORD: 'psqlextra'
+        steps:
+            - checkout
+            - run:
+                name: Install packages
+                command: apk add postgresql-libs gcc musl-dev postgresql-dev git
+            - run:
+                name: Install Python packages
+                command: pip install -r requirements/test.txt
+            - run:
+                name: Run tests
+                command: tox -e 'py35-dj{111,20,21}'
+                environment:
+                    DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
+
+    python36:
+        docker:
+            - image: python:3.6-alpine
+            - image: postgres:11.0
+              environment:
+                  POSTGRES_DB: 'psqlextra'
+                  POSTGRES_USER: 'psqlextra'
+                  POSTGRES_PASSWORD: 'psqlextra'
+        steps:
+            - checkout
+            - run:
+                name: Install packages
+                command: apk add postgresql-libs gcc musl-dev postgresql-dev git
+            - run:
+                name: Install Python packages
+                command: pip install -r requirements/test.txt
+            - run:
+                name: Run tests
+                command: tox -e 'py36-dj{111,20,21}'
+                environment:
+                    DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
+
+    python37:
+        docker:
+            - image: python:3.7-alpine
+            - image: postgres:11.0
+              environment:
+                  POSTGRES_DB: 'psqlextra'
+                  POSTGRES_USER: 'psqlextra'
+                  POSTGRES_PASSWORD: 'psqlextra'
+        steps:
+            - checkout
+            - run:
+                name: Install packages
+                command: apk add postgresql-libs gcc musl-dev postgresql-dev git
+            - run:
+                name: Install Python packages
+                command: pip install -r requirements/test.txt
+            - run:
+                name: Run tests
+                command: tox -e 'py37-dj{111,20,21}'
+                environment:
+                    DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
+
+
+workflows:
+    version: 2
+    build:
+        jobs:
+            - python35
+            - python36
+            - python37
