@@ -12,7 +12,7 @@
 **Test coverage**     |CoverageBadge|_
 **License**           |LicenseBadge|_
 **PyPi**              |PyPiBadge|_
-**Django versions**   >=1.11 (including 2.0)
+**Django versions**   >=1.11, >=2.0, >=2.1
 **Python versions**   >=3.5
 ====================  ===================
 
