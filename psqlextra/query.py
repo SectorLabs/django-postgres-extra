@@ -44,7 +44,7 @@ class PostgresQuery(sql.Query):
             self._annotations = OrderedDict(
                 [(new_name, v) if k == old_name else (k, v) for k, v in self._annotations.items()])
             self.set_annotation_mask(
-                (new_name if v == old_name else v for v in self.annotation_select_mask))
+                (new_name if v == old_name else v for v in (self.annotation_select_mask or [])))
 
     def add_join_conditions(self, conditions: Dict[str, Any]) -> None:
         """Adds an extra condition to an existing JOIN.
