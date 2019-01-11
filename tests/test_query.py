@@ -3,6 +3,8 @@ from django.db import models
 from psqlextra.fields import HStoreField
 from psqlextra.expressions import HStoreRef
 
+from django.db.models import F
+
 from .fake_model import get_fake_model
 
 
@@ -31,6 +33,20 @@ def test_annotate_hstore_key_ref():
     )
 
     assert queryset['english_title'] == 'english'
+
+
+def test_annotate_rename():
+    """Tests whether field names can be overwritten
+    with a annotated field."""
+
+    model = get_fake_model({
+        'title': models.CharField(max_length=12),
+    })
+
+    model.objects.create(title='swen')
+
+    obj = model.objects.annotate(title=F('title')).first()
+    assert obj.title == 'swen'
 
 
 def test_hstore_f_ref():

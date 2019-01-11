@@ -1,3 +1,5 @@
+import django
+
 from enum import Enum
 from typing import List, Tuple, Optional, Dict, Any
 from collections import OrderedDict
@@ -43,8 +45,10 @@ class PostgresQuery(sql.Query):
 
             self._annotations = OrderedDict(
                 [(new_name, v) if k == old_name else (k, v) for k, v in self._annotations.items()])
-            self.set_annotation_mask(
-                (new_name if v == old_name else v for v in (self.annotation_select_mask or [])))
+
+            if django.VERSION < (2, 0):
+                self.set_annotation_mask(
+                    (new_name if v == old_name else v for v in self.annotation_select_mask))
 
     def add_join_conditions(self, conditions: Dict[str, Any]) -> None:
         """Adds an extra condition to an existing JOIN.
