@@ -48,7 +48,7 @@ class PostgresQuery(sql.Query):
 
             if django.VERSION < (2, 0):
                 self.set_annotation_mask(
-                    (new_name if v == old_name else v for v in self.annotation_select_mask))
+                    (new_name if v == old_name else v for v in (self.annotation_select_mask or [])))
 
     def add_join_conditions(self, conditions: Dict[str, Any]) -> None:
         """Adds an extra condition to an existing JOIN.
