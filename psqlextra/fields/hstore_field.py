@@ -1,8 +1,8 @@
 from typing import List, Tuple, Union
 
+from django.contrib.postgres.fields import HStoreField as DjangoHStoreField
 from django.db.models.expressions import Expression
 from django.db.models.fields import Field
-from django.contrib.postgres.fields import HStoreField as DjangoHStoreField
 
 
 class HStoreField(DjangoHStoreField):
@@ -57,10 +57,10 @@ class HStoreField(DjangoHStoreField):
         name, path, args, kwargs = super(
             HStoreField, self).deconstruct()
 
-        if self.uniqueness:
+        if self.uniqueness is not None:
             kwargs['uniqueness'] = self.uniqueness
 
-        if self.required:
+        if self.required is not None:
             kwargs['required'] = self.required
 
         return name, path, args, kwargs
