@@ -280,7 +280,7 @@ class PostgresQuerySet(models.QuerySet):
         self.on_conflict(conflict_target, ConflictAction.UPDATE, index_predicate)
         return self.insert_and_get(**fields)
 
-    def bulk_upsert(self, conflict_target: List, rows: List[Dict], index_predicate: str=None):
+    def bulk_upsert(self, conflict_target: List, rows: List[Dict], index_predicate: str=None, return_model: bool=False):
         """Creates a set of new records or updates the existing
         ones with the specified data.
 
@@ -294,13 +294,21 @@ class PostgresQuerySet(models.QuerySet):
             index_predicate:
                 The index predicate to satisfy an arbiter partial index (i.e. what partial index to use for checking
                 conflicts)
+
+            return_model (default: False):
+                If model instances should be returned rather than
+                just dicts.
+
+        Returns:
+            A list of either the dicts of the rows upserted, including the pk or
+            the models of the rows upserted
         """
 
         if not rows or len(rows) <= 0:
             return
 
         self.on_conflict(conflict_target, ConflictAction.UPDATE, index_predicate)
-        return self.bulk_insert(rows)
+        return self.bulk_insert(rows, return_model)
 
     def _build_insert_compiler(self, rows: List[Dict]):
         """Builds the SQL compiler for a insert query.
@@ -545,7 +553,7 @@ class PostgresManager(models.Manager):
 
         return self.get_queryset().upsert_and_get(conflict_target, fields, index_predicate)
 
-    def bulk_upsert(self, conflict_target: List, rows: List[Dict], index_predicate: str=None):
+    def bulk_upsert(self, conflict_target: List, rows: List[Dict], index_predicate: str=None, return_model: bool=False):
         """Creates a set of new records or updates the existing
         ones with the specified data.
 
@@ -558,9 +566,17 @@ class PostgresManager(models.Manager):
 
             rows:
                 Rows to upsert.
+
+            return_model (default: False):
+                If model instances should be returned rather than
+                just dicts.
+
+        Returns:
+            A list of either the dicts of the rows upserted, including the pk or
+            the models of the rows upserted
         """
 
-        return self.get_queryset().bulk_upsert(conflict_target, rows, index_predicate)
+        return self.get_queryset().bulk_upsert(conflict_target, rows, index_predicate, return_model)
 
     @staticmethod
     def _on_model_save(sender, **kwargs):
