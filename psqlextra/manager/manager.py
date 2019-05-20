@@ -297,7 +297,7 @@ class PostgresQuerySet(models.QuerySet):
         """
 
         if not rows or len(rows) <= 0:
-            return
+            return []
 
         self.on_conflict(conflict_target, ConflictAction.UPDATE, index_predicate)
         return self.bulk_insert(rows)
