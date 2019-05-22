@@ -1,6 +1,6 @@
-`django-postgres-extra` aims to make all of PostgreSQL's awesome features available through the Django ORM. We do this by taking care of all the hassle. As opposed to the many small packages that are available to try to bring a single feature to Django with minimal effort. django-postgres-extra goes the extra mile, with well tested implementations, seamless migrations and much more.
+`django-postgres-extra` aims to make all of PostgreSQL's awesome features available through the Django ORM. We do this by taking care of all the hassle. As opposed to the many small packages that are available to try to bring a single feature to Django with minimal effort, `django-postgres-extra` goes the extra mile with well tested implementations, seamless migrations and much more.
 
-With seamless we mean that any features we add will work truly seamlessly. You should not have to manually modify your migrations to work with fields and objects provided by this package.
+By seamless, we mean that any features we add will work truly seamlessly. You should not have to manually modify your migrations to work with fields and objects provided by this package.
 
 ## Features
 Explore the documentation to learn about all features:
@@ -46,7 +46,7 @@ Explore the documentation to learn about all features:
             }
         }
 
-4. Make sure all models that inherit from `psqlextra.models.PostgresModel` or use the `psqlextra.manager.PostgresManager`. Without this, most features **do not work**.
+4. Make sure all models inherit from `psqlextra.models.PostgresModel` or use the `psqlextra.manager.PostgresManager`. Without this, most features **do not work**.
 
 5. Read the documentation about the custom database engine to avoid common pitfalls: [Database engine](/db-engine) .
 
