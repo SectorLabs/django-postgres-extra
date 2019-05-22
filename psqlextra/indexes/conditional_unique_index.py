@@ -1,4 +1,5 @@
 import django
+
 from django.db.models.indexes import Index
 
 
@@ -21,20 +22,28 @@ class ConditionalUniqueIndex(Index):
         """Initializes a new instance of :see:ConditionalUniqueIndex."""
 
         super().__init__(fields=fields, name=name)
-        self.condition = condition
+
+        self._condition = condition
+
+        # self.condition is actually used and reserved started
+        # from Django 2.0.. for backwards compatibility reasons
+        # we'll continue setting it in older versions, newer versions
+        # will use self._condition
+        if django.VERSION < (2, 2):
+            self.condition = condition
 
     def create_sql(self, model, schema_editor, using=''):
         """Creates the actual SQL used when applying the migration."""
         if django.VERSION >= (2, 0):
             statement = super().create_sql(model, schema_editor, using)
             statement.template = self.sql_create_index
-            statement.parts['condition'] = self.condition
+            statement.parts['condition'] = self._condition
             return statement
         else:
             sql_create_index = self.sql_create_index
             sql_parameters = {
                 **Index.get_sql_create_template_values(self, model, schema_editor, using),
-                'condition': self.condition
+                'condition': self._condition
             }
             return sql_create_index % sql_parameters
 
@@ -42,4 +51,4 @@ class ConditionalUniqueIndex(Index):
         """Serializes the :see:ConditionalUniqueIndex for the migrations file."""
         path = '%s.%s' % (self.__class__.__module__, self.__class__.__name__)
         path = path.replace('django.db.models.indexes', 'django.db.models')
-        return path, (), {'fields': self.fields, 'name': self.name, 'condition': self.condition}
+        return path, (), {'fields': self.fields, 'name': self.name, 'condition': self._condition}
