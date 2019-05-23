@@ -1,5 +1,0 @@
-# pylint
-pylint-celery==0.3
-pylint-common==0.2.5
-pylint-django==0.8.0
-pylint-plugin-utils==0.2.6

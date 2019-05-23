@@ -60,5 +60,9 @@ setup(
             'Lints the code',
             [['flake8', 'setup.py', 'psqlextra', 'tests']],
         ),
+        'format': create_command(
+            'Formats the code',
+            [['black', 'setup.py', 'psqlextra', 'tests']],
+        ),
     },
 )
