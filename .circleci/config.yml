@@ -68,7 +68,7 @@ jobs:
 
     lint:
         docker:
-            - image: python:3.5-alpine
+            - image: python:3.7-alpine
         steps:
             - checkout
             - run:
