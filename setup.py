@@ -87,10 +87,27 @@ setup(
             "Checks if the code is auto-formatted",
             [["black", "--check", "setup.py", "psqlextra", "tests"]],
         ),
+        "sort_imports": create_command(
+            "Automatically sorts imports",
+            [
+                ["isort", "setup.py"],
+                ["isort", "-rc", "psqlextra"],
+                ["isort", "-rc", "tests"],
+            ],
+        ),
+        "sort_imports_verify": create_command(
+            "Verifies all imports are properly sorted.",
+            [
+                ["isort", "-c", "setup.py"],
+                ["isort", "-c", "-rc", "psqlextra"],
+                ["isort", "-c", "-rc", "tests"],
+            ],
+        ),
         "fix": create_command(
             "Automatically format code and fix linting errors",
             [
                 ["python", "setup.py", "format"],
+                ["python", "setup.py", "sort_imports"],
                 ["python", "setup.py", "lint_fix"],
             ],
         ),
@@ -99,6 +116,7 @@ setup(
             [
                 [
                     ["python", "setup.py", "format_verify"],
+                    ["python", "setup.py", "sort_imports_verify"],
                     ["python", "setup.py", "lint"],
                 ]
             ],
