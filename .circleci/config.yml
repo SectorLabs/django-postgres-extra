@@ -66,7 +66,7 @@ jobs:
                 environment:
                     DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
 
-    lint:
+    analysis:
         docker:
             - image: python:3.7-alpine
         steps:
@@ -76,7 +76,7 @@ jobs:
                 command: apk add postgresql-libs gcc musl-dev postgresql-dev git
             - run:
                 name: Install Python packages
-                command: pip install -r requirements/test.txt
+                command: pip install -r requirements/analysis.txt
             - run:
                 name: Verify formatting
                 command: python setup.py format_verify
@@ -92,4 +92,4 @@ workflows:
             - test-python35
             - test-python36
             - test-python37
-            - lint
+            - analysis
