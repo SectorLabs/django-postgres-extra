@@ -59,10 +59,49 @@ setup(
     ],
     cmdclass={
         "lint": create_command(
-            "Lints the code", [["flake8", "setup.py", "psqlextra", "tests"]]
+            "Lints the code",
+            [
+                ["flake8", "setup.py", "psqlextra", "tests"],
+                ["pycodestyle", "setup.py", "psqlextra", "tests"],
+            ],
+        ),
+        "lint_fix": create_command(
+            "Lints the code",
+            [
+                [
+                    "autoflake",
+                    "--remove-all-unused-imports",
+                    "-i",
+                    "-r",
+                    "setup.py",
+                    "psqlextra",
+                    "tests",
+                ],
+                ["autopep8", "-i", "-r", "setup.py", "psqlextra", "tests"],
+            ],
         ),
         "format": create_command(
             "Formats the code", [["black", "setup.py", "psqlextra", "tests"]]
+        ),
+        "format_verify": create_command(
+            "Checks if the code is auto-formatted",
+            [["black", "--check", "setup.py", "psqlextra", "tests"]],
+        ),
+        "fix": create_command(
+            "Automatically format code and fix linting errors",
+            [
+                ["python", "setup.py", "format"],
+                ["python", "setup.py", "lint_fix"],
+            ],
+        ),
+        "verify": create_command(
+            "Verifies whether the code is auto-formatted and has no linting errors",
+            [
+                [
+                    ["python", "setup.py", "format_verify"],
+                    ["python", "setup.py", "lint"],
+                ]
+            ],
         ),
     },
 )

@@ -78,6 +78,9 @@ jobs:
                 name: Install Python packages
                 command: pip install -r requirements/test.txt
             - run:
+                name: Verify formatting
+                command: python setup.py format_verify
+            - run:
                 name: Lint code
                 command: python setup.py lint
 
