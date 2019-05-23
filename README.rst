@@ -168,6 +168,7 @@ Working with the code
    .. code-block:: bash
 
        λ pip install -r requirements/test.txt
+       λ pip install -r requirements/analysis.txt
 
 5. Run the tests:
 
@@ -180,3 +181,9 @@ Working with the code
    .. code-block:: bash
 
        λ py.test -c pytest-benchmark.ini
+
+7. Auto-format code, sort imports and auto-fix linting errors:
+
+   .. code-block:: bash
+
+       λ python setup.py fix
