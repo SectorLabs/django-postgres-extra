@@ -1,4 +1,6 @@
 site_name: django-postgres-extra
+theme:
+  name: 'rtd-dropdown'
 pages:
 - Home: index.md
 - Manager: manager.md
