@@ -146,3 +146,31 @@ def test_upsert_bulk_no_rows():
         conflict_target=['name'],
         rows=None
     )
+
+
+def test_bulk_upsert_return_models():
+    """Tests whether models are returned instead of dictionaries
+    when specifying the return_model=True argument."""
+
+    model = get_fake_model({
+        'id': models.BigAutoField(primary_key=True),
+        'name': models.CharField(max_length=255, unique=True)
+    })
+
+    rows = [
+        dict(name='John Smith'),
+        dict(name='Jane Doe')
+    ]
+
+    objs = (
+        model.objects
+        .bulk_upsert(
+            conflict_target=['name'],
+            rows=rows,
+            return_model=True,
+        )
+    )
+
+    for index, obj in enumerate(objs, 1):
+        assert isinstance(obj, model)
+        assert obj.id == index

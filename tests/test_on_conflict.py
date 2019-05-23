@@ -437,8 +437,8 @@ def test_bulk_return():
     for index, obj in enumerate(objs, 1):
         assert obj['id'] == index
 
-    """Add objects again, update should return the same ids
-    as we're just updating."""
+    # Add objects again, update should return the same ids
+    # as we're just updating.
     objs = (
         model.objects
         .on_conflict(['name'], ConflictAction.UPDATE)
@@ -447,3 +447,31 @@ def test_bulk_return():
 
     for index, obj in enumerate(objs, 1):
         assert obj['id'] == index
+
+@pytest.mark.parametrize('conflict_action', [
+    ConflictAction.UPDATE,
+    ConflictAction.NOTHING,
+])
+def test_bulk_return_models(conflict_action):
+    """Tests whether models are returned instead of dictionaries
+    when specifying the return_model=True argument."""
+
+    model = get_fake_model({
+        'id': models.BigAutoField(primary_key=True),
+        'name': models.CharField(max_length=255, unique=True)
+    })
+
+    rows = [
+        dict(name='John Smith'),
+        dict(name='Jane Doe')
+    ]
+
+    objs = (
+        model.objects
+        .on_conflict(['name'], conflict_action)
+        .bulk_insert(rows, return_model=True)
+    )
+
+    for index, obj in enumerate(objs, 1):
+        assert isinstance(obj, model)
+        assert obj.id == index
