@@ -1,4 +1,4 @@
-from django.db.models import expressions, CharField
+from django.db.models import CharField, expressions
 
 
 class HStoreValue(expressions.Expression):

@@ -1,11 +1,11 @@
 import pytest
 
-from psqlextra.indexes import ConditionalUniqueIndex
-from .migrations import MigrationSimulator
-
-from django.db import models, IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 from django.db.migrations import AddIndex, CreateModel
 
+from psqlextra.indexes import ConditionalUniqueIndex
+
+from .migrations import MigrationSimulator
 from .util import get_fake_model
 
 

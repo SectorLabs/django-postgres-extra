@@ -1,4 +1,5 @@
 import pytest
+
 from django.db.utils import IntegrityError
 
 from psqlextra.fields import HStoreField

@@ -1,9 +1,8 @@
 from django.db import models
-
-from psqlextra.fields import HStoreField
-from psqlextra.expressions import HStoreRef
-
 from django.db.models import F
+
+from psqlextra.expressions import HStoreRef
+from psqlextra.fields import HStoreField
 
 from .fake_model import get_fake_model
 

@@ -1,8 +1,8 @@
 import uuid
 
+from django.contrib.postgres.operations import HStoreExtension
 from django.db import connection, migrations
 from django.db.migrations.executor import MigrationExecutor
-from django.contrib.postgres.operations import HStoreExtension
 
 from psqlextra.models import PostgresModel
 

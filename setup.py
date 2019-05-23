@@ -1,5 +1,5 @@
-import os
 import distutils.cmd
+import os
 import subprocess
 
 from setuptools import find_packages, setup

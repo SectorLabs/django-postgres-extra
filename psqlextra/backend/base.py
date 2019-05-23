@@ -4,12 +4,14 @@ import logging
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import ProgrammingError
-from django.db.backends.postgresql.base import (
+
+from .hstore_required import HStoreRequiredSchemaEditorMixin
+from .hstore_unique import HStoreUniqueSchemaEditorMixin
+
+from django.db.backends.postgresql.base import (  # isort:skip
     DatabaseWrapper as Psycopg2DatabaseWrapper,
 )
 
-from .hstore_unique import HStoreUniqueSchemaEditorMixin
-from .hstore_required import HStoreRequiredSchemaEditorMixin
 
 logger = logging.getLogger(__name__)
 

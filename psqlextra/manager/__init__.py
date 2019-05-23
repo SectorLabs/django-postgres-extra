@@ -1,3 +1,3 @@
-from .manager import PostgresQuerySet, PostgresManager
+from .manager import PostgresManager, PostgresQuerySet
 
 __all__ = ["PostgresQuerySet", "PostgresManager"]

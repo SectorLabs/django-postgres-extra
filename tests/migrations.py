@@ -1,18 +1,17 @@
 import uuid
 
+from contextlib import contextmanager
 from typing import List
 from unittest import mock
-from contextlib import contextmanager
 
 import django
+
+from django.apps import AppConfig, apps
+from django.apps.registry import Apps
 from django.db import connection, migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
-
-from django.apps import apps, AppConfig
-from django.apps.registry import Apps
-from django.db.migrations.executor import MigrationExecutor
-
 from django.db.migrations.autodetector import MigrationAutodetector
+from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.state import ProjectState
 
 from psqlextra.models import PostgresModel

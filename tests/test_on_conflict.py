@@ -4,11 +4,10 @@ from django.core.exceptions import SuspiciousOperation
 from django.db import connection, models
 
 from psqlextra.fields import HStoreField
-from psqlextra.query import ConflictAction
 from psqlextra.models import PostgresModel
+from psqlextra.query import ConflictAction
 
 from .util import get_fake_model
-
 
 CONFLICT_ACTIONS = (ConflictAction.UPDATE, ConflictAction.NOTHING)
 

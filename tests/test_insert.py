@@ -1,6 +1,7 @@
 from django.db import models
 
 from psqlextra.query import ConflictAction
+
 from .util import get_fake_model
 
 

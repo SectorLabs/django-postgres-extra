@@ -1,4 +1,5 @@
 import pytest
+
 from django.db import models
 
 from psqlextra.fields import HStoreField

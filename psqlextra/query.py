@@ -1,17 +1,17 @@
+from collections import OrderedDict
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
 import django
 
-from enum import Enum
-from typing import List, Tuple, Optional, Dict, Any
-from collections import OrderedDict
-
+from django.core.exceptions import SuspiciousOperation
 from django.db import models
 from django.db.models import sql
 from django.db.models.constants import LOOKUP_SEP
-from django.core.exceptions import SuspiciousOperation
 
-from .fields import HStoreField
-from .expressions import HStoreColumn
 from .datastructures import ConditionalJoin
+from .expressions import HStoreColumn
+from .fields import HStoreField
 
 
 class ConflictAction(Enum):

@@ -1,19 +1,20 @@
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Tuple, Union
 
 import django
+
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
 from django.db import models, transaction
+from django.db.models.fields import NOT_PROVIDED
 from django.db.models.sql import UpdateQuery
 from django.db.models.sql.constants import CURSOR
-from django.db.models.fields import NOT_PROVIDED
-from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
 
 from psqlextra import signals
 from psqlextra.compiler import (
-    PostgresReturningUpdateCompiler,
     PostgresInsertCompiler,
+    PostgresReturningUpdateCompiler,
 )
-from psqlextra.query import PostgresQuery, PostgresInsertQuery, ConflictAction
+from psqlextra.query import ConflictAction, PostgresInsertQuery, PostgresQuery
 
 
 class PostgresQuerySet(models.QuerySet):
