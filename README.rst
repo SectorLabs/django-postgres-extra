@@ -7,13 +7,13 @@
       <br>
     </h1>
 
-====================  ===================
+====================  ============================
 **Tests**             |TestsPassing|_
 **License**           |LicenseBadge|_
 **PyPi**              |PyPiBadge|_
-**Django versions**   >=1.11, >=2.0, >=2.1
+**Django versions**   >=1.11, >=2.0, >=2.1, >=2.2
 **Python versions**   >=3.5
-====================  ===================
+====================  ============================
 
 .. |TestsPassing| image:: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master.svg?style=svg
 .. _TestsPassing: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master
@@ -124,7 +124,7 @@ FAQ - Frequently asked questions
 
 4. **Which Django versions does this package work with?**
 
-   Django 1.11 or newer (that includes Django 2.0).
+   Django 1.11 or newer (that includes Django 2.X).
 
 
 Working with the code
