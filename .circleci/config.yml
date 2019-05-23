@@ -18,7 +18,7 @@ jobs:
                 command: pip install -r requirements/test.txt
             - run:
                 name: Run tests
-                command: tox -e 'py35-dj{111,20,21}'
+                command: tox -e 'py35-dj{111,20,21,22}'
                 environment:
                     DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
 
@@ -40,7 +40,7 @@ jobs:
                 command: pip install -r requirements/test.txt
             - run:
                 name: Run tests
-                command: tox -e 'py36-dj{111,20,21}'
+                command: tox -e 'py36-dj{111,20,21,22}'
                 environment:
                     DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
 
@@ -62,7 +62,7 @@ jobs:
                 command: pip install -r requirements/test.txt
             - run:
                 name: Run tests
-                command: tox -e 'py37-dj{111,20,21}'
+                command: tox -e 'py37-dj{111,20,21,22}'
                 environment:
                     DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
 
