@@ -11,16 +11,11 @@ def test_manager_context():
     on a model that does not use it directly or inherits
     from :see:PostgresModel."""
 
-    model = get_fake_model({
-        'myfield': models.CharField(max_length=255, unique=True)
-    }, models.Model)
+    model = get_fake_model(
+        {"myfield": models.CharField(max_length=255, unique=True)}, models.Model
+    )
 
     with postgres_manager(model) as manager:
-        manager.upsert(
-            conflict_target=['myfield'],
-            fields=dict(
-                myfield='beer'
-            )
-        )
+        manager.upsert(conflict_target=["myfield"], fields=dict(myfield="beer"))
 
-        assert manager.first().myfield == 'beer'
+        assert manager.first().myfield == "beer"

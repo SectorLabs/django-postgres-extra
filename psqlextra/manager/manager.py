@@ -9,8 +9,10 @@ from django.db.models.fields import NOT_PROVIDED
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
 
 from psqlextra import signals
-from psqlextra.compiler import (PostgresReturningUpdateCompiler,
-                                PostgresInsertCompiler)
+from psqlextra.compiler import (
+    PostgresReturningUpdateCompiler,
+    PostgresInsertCompiler,
+)
 from psqlextra.query import PostgresQuery, PostgresInsertQuery, ConflictAction
 
 
@@ -38,10 +40,7 @@ class PostgresQuerySet(models.QuerySet):
         allow that.
         """
 
-        fields = {
-            field.name: field
-            for field in self.model._meta.get_fields()
-        }
+        fields = {field.name: field for field in self.model._meta.get_fields()}
 
         # temporarily rename the fields that have the same
         # name as a field name, we'll rename them back after
@@ -50,7 +49,7 @@ class PostgresQuerySet(models.QuerySet):
         renames = {}
         for name, value in annotations.items():
             if name in fields:
-                new_name = '%s_new' % name
+                new_name = "%s_new" % name
                 new_annotations[new_name] = value
                 renames[new_name] = name
             else:
@@ -117,7 +116,12 @@ class PostgresQuerySet(models.QuerySet):
         # affected, let's do the same
         return len(rows)
 
-    def on_conflict(self, fields: List[Union[str, Tuple[str]]], action, index_predicate: str=None):
+    def on_conflict(
+        self,
+        fields: List[Union[str, Tuple[str]]],
+        action,
+        index_predicate: str = None,
+    ):
         """Sets the action to take when conflicts arise when attempting
         to insert/create a new row.
 
@@ -235,7 +239,9 @@ class PostgresQuerySet(models.QuerySet):
 
         return self.model(**model_init_fields)
 
-    def upsert(self, conflict_target: List, fields: Dict, index_predicate: str=None) -> int:
+    def upsert(
+        self, conflict_target: List, fields: Dict, index_predicate: str = None
+    ) -> int:
         """Creates a new record or updates the existing one
         with the specified data.
 
@@ -254,10 +260,14 @@ class PostgresQuerySet(models.QuerySet):
             The primary key of the row that was created/updated.
         """
 
-        self.on_conflict(conflict_target, ConflictAction.UPDATE, index_predicate)
+        self.on_conflict(
+            conflict_target, ConflictAction.UPDATE, index_predicate
+        )
         return self.insert(**fields)
 
-    def upsert_and_get(self, conflict_target: List, fields: Dict, index_predicate: str=None):
+    def upsert_and_get(
+        self, conflict_target: List, fields: Dict, index_predicate: str = None
+    ):
         """Creates a new record or updates the existing one
         with the specified data and then gets the row.
 
@@ -277,10 +287,18 @@ class PostgresQuerySet(models.QuerySet):
             that was created/updated.
         """
 
-        self.on_conflict(conflict_target, ConflictAction.UPDATE, index_predicate)
+        self.on_conflict(
+            conflict_target, ConflictAction.UPDATE, index_predicate
+        )
         return self.insert_and_get(**fields)
 
-    def bulk_upsert(self, conflict_target: List, rows: List[Dict], index_predicate: str=None, return_model: bool=False):
+    def bulk_upsert(
+        self,
+        conflict_target: List,
+        rows: List[Dict],
+        index_predicate: str = None,
+        return_model: bool = False,
+    ):
         """Creates a set of new records or updates the existing
         ones with the specified data.
 
@@ -307,7 +325,9 @@ class PostgresQuerySet(models.QuerySet):
         if not rows or len(rows) <= 0:
             return []
 
-        self.on_conflict(conflict_target, ConflictAction.UPDATE, index_predicate)
+        self.on_conflict(
+            conflict_target, ConflictAction.UPDATE, index_predicate
+        )
         return self.bulk_insert(rows, return_model)
 
     def _build_insert_compiler(self, rows: List[Dict]):
@@ -331,11 +351,13 @@ class PostgresQuerySet(models.QuerySet):
         field_count = len(rows[0])
         for index, row in enumerate(rows):
             if field_count != len(row):
-                raise SuspiciousOperation((
-                    'In bulk upserts, you cannot have rows with different field '
-                    'configurations. Row {0} has a different field config than '
-                    'the first row.'
-                ).format(index))
+                raise SuspiciousOperation(
+                    (
+                        "In bulk upserts, you cannot have rows with different field "
+                        "configurations. Row {0} has a different field config than "
+                        "the first row."
+                    ).format(index)
+                )
 
             objs.append(self.model(**row))
 
@@ -424,7 +446,7 @@ class PostgresQuerySet(models.QuerySet):
 
         for field in model_instance._meta.local_concrete_fields:
             has_default = field.default != NOT_PROVIDED
-            if (field.name in kwargs or field.column in kwargs):
+            if field.name in kwargs or field.column in kwargs:
                 insert_fields.append(field)
                 update_fields.append(field)
                 continue
@@ -435,7 +457,7 @@ class PostgresQuerySet(models.QuerySet):
             # special handling for 'pk' which always refers to
             # the primary key, so if we the user specifies `pk`
             # instead of a concrete field, we have to handle that
-            if field.primary_key is True and 'pk' in kwargs:
+            if field.primary_key is True and "pk" in kwargs:
                 insert_fields.append(field)
                 update_fields.append(field)
                 continue
@@ -461,21 +483,26 @@ class PostgresManager(models.Manager):
 
         # make sure our back-end is set and refuse to proceed
         # if it's not set
-        db_backend = settings.DATABASES['default']['ENGINE']
-        if 'psqlextra' not in db_backend:
-            raise ImproperlyConfigured((
-                '\'%s\' is not the \'psqlextra.backend\'. '
-                'django-postgres-extra cannot function without '
-                'the \'psqlextra.backend\'. Set DATABASES.ENGINE.'
-            ) % db_backend)
+        db_backend = settings.DATABASES["default"]["ENGINE"]
+        if "psqlextra" not in db_backend:
+            raise ImproperlyConfigured(
+                (
+                    "'%s' is not the 'psqlextra.backend'. "
+                    "django-postgres-extra cannot function without "
+                    "the 'psqlextra.backend'. Set DATABASES.ENGINE."
+                )
+                % db_backend
+            )
 
         # hook into django signals to then trigger our own
 
         django.db.models.signals.post_save.connect(
-            self._on_model_save, sender=self.model, weak=False)
+            self._on_model_save, sender=self.model, weak=False
+        )
 
         django.db.models.signals.pre_delete.connect(
-            self._on_model_delete, sender=self.model, weak=False)
+            self._on_model_delete, sender=self.model, weak=False
+        )
 
         self._signals_connected = True
 
@@ -496,7 +523,12 @@ class PostgresManager(models.Manager):
 
         return PostgresQuerySet(self.model, using=self._db)
 
-    def on_conflict(self, fields: List[Union[str, Tuple[str]]], action, index_predicate: str=None):
+    def on_conflict(
+        self,
+        fields: List[Union[str, Tuple[str]]],
+        action,
+        index_predicate: str = None,
+    ):
         """Sets the action to take when conflicts arise when attempting
         to insert/create a new row.
 
@@ -512,7 +544,9 @@ class PostgresManager(models.Manager):
         """
         return self.get_queryset().on_conflict(fields, action, index_predicate)
 
-    def upsert(self, conflict_target: List, fields: Dict, index_predicate: str=None) -> int:
+    def upsert(
+        self, conflict_target: List, fields: Dict, index_predicate: str = None
+    ) -> int:
         """Creates a new record or updates the existing one
         with the specified data.
 
@@ -530,9 +564,13 @@ class PostgresManager(models.Manager):
             The primary key of the row that was created/updated.
         """
 
-        return self.get_queryset().upsert(conflict_target, fields, index_predicate)
+        return self.get_queryset().upsert(
+            conflict_target, fields, index_predicate
+        )
 
-    def upsert_and_get(self, conflict_target: List, fields: Dict, index_predicate: str=None):
+    def upsert_and_get(
+        self, conflict_target: List, fields: Dict, index_predicate: str = None
+    ):
         """Creates a new record or updates the existing one
         with the specified data and then gets the row.
 
@@ -551,9 +589,17 @@ class PostgresManager(models.Manager):
             that was created/updated.
         """
 
-        return self.get_queryset().upsert_and_get(conflict_target, fields, index_predicate)
+        return self.get_queryset().upsert_and_get(
+            conflict_target, fields, index_predicate
+        )
 
-    def bulk_upsert(self, conflict_target: List, rows: List[Dict], index_predicate: str=None, return_model: bool=False):
+    def bulk_upsert(
+        self,
+        conflict_target: List,
+        rows: List[Dict],
+        index_predicate: str = None,
+        return_model: bool = False,
+    ):
         """Creates a set of new records or updates the existing
         ones with the specified data.
 
@@ -576,13 +622,15 @@ class PostgresManager(models.Manager):
             the models of the rows upserted
         """
 
-        return self.get_queryset().bulk_upsert(conflict_target, rows, index_predicate, return_model)
+        return self.get_queryset().bulk_upsert(
+            conflict_target, rows, index_predicate, return_model
+        )
 
     @staticmethod
     def _on_model_save(sender, **kwargs):
         """When a model gets created or updated."""
 
-        created, instance = kwargs['created'], kwargs['instance']
+        created, instance = kwargs["created"], kwargs["instance"]
 
         if created:
             signals.create.send(sender, pk=instance.pk)
@@ -593,5 +641,5 @@ class PostgresManager(models.Manager):
     def _on_model_delete(sender, **kwargs):
         """When a model gets deleted."""
 
-        instance = kwargs['instance']
+        instance = kwargs["instance"]
         signals.delete.send(sender, pk=instance.pk)

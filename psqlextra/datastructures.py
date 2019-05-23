@@ -11,7 +11,7 @@ class ConditionalJoin(Join):
         """Initializes a new instance of :see:ConditionalJoin."""
 
         super().__init__(*args, **kwargs)
-        self.join_type = 'LEFT OUTER JOIN'
+        self.join_type = "LEFT OUTER JOIN"
         self.extra_conditions = []
 
     def add_condition(self, field, value: Any) -> None:
@@ -34,13 +34,12 @@ class ConditionalJoin(Join):
         qn = compiler.quote_name_unless_alias
 
         # generate the extra conditions
-        extra_conditions = ' AND '.join([
-            '{}.{} = %s'.format(
-                qn(self.table_name),
-                qn(field.column)
-            )
-            for field, value in self.extra_conditions
-        ])
+        extra_conditions = " AND ".join(
+            [
+                "{}.{} = %s".format(qn(self.table_name), qn(field.column))
+                for field, value in self.extra_conditions
+            ]
+        )
 
         # add to the existing params, so the connector will
         # actually nicely format the value for us
@@ -48,11 +47,11 @@ class ConditionalJoin(Join):
             params.append(value)
 
         # rewrite the sql to include the extra conditions
-        rewritten_sql = sql.replace(')', ' AND {})'.format(extra_conditions))
+        rewritten_sql = sql.replace(")", " AND {})".format(extra_conditions))
         return rewritten_sql, params
 
     @classmethod
-    def from_join(cls, join: Join) -> 'ConditionalJoin':
+    def from_join(cls, join: Join) -> "ConditionalJoin":
         """Creates a new :see:ConditionalJoin from the
         specified :see:Join object.
 
@@ -72,5 +71,5 @@ class ConditionalJoin(Join):
             join.table_alias,
             join.join_type,
             join.join_field,
-            join.nullable
+            join.nullable,
         )

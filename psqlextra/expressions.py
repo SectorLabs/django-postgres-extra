@@ -19,9 +19,8 @@ class HStoreValue(expressions.Expression):
 
         result = dict()
         for key, value in self.value.items():
-            if hasattr(value, 'resolve_expression'):
-                result[key] = value.resolve_expression(
-                    *args, **kwargs)
+            if hasattr(value, "resolve_expression"):
+                result[key] = value.resolve_expression(*args, **kwargs)
             else:
                 result[key] = value
 
@@ -44,17 +43,15 @@ class HStoreValue(expressions.Expression):
 
         result = []
         for key, value in self.value.items():
-            if hasattr(value, 'as_sql'):
+            if hasattr(value, "as_sql"):
                 sql, params = value.as_sql(compiler, connection)
-                result.append('hstore(\'%s\', %s)' % (
-                    key, sql % params))
+                result.append("hstore('%s', %s)" % (key, sql % params))
             elif value is not None:
-                result.append('hstore(\'%s\', \'%s\')' % ((
-                    key, value)))
+                result.append("hstore('%s', '%s')" % ((key, value)))
             else:
-                result.append('hstore(\'%s\', NULL)' % key)
+                result.append("hstore('%s', NULL)" % key)
 
-        return '%s' % ' || '.join(result), []
+        return "%s" % " || ".join(result), []
 
 
 class HStoreColumn(expressions.Col):
@@ -89,17 +86,18 @@ class HStoreColumn(expressions.Col):
         """Gets a textual representation of this expresion."""
 
         return "{}({}, {}->'{}')".format(
-            self.__class__.__name__,
-            self.alias,
-            self.target,
-            self.hstore_key
+            self.__class__.__name__, self.alias, self.target, self.hstore_key
         )
 
     def as_sql(self, compiler, connection):
         """Compiles this expression into SQL."""
 
         qn = compiler.quote_name_unless_alias
-        return "%s.%s->'%s'" % (qn(self.alias), qn(self.target.column), self.hstore_key), []
+        return (
+            "%s.%s->'%s'"
+            % (qn(self.alias), qn(self.target.column), self.hstore_key),
+            [],
+        )
 
     def relabeled_clone(self, relabels):
         """Gets a re-labeled clone of this expression."""
@@ -108,7 +106,7 @@ class HStoreColumn(expressions.Col):
             relabels.get(self.alias, self.alias),
             self.target,
             self.hstore_key,
-            self.output_field
+            self.output_field,
         )
 
 
@@ -137,9 +135,7 @@ class HStoreRef(expressions.F):
 
         original_expression = super().resolve_expression(*args, **kwargs)
         expression = HStoreColumn(
-            original_expression.alias,
-            original_expression.target,
-            self.key
+            original_expression.alias, original_expression.target, self.key
         )
         return expression
 
@@ -160,14 +156,14 @@ class Min(NonGroupableFunc):
     """Exposes PostgreSQL's MIN(..) func."""
 
     def __init__(self, expression):
-        super().__init__(expression, function='MIN')
+        super().__init__(expression, function="MIN")
 
 
 class Max(NonGroupableFunc):
     """Exposes PostgreSQL's Max(..) func."""
 
     def __init__(self, expression):
-        super().__init__(expression, function='Max')
+        super().__init__(expression, function="Max")
 
 
 class DateTimeEpochColumn(expressions.Col):
@@ -179,7 +175,7 @@ class DateTimeEpochColumn(expressions.Col):
         """Compiles this expression into SQL."""
 
         sql, params = super().as_sql(compiler, connection)
-        return 'EXTRACT(epoch FROM {})'.format(sql), params
+        return "EXTRACT(epoch FROM {})".format(sql), params
 
     def get_group_by_cols(self):
         return []
@@ -193,8 +189,7 @@ class DateTimeEpoch(expressions.F):
     def resolve_expression(self, *args, **kwargs):
         original_expression = super().resolve_expression(*args, **kwargs)
         expression = DateTimeEpochColumn(
-            original_expression.alias,
-            original_expression.target,
+            original_expression.alias, original_expression.target
         )
         return expression
 
@@ -218,8 +213,7 @@ def IsNotNone(*fields, default=None):
 
     when_clauses = [
         expressions.When(
-            ~expressions.Q(**{field: None}),
-            then=expressions.F(field)
+            ~expressions.Q(**{field: None}), then=expressions.F(field)
         )
         for field in reversed(fields)
     ]

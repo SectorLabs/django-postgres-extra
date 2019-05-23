@@ -33,14 +33,15 @@ def filtered_schema_editor(*filters: List[str]):
 
     with connection.schema_editor() as schema_editor:
         wrapper_for = schema_editor.execute
-        with mock.patch.object(BaseDatabaseSchemaEditor, 'execute', wraps=wrapper_for) as execute:
+        with mock.patch.object(
+            BaseDatabaseSchemaEditor, "execute", wraps=wrapper_for
+        ) as execute:
             filter_results = {}
             yield schema_editor, filter_results
 
     for filter_text in filters:
         filter_results[filter_text] = [
-            call for call in execute.mock_calls
-            if filter_text in str(call)
+            call for call in execute.mock_calls if filter_text in str(call)
         ]
 
 
@@ -69,8 +70,7 @@ def execute_migration(schema_editor, operations, project=None):
     Migration.operations = operations
 
     executor = MigrationExecutor(schema_editor.connection)
-    executor.apply_migration(
-        project, Migration('eh', 'postgres_extra'))
+    executor.apply_migration(project, Migration("eh", "postgres_extra"))
 
 
 @contextmanager
@@ -87,20 +87,18 @@ def create_drop_model(field, filters: List[str]):
             SQL statements on.
     """
 
-    model = define_fake_model({'title': field})
+    model = define_fake_model({"title": field})
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
-        execute_migration(schema_editor, [
-            migrations.CreateModel(
-                model.__name__,
-                fields=[
-                    ('title', field.clone())
-                ]
-            ),
-            migrations.DeleteModel(
-                model.__name__,
-            )
-        ])
+        execute_migration(
+            schema_editor,
+            [
+                migrations.CreateModel(
+                    model.__name__, fields=[("title", field.clone())]
+                ),
+                migrations.DeleteModel(model.__name__),
+            ],
+        )
 
     yield calls
 
@@ -124,22 +122,22 @@ def alter_db_table(field, filters: List[str]):
     project = migrations.state.ProjectState.from_apps(apps)
 
     with connection.schema_editor() as schema_editor:
-        execute_migration(schema_editor, [
-            migrations.CreateModel(
-                model.__name__,
-                fields=[
-                    ('title', field.clone())
-                ]
-            )
-        ], project)
+        execute_migration(
+            schema_editor,
+            [
+                migrations.CreateModel(
+                    model.__name__, fields=[("title", field.clone())]
+                )
+            ],
+            project,
+        )
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
-        execute_migration(schema_editor, [
-            migrations.AlterModelTable(
-                model.__name__,
-                'NewTableName'
-            )
-        ], project)
+        execute_migration(
+            schema_editor,
+            [migrations.AlterModelTable(model.__name__, "NewTableName")],
+            project,
+        )
 
     yield calls
 
@@ -161,21 +159,18 @@ def add_field(field, filters: List[str]):
     project = migrations.state.ProjectState.from_apps(apps)
 
     with connection.schema_editor() as schema_editor:
-        execute_migration(schema_editor, [
-            migrations.CreateModel(
-                model.__name__,
-                fields=[]
-            )
-        ], project)
+        execute_migration(
+            schema_editor,
+            [migrations.CreateModel(model.__name__, fields=[])],
+            project,
+        )
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
-        execute_migration(schema_editor, [
-            migrations.AddField(
-                model.__name__,
-                'title',
-                field
-            )
-        ], project)
+        execute_migration(
+            schema_editor,
+            [migrations.AddField(model.__name__, "title", field)],
+            project,
+        )
 
     yield calls
 
@@ -193,26 +188,26 @@ def remove_field(field, filters: List[str]):
             SQL statements on.
     """
 
-    model = define_fake_model({'title': field})
+    model = define_fake_model({"title": field})
     project = migrations.state.ProjectState.from_apps(apps)
 
     with connection.schema_editor() as schema_editor:
-        execute_migration(schema_editor, [
-            migrations.CreateModel(
-                model.__name__,
-                fields=[
-                    ('title', field.clone())
-                ]
-            )
-        ], project)
+        execute_migration(
+            schema_editor,
+            [
+                migrations.CreateModel(
+                    model.__name__, fields=[("title", field.clone())]
+                )
+            ],
+            project,
+        )
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
-        execute_migration(schema_editor, [
-            migrations.RemoveField(
-                model.__name__,
-                'title'
-            )
-        ], project)
+        execute_migration(
+            schema_editor,
+            [migrations.RemoveField(model.__name__, "title")],
+            project,
+        )
 
     yield calls
 
@@ -233,27 +228,26 @@ def alter_field(old_field, new_field, filters: List[str]):
             SQL statements on.
     """
 
-    model = define_fake_model({'title': old_field})
+    model = define_fake_model({"title": old_field})
     project = migrations.state.ProjectState.from_apps(apps)
 
     with connection.schema_editor() as schema_editor:
-        execute_migration(schema_editor, [
-            migrations.CreateModel(
-                model.__name__,
-                fields=[
-                    ('title', old_field.clone())
-                ]
-            )
-        ], project)
+        execute_migration(
+            schema_editor,
+            [
+                migrations.CreateModel(
+                    model.__name__, fields=[("title", old_field.clone())]
+                )
+            ],
+            project,
+        )
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
-        execute_migration(schema_editor, [
-            migrations.AlterField(
-                model.__name__,
-                'title',
-                new_field
-            )
-        ], project)
+        execute_migration(
+            schema_editor,
+            [migrations.AlterField(model.__name__, "title", new_field)],
+            project,
+        )
 
     yield calls
 
@@ -271,27 +265,26 @@ def rename_field(field, filters: List[str]):
             SQL statements on.
     """
 
-    model = define_fake_model({'title': field})
+    model = define_fake_model({"title": field})
     project = migrations.state.ProjectState.from_apps(apps)
 
     with connection.schema_editor() as schema_editor:
-        execute_migration(schema_editor, [
-            migrations.CreateModel(
-                model.__name__,
-                fields=[
-                    ('title', field.clone())
-                ]
-            )
-        ], project)
+        execute_migration(
+            schema_editor,
+            [
+                migrations.CreateModel(
+                    model.__name__, fields=[("title", field.clone())]
+                )
+            ],
+            project,
+        )
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
-        execute_migration(schema_editor, [
-            migrations.RenameField(
-                model.__name__,
-                'title',
-                'newtitle'
-            )
-        ], project)
+        execute_migration(
+            schema_editor,
+            [migrations.RenameField(model.__name__, "title", "newtitle")],
+            project,
+        )
 
     yield calls
 
@@ -307,10 +300,11 @@ class MigrationSimulator:
         import psqlextra.apps
 
         self.app_label = self._generate_random_name()
-        self.app_config = type(self.app_label, (AppConfig,), dict(
-            name=self.app_label,
-            verbose_name=self.app_label
-        ))(self.app_label, psqlextra.apps)
+        self.app_config = type(
+            self.app_label,
+            (AppConfig,),
+            dict(name=self.app_label, verbose_name=self.app_label),
+        )(self.app_label, psqlextra.apps)
 
         self.app_config.models = {}
 
@@ -327,10 +321,10 @@ class MigrationSimulator:
         name = self._generate_random_name()
 
         attributes = {
-            'app_label': self.app_label,
-            '__module__': __name__,
-            '__name__': name,
-            'Meta': type('Meta', (object,), meta_options)
+            "app_label": self.app_label,
+            "__module__": __name__,
+            "__name__": name,
+            "Meta": type("Meta", (object,), meta_options),
         }
 
         if fields:
@@ -347,12 +341,11 @@ class MigrationSimulator:
         new_project_state = ProjectState.from_apps(self.apps)
 
         autodetector = MigrationAutodetector(
-            self.project_state,
-            new_project_state
+            self.project_state, new_project_state
         )
 
         changes = autodetector._detect_changes()
-        migrations = changes.get('tests', [])
+        migrations = changes.get("tests", [])
         migration = migrations[0] if len(migrations) > 0 else None
 
         self.migrations.append(migration)
@@ -385,4 +378,4 @@ class MigrationSimulator:
         return calls_for_migrations
 
     def _generate_random_name(self):
-        return str(uuid.uuid4()).replace('-', '')[:8]
+        return str(uuid.uuid4()).replace("-", "")[:8]

@@ -17,8 +17,8 @@ from .datastructures import ConditionalJoin
 class ConflictAction(Enum):
     """Possible actions to take on a conflict."""
 
-    NOTHING = 'NOTHING'
-    UPDATE = 'UPDATE'
+    NOTHING = "NOTHING"
+    UPDATE = "UPDATE"
 
 
 class PostgresQuery(sql.Query):
@@ -38,17 +38,27 @@ class PostgresQuery(sql.Query):
             annotation = self.annotations.get(old_name)
 
             if not annotation:
-                raise SuspiciousOperation((
-                    'Cannot rename annotation "{old_name}" to "{new_name}", because there'
-                    ' is no annotation named "{old_name}".'
-                ).format(old_name=old_name, new_name=new_name))
+                raise SuspiciousOperation(
+                    (
+                        'Cannot rename annotation "{old_name}" to "{new_name}", because there'
+                        ' is no annotation named "{old_name}".'
+                    ).format(old_name=old_name, new_name=new_name)
+                )
 
             self._annotations = OrderedDict(
-                [(new_name, v) if k == old_name else (k, v) for k, v in self._annotations.items()])
+                [
+                    (new_name, v) if k == old_name else (k, v)
+                    for k, v in self._annotations.items()
+                ]
+            )
 
             if django.VERSION < (2, 0):
                 self.set_annotation_mask(
-                    (new_name if v == old_name else v for v in (self.annotation_select_mask or [])))
+                    (
+                        new_name if v == old_name else v
+                        for v in (self.annotation_select_mask or [])
+                    )
+                )
 
     def add_join_conditions(self, conditions: Dict[str, Any]) -> None:
         """Adds an extra condition to an existing JOIN.
@@ -74,10 +84,13 @@ class PostgresQuery(sql.Query):
             join = self.alias_map.get(target_table)
 
             if not join:
-                raise SuspiciousOperation((
-                    'Cannot add an extra join condition for "%s", there\'s no'
-                    ' existing join to add it to.'
-                ) % target_table)
+                raise SuspiciousOperation(
+                    (
+                        'Cannot add an extra join condition for "%s", there\'s no'
+                        " existing join to add it to."
+                    )
+                    % target_table
+                )
 
             # convert the Join object into a ConditionalJoin object, which
             # allows us to add the extra condition
@@ -87,7 +100,9 @@ class PostgresQuery(sql.Query):
 
             join.add_condition(field, value)
 
-    def add_fields(self, field_names: List[str], allow_m2m: bool=True) -> bool:
+    def add_fields(
+        self, field_names: List[str], allow_m2m: bool = True
+    ) -> bool:
         """
         Adds the given (model) fields to the select set. The field names are
         added in the order specified.
@@ -116,11 +131,17 @@ class PostgresQuery(sql.Query):
                 is_hstore, field = self._is_hstore_field(column_name)
                 if is_hstore:
                     cols.append(
-                        HStoreColumn(self.model._meta.db_table or self.model.name, field, hstore_key)
+                        HStoreColumn(
+                            self.model._meta.db_table or self.model.name,
+                            field,
+                            hstore_key,
+                        )
                     )
                     continue
 
-            join_info = self.setup_joins(parts, opts, alias, allow_many=allow_m2m)
+            join_info = self.setup_joins(
+                parts, opts, alias, allow_many=allow_m2m
+            )
             targets, final_alias, joins = self.trim_joins(
                 join_info[1], join_info[3], join_info[4]
             )
@@ -130,7 +151,9 @@ class PostgresQuery(sql.Query):
         if cols:
             self.set_select(cols)
 
-    def _is_hstore_field(self, field_name: str) -> Tuple[bool, Optional[models.Field]]:
+    def _is_hstore_field(
+        self, field_name: str
+    ) -> Tuple[bool, Optional[models.Field]]:
         """Gets whether the field with the specified name is a
         HStoreField.
 
@@ -162,7 +185,7 @@ class PostgresInsertQuery(sql.InsertQuery):
 
         self.update_fields = []
 
-    def values(self, objs: List, insert_fields: List, update_fields: List=[]):
+    def values(self, objs: List, insert_fields: List, update_fields: List = []):
         """Sets the values to be used in this query.
 
         Insert fields are fields that are definitely

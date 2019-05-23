@@ -3,21 +3,14 @@ from ..fields import HStoreField
 
 class HStoreUniqueSchemaEditorMixin:
     sql_hstore_unique_create = (
-        'CREATE UNIQUE INDEX IF NOT EXISTS '
-        '{name} ON {table} '
-        '({columns})'
+        "CREATE UNIQUE INDEX IF NOT EXISTS " "{name} ON {table} " "({columns})"
     )
 
     sql_hstore_unique_rename = (
-        'ALTER INDEX '
-        '{old_name} '
-        'RENAME TO '
-        '{new_name}'
+        "ALTER INDEX " "{old_name} " "RENAME TO " "{new_name}"
     )
 
-    sql_hstore_unique_drop = (
-        'DROP INDEX IF EXISTS {name}'
-    )
+    sql_hstore_unique_drop = "DROP INDEX IF EXISTS {name}"
 
     def create_model(self, model):
         """Ran when a new model is created."""
@@ -46,32 +39,20 @@ class HStoreUniqueSchemaEditorMixin:
 
             for keys in self._iterate_uniqueness_keys(field):
                 self._rename_hstore_unique(
-                    old_db_table,
-                    new_db_table,
-                    field,
-                    field,
-                    keys
+                    old_db_table, new_db_table, field, field, keys
                 )
 
     def add_field(self, model, field):
         """Ran when a field is added to a model."""
 
         for keys in self._iterate_uniqueness_keys(field):
-            self._create_hstore_unique(
-                model,
-                field,
-                keys
-            )
+            self._create_hstore_unique(model, field, keys)
 
     def remove_field(self, model, field):
         """Ran when a field is removed from a model."""
 
         for keys in self._iterate_uniqueness_keys(field):
-            self._drop_hstore_unique(
-                model,
-                field,
-                keys
-            )
+            self._drop_hstore_unique(model, field, keys)
 
     def alter_field(self, model, old_field, new_field, strict=False):
         """Ran when the configuration on a field changed."""
@@ -82,8 +63,8 @@ class HStoreUniqueSchemaEditorMixin:
         if not is_old_field_hstore and not is_new_field_hstore:
             return
 
-        old_uniqueness = getattr(old_field, 'uniqueness', []) or []
-        new_uniqueness = getattr(new_field, 'uniqueness', []) or []
+        old_uniqueness = getattr(old_field, "uniqueness", []) or []
+        new_uniqueness = getattr(new_field, "uniqueness", []) or []
 
         # handle field renames before moving on
         if str(old_field.column) != str(new_field.column):
@@ -93,64 +74,54 @@ class HStoreUniqueSchemaEditorMixin:
                     model._meta.db_table,
                     old_field,
                     new_field,
-                    keys
+                    keys,
                 )
 
         # drop the indexes for keys that have been removed
         for keys in old_uniqueness:
             if keys not in new_uniqueness:
                 self._drop_hstore_unique(
-                    model,
-                    old_field,
-                    self._compose_keys(keys)
+                    model, old_field, self._compose_keys(keys)
                 )
 
         # create new indexes for keys that have been added
         for keys in new_uniqueness:
             if keys not in old_uniqueness:
                 self._create_hstore_unique(
-                    model,
-                    new_field,
-                    self._compose_keys(keys)
+                    model, new_field, self._compose_keys(keys)
                 )
 
     def _create_hstore_unique(self, model, field, keys):
         """Creates a UNIQUE constraint for the specified hstore keys."""
 
-        name = self._unique_constraint_name(
-            model._meta.db_table, field, keys)
-        columns = [
-            '(%s->\'%s\')' % (field.column, key)
-            for key in keys
-        ]
+        name = self._unique_constraint_name(model._meta.db_table, field, keys)
+        columns = ["(%s->'%s')" % (field.column, key) for key in keys]
         sql = self.sql_hstore_unique_create.format(
             name=self.quote_name(name),
             table=self.quote_name(model._meta.db_table),
-            columns=','.join(columns)
+            columns=",".join(columns),
         )
         self.execute(sql)
 
-    def _rename_hstore_unique(self, old_table_name, new_table_name,
-                              old_field, new_field, keys):
+    def _rename_hstore_unique(
+        self, old_table_name, new_table_name, old_field, new_field, keys
+    ):
         """Renames an existing UNIQUE constraint for the specified
         hstore keys."""
 
-        old_name = self._unique_constraint_name(
-            old_table_name, old_field, keys)
-        new_name = self._unique_constraint_name(
-            new_table_name, new_field, keys)
+        old_name = self._unique_constraint_name(old_table_name, old_field, keys)
+        new_name = self._unique_constraint_name(new_table_name, new_field, keys)
 
         sql = self.sql_hstore_unique_rename.format(
             old_name=self.quote_name(old_name),
-            new_name=self.quote_name(new_name)
+            new_name=self.quote_name(new_name),
         )
         self.execute(sql)
 
     def _drop_hstore_unique(self, model, field, keys):
         """Drops a UNIQUE constraint for the specified hstore keys."""
 
-        name = self._unique_constraint_name(
-            model._meta.db_table, field, keys)
+        name = self._unique_constraint_name(model._meta.db_table, field, keys)
         sql = self.sql_hstore_unique_drop.format(name=self.quote_name(name))
         self.execute(sql)
 
@@ -178,11 +149,9 @@ class HStoreUniqueSchemaEditorMixin:
         Returns:
             The name for the UNIQUE index.
         """
-        postfix = '_'.join(keys)
-        return '{table}_{field}_unique_{postfix}'.format(
-            table=table,
-            field=field.column,
-            postfix=postfix
+        postfix = "_".join(keys)
+        return "{table}_{field}_unique_{postfix}".format(
+            table=table, field=field.column, postfix=postfix
         )
 
     def _iterate_uniqueness_keys(self, field):
@@ -195,7 +164,7 @@ class HStoreUniqueSchemaEditorMixin:
                 iterate over.
         """
 
-        uniqueness = getattr(field, 'uniqueness', None)
+        uniqueness = getattr(field, "uniqueness", None)
         if not uniqueness:
             return
 
