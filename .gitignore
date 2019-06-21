@@ -24,3 +24,6 @@ dist/
 # Ignore temporary tox environments
 .tox/
 .pytest_cache/
+
+# Ignore PyCharm / IntelliJ files
+.idea/
