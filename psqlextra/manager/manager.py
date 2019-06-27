@@ -1,4 +1,5 @@
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Iterable
+from itertools import chain
 
 import django
 
@@ -152,7 +153,7 @@ class PostgresQuerySet(models.QuerySet):
 
         Arguments:
             rows:
-                An array of dictionaries, where each dictionary
+                An iterable of dictionaries, where each dictionary
                 describes the fields to insert.
 
             return_model (default: False):
@@ -296,7 +297,7 @@ class PostgresQuerySet(models.QuerySet):
     def bulk_upsert(
         self,
         conflict_target: List,
-        rows: List[Dict],
+        rows: Iterable[Dict],
         index_predicate: str = None,
         return_model: bool = False,
     ):
@@ -322,8 +323,8 @@ class PostgresQuerySet(models.QuerySet):
             A list of either the dicts of the rows upserted, including the pk or
             the models of the rows upserted
         """
-
-        if not rows or len(rows) <= 0:
+        is_empty = lambda r: all([False for _ in r])
+        if not rows or is_empty(rows):
             return []
 
         self.on_conflict(
@@ -331,12 +332,12 @@ class PostgresQuerySet(models.QuerySet):
         )
         return self.bulk_insert(rows, return_model)
 
-    def _build_insert_compiler(self, rows: List[Dict]):
+    def _build_insert_compiler(self, rows: Iterable[Dict]):
         """Builds the SQL compiler for a insert query.
 
         Arguments:
             rows:
-                A list of dictionaries, where each entry
+                An iterable of dictionaries, where each entry
                 describes a record to insert.
 
         Returns:
@@ -349,8 +350,10 @@ class PostgresQuerySet(models.QuerySet):
         # we need to be certain that each row specifies the exact same
         # amount of fields/columns
         objs = []
-        field_count = len(rows[0])
-        for index, row in enumerate(rows):
+        rows_iter = iter(rows)
+        first_row = next(rows_iter)
+        field_count = len(first_row)
+        for index, row in enumerate(chain([first_row], rows_iter)):
             if field_count != len(row):
                 raise SuspiciousOperation(
                     (
@@ -366,7 +369,7 @@ class PostgresQuerySet(models.QuerySet):
         self._for_write = True
 
         # get the fields to be used during update/insert
-        insert_fields, update_fields = self._get_upsert_fields(rows[0])
+        insert_fields, update_fields = self._get_upsert_fields(first_row)
 
         # build a normal insert query
         query = PostgresInsertQuery(self.model)
@@ -597,7 +600,7 @@ class PostgresManager(models.Manager):
     def bulk_upsert(
         self,
         conflict_target: List,
-        rows: List[Dict],
+        rows: Iterable[Dict],
         index_predicate: str = None,
         return_model: bool = False,
     ):

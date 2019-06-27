@@ -146,3 +146,59 @@ def test_bulk_upsert_return_models():
     for index, obj in enumerate(objs, 1):
         assert isinstance(obj, model)
         assert obj.id == index
+
+
+def test_bulk_upsert_accepts_getitem_iterable():
+    """Tests whether an iterable only implementing
+    the __getitem__ method works correctly."""
+
+    class GetItemIterable:
+        def __init__(self, items):
+            self.items = items
+        def __getitem__(self, key):
+            return self.items[key]
+
+    model = get_fake_model(
+        {
+            "id": models.BigAutoField(primary_key=True),
+            "name": models.CharField(max_length=255, unique=True),
+        }
+    )
+
+    rows = GetItemIterable([dict(name="John Smith"), dict(name="Jane Doe")])
+
+    objs = model.objects.bulk_upsert(
+        conflict_target=["name"], rows=rows, return_model=True
+    )
+
+    for index, obj in enumerate(objs, 1):
+        assert isinstance(obj, model)
+        assert obj.id == index
+
+
+def test_bulk_upsert_accepts_iter_iterable():
+    """Tests whether an iterable only implementing
+    the __iter__ method works correctly."""
+
+    class IterIterable:
+        def __init__(self, items):
+            self.items = items
+        def __iter__(self):
+            return iter(self.items)
+
+    model = get_fake_model(
+        {
+            "id": models.BigAutoField(primary_key=True),
+            "name": models.CharField(max_length=255, unique=True),
+        }
+    )
+
+    rows = IterIterable([dict(name="John Smith"), dict(name="Jane Doe")])
+
+    objs = model.objects.bulk_upsert(
+        conflict_target=["name"], rows=rows, return_model=True
+    )
+
+    for index, obj in enumerate(objs, 1):
+        assert isinstance(obj, model)
+        assert obj.id == index
