@@ -155,6 +155,7 @@ def test_bulk_upsert_accepts_getitem_iterable():
     class GetItemIterable:
         def __init__(self, items):
             self.items = items
+
         def __getitem__(self, key):
             return self.items[key]
 
@@ -183,6 +184,7 @@ def test_bulk_upsert_accepts_iter_iterable():
     class IterIterable:
         def __init__(self, items):
             self.items = items
+
         def __iter__(self):
             return iter(self.items)
 

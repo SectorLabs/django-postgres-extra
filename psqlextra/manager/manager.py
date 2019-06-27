@@ -1,5 +1,5 @@
-from typing import Dict, List, Tuple, Union, Iterable
 from itertools import chain
+from typing import Dict, Iterable, List, Tuple, Union
 
 import django
 
@@ -323,7 +323,7 @@ class PostgresQuerySet(models.QuerySet):
             A list of either the dicts of the rows upserted, including the pk or
             the models of the rows upserted
         """
-        is_empty = lambda r: all([False for _ in r])
+        def is_empty(r): return all([False for _ in r])
         if not rows or is_empty(rows):
             return []
 
