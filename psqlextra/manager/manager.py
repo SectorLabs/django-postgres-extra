@@ -323,7 +323,10 @@ class PostgresQuerySet(models.QuerySet):
             A list of either the dicts of the rows upserted, including the pk or
             the models of the rows upserted
         """
-        def is_empty(r): return all([False for _ in r])
+
+        def is_empty(r):
+            return all([False for _ in r])
+
         if not rows or is_empty(rows):
             return []
 
