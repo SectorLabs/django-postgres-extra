@@ -42,8 +42,7 @@ def test_on_conflict_nothing():
 
 
 def test_on_conflict_nothing_foreign_primary_key():
-    """
-    Tests whether simple insert NOTHING works correctly when the primary key of
+    """Tests whether simple insert NOTHING works correctly when the primary key of
     a field is a foreign key with a custom name.
     """
 
@@ -81,10 +80,8 @@ def test_on_conflict_nothing_foreign_primary_key():
 
 
 def test_on_conflict_nothing_foreign_key_by_object():
-    """
-    Tests whether simple insert NOTHING works correctly when the potentially
-    conflicting field is a foreign key specified as an object.
-    """
+    """Tests whether simple insert NOTHING works correctly when the potentially
+    conflicting field is a foreign key specified as an object."""
 
     other_model = get_fake_model({})
 
@@ -136,10 +133,8 @@ def test_on_conflict_nothing_foreign_key_by_object():
 
 
 def test_on_conflict_nothing_foreign_key_by_id():
-    """
-    Tests whether simple insert NOTHING works correctly when the potentially
-    conflicting field is a foreign key specified as an id.
-    """
+    """Tests whether simple insert NOTHING works correctly when the potentially
+    conflicting field is a foreign key specified as an id."""
 
     other_model = get_fake_model({})
 
@@ -181,3 +176,19 @@ def test_on_conflict_nothing_foreign_key_by_id():
     assert obj2.other == other_obj
     assert obj1.data == "some data"
     assert obj2.data == "some data"
+
+
+def test_on_conflict_nothing_duplicate_rows():
+    """Tests whether duplicate rows are filtered out when
+    doing a insert NOTHING and no error is raised when
+    the list of rows contains duplicates."""
+
+    model = get_fake_model({"amount": models.IntegerField(unique=True)})
+
+    rows = [dict(amount=1), dict(amount=1)]
+
+    (
+        model.objects.on_conflict(
+            ["amount"], ConflictAction.NOTHING
+        ).bulk_insert(rows)
+    )

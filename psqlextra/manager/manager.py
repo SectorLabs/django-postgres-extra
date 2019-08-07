@@ -166,12 +166,36 @@ class PostgresQuerySet(models.QuerySet):
         """
 
         if self.conflict_target or self.conflict_action:
-            compiler = self._build_insert_compiler(rows)
+            deduped_rows = rows
+
+            # when we do a ConflictAction.NOTHING, we are actually
+            # doing a ON CONFLICT DO UPDATE with a trick to avoid
+            # touching conflicting rows... however, ON CONFLICT UPDATE
+            # barfs when you specify the exact same row twice:
+            #
+            # > "cannot affect row a second time"
+            #
+            # we filter out the duplicates here to make sure we maintain
+            # the same behaviour as the real ON CONFLICT DO NOTHING
+            if self.conflict_action == ConflictAction.NOTHING:
+                deduped_rows = []
+                for row in rows:
+                    if row in deduped_rows:
+                        continue
+
+                    deduped_rows.append(row)
+
+            compiler = self._build_insert_compiler(deduped_rows)
             objs = compiler.execute_sql(return_id=True)
             if return_model:
-                return [self.model(**dict(r, **k)) for r, k in zip(rows, objs)]
+                return [
+                    self.model(**dict(row, **obj))
+                    for row, obj in zip(deduped_rows, objs)
+                ]
             else:
-                return [dict(r, **k) for r, k in zip(rows, objs)]
+                return [
+                    dict(row, **obj) for row, obj in zip(deduped_rows, objs)
+                ]
 
         # no special action required, use the standard Django bulk_create(..)
         return super().bulk_create([self.model(**fields) for fields in rows])
@@ -222,9 +246,13 @@ class PostgresQuerySet(models.QuerySet):
         compiler = self._build_insert_compiler([fields])
         rows = compiler.execute_sql(return_id=False)
 
+        if not rows:
+            return None
+
         columns = rows[0]
 
-        # get a list of columns that are officially part of the model and preserve the fact that the attribute name
+        # get a list of columns that are officially part of the model and
+        # preserve the fact that the attribute name
         # might be different than the database column name
         model_columns = {}
         for field in self.model._meta.local_concrete_fields:
