@@ -74,7 +74,7 @@ class SchemaEditor(base_impl.schema_editor()):
 
         self.execute(sql, params)
 
-    def create_model_partition(self, model, name, from_values, to_values):
+    def add_partition(self, model, name, from_values, to_values):
         """Creates a new partition for the specified partitioned model.
 
         Arguments:
