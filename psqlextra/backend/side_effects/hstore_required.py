@@ -1,7 +1,7 @@
-from ..fields import HStoreField
+from psqlextra.fields import HStoreField
 
 
-class HStoreRequiredSchemaEditorMixin:
+class HStoreRequiredSchemaEditorSideEffect:
     sql_hstore_required_create = (
         "ALTER TABLE {table} "
         "ADD CONSTRAINT {name} "

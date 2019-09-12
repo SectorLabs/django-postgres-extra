@@ -1,7 +1,7 @@
-from ..fields import HStoreField
+from psqlextra.fields import HStoreField
 
 
-class HStoreUniqueSchemaEditorMixin:
+class HStoreUniqueSchemaEditorSideEffect:
     sql_hstore_unique_create = (
         "CREATE UNIQUE INDEX IF NOT EXISTS " "{name} ON {table} " "({columns})"
     )
