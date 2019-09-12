@@ -1,3 +1,9 @@
+import copy
+
+from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
+
+from psqlextra.partitioning import PartitioningMethod
+
 from . import base_impl
 from .side_effects import (
     HStoreRequiredSchemaEditorSideEffect,
@@ -7,6 +13,8 @@ from .side_effects import (
 
 class SchemaEditor(base_impl.schema_editor()):
     """Custom schema editor, see mixins for implementation."""
+
+    sql_partition_by = " PARTITION BY %s (%s)"
 
     side_effects = [
         HStoreUniqueSchemaEditorSideEffect(),
@@ -22,6 +30,8 @@ class SchemaEditor(base_impl.schema_editor()):
             side_effect.execute = self.execute
             side_effect.quote_name = self.quote_name
 
+        self.deferred_sql = []
+
     def create_model(self, model):
         """Creates a new model."""
 
@@ -29,6 +39,77 @@ class SchemaEditor(base_impl.schema_editor()):
 
         for side_effect in self.side_effects:
             side_effect.create_model(model)
+
+    def create_partitioned_model(self, model):
+        """Creates a new partitioned model."""
+
+        partitioning_method = getattr(model, "partitioning_method", None)
+        partitioning_key = getattr(model, "partitioning_key", None)
+
+        if not partitioning_method or not partitioning_key:
+            raise ImproperlyConfigured(
+                (
+                    "Model '%s' is not properly configured to be partitioned."
+                    " Set the `partitioning_method` and `partitioning_key` attributes."
+                )
+                % model.__name__
+            )
+
+        if partitioning_method not in PartitioningMethod:
+            raise ImproperlyConfigured(
+                (
+                    "Model '%s' is not properly configured to be partitioned."
+                    " '%s' is not a member of the PartitioningMethod enum."
+                )
+                % (model.__name__, partitioning_method)
+            )
+
+        if not isinstance(partitioning_key, list):
+            raise ImproperlyConfigured(
+                (
+                    "Model '%s' is not properly configured to be partitioned."
+                    " Partitioning key should be a list (of field names or values,"
+                    " depending on the partitioning method)."
+                )
+                % model.__name__
+            )
+
+        try:
+            for field_name in partitioning_key:
+                model._meta.get_field(field_name)
+        except FieldDoesNotExist:
+            raise ImproperlyConfigured(
+                (
+                    "Model '%s' is not properly configured to be partitioned."
+                    " Field in partitioning key '%s' is not a valid field on"
+                    " the model."
+                )
+                % (model.__name__, partitioning_key)
+            )
+
+        # get the sql statement that django creates for normal
+        # table creations..
+        sql, params = self._extract_sql(self.create_model, model)
+
+        partitioning_key_sql = ", ".join(
+            self.quote_name(field_name) for field_name in partitioning_key
+        )
+
+        # create a composite key that includes the partitioning key
+        sql = sql.replace(" PRIMARY KEY", "")
+        sql = sql[:-1] + ", PRIMARY KEY (%s, %s))" % (
+            self.quote_name(model._meta.pk.name),
+            partitioning_key_sql,
+        )
+
+        # extend the standard CREATE TABLE statement with
+        # 'PARTITION BY ...'
+        sql += self.sql_partition_by % (
+            partitioning_method.upper(),
+            partitioning_key_sql,
+        )
+
+        self.execute(sql, params)
 
     def delete_model(self, model):
         """Drops/deletes an existing model."""
@@ -73,3 +154,25 @@ class SchemaEditor(base_impl.schema_editor()):
 
         for side_effect in self.side_effects:
             side_effect.alter_field(model, old_field, new_field, strict)
+
+    def _extract_sql(self, method, *args):
+        """Calls the specified method with the specified arguments
+        and intercepts the SQL statement it WOULD execute.
+
+        We use this to figure out the exact SQL statement
+        Django would execute. We can then make a small modification
+        and execute it ourselves."""
+
+        original_execute_func = copy.deepcopy(self.execute)
+
+        intercepted_args = []
+
+        def _intercept(*args):
+            intercepted_args.extend(args)
+
+        self.execute = _intercept
+
+        method(*args)
+
+        self.execute = original_execute_func
+        return intercepted_args
