@@ -18,3 +18,6 @@ def test_schema_editor_create_partitioned_model():
 
     schema_editor = SchemaEditor(connection)
     schema_editor.create_partitioned_model(model)
+    schema_editor.create_model_partition(
+        model, "pt1", "2019-01-01", "2019-02-01"
+    )
