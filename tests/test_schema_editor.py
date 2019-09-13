@@ -10,70 +10,74 @@ from psqlextra.types import PostgresPartitioningMethod
 from .util import define_fake_model
 
 
-@pytest.mark.parametrize("method", [PostgresPartitioningMethod.RANGE])
-def test_schema_editor_create_partitioned_model_range(method):
+def test_schema_editor_create_partitioned_model_range():
     """Tests whether creating a partitioned model
     and adding a list partition to it using the
     :see:PostgresSchemaEditor works."""
+
+    method = PostgresPartitioningMethod.RANGE
+    key = ["timestamp"]
 
     model = define_fake_model(
         {
             "name": models.TextField(),
             "timestamp": models.DateTimeField(),
             "partitioning_method": method,
-            "partitioning_key": ["timestamp"],
+            "partitioning_key": key,
         },
         PostgresPartitionedModel,
     )
 
     schema_editor = PostgresSchemaEditor(connection)
     schema_editor.create_partitioned_model(model)
+
+    partition1_name = model._meta.db_table + "_pt1"
     schema_editor.add_range_partition(
-        model, model._meta.db_table + "_pt1", "2019-01-01", "2019-02-01"
+        model, partition1_name, "2019-01-01", "2019-02-01"
     )
 
     with connection.cursor() as cursor:
         introspection = connection.introspection
 
-        ptt = introspection.get_partitioned_tables(cursor)
-        assert ptt[0].name == model._meta.db_table
-        assert ptt[0].method == method
+        pt = introspection.get_partitioned_table(cursor, model._meta.db_table)
+        assert pt.name == model._meta.db_table
+        assert pt.method == method
+        assert pt.key == key
+        assert pt.partitions[0].name == partition1_name
 
-        pn = introspection.get_partition_names(cursor, model._meta.db_table)
-        assert pn[0] == model._meta.db_table + "_pt1"
 
-
-@pytest.mark.parametrize("method", [PostgresPartitioningMethod.LIST])
-def test_schema_editor_create_partitioned_model_list(method):
+def test_schema_editor_create_partitioned_model_list():
     """Tests whether creating a partitioned model
     and adding a range partition to it using the
     :see:PostgresSchemaEditor works."""
+
+    method = PostgresPartitioningMethod.LIST
+    key = ["category"]
 
     model = define_fake_model(
         {
             "name": models.TextField(),
             "category": models.TextField(),
             "partitioning_method": method,
-            "partitioning_key": ["category"],
+            "partitioning_key": key,
         },
         PostgresPartitionedModel,
     )
 
     schema_editor = PostgresSchemaEditor(connection)
     schema_editor.create_partitioned_model(model)
-    schema_editor.add_list_partition(
-        model, model._meta.db_table + "_pt1", ["car", "boat"]
-    )
+
+    partition1_name = model._meta.db_table + "_pt1"
+    schema_editor.add_list_partition(model, partition1_name, ["car", "boat"])
 
     with connection.cursor() as cursor:
         introspection = connection.introspection
 
-        ptt = introspection.get_partitioned_tables(cursor)
-        assert ptt[0].name == model._meta.db_table
-        assert ptt[0].method == method
-
-        pn = introspection.get_partition_names(cursor, model._meta.db_table)
-        assert pn[0] == model._meta.db_table + "_pt1"
+        pt = introspection.get_partitioned_table(cursor, model._meta.db_table)
+        assert pt.name == model._meta.db_table
+        assert pt.method == method
+        assert pt.key == key
+        assert pt.partitions[0].name == partition1_name
 
 
 def test_schema_editor_create_partitioned_model_default():
@@ -81,25 +85,33 @@ def test_schema_editor_create_partitioned_model_default():
     and adding a default partition to it using the
     :see:PostgresSchemaEditor works."""
 
+    method = PostgresPartitioningMethod.LIST
+    key = ["category"]
+
     model = define_fake_model(
         {
             "name": models.TextField(),
             "category": models.TextField(),
-            "partitioning_method": PostgresPartitioningMethod.LIST,
-            "partitioning_key": ["category"],
+            "partitioning_method": method,
+            "partitioning_key": key,
         },
         PostgresPartitionedModel,
     )
 
     schema_editor = PostgresSchemaEditor(connection)
     schema_editor.create_partitioned_model(model)
-    schema_editor.add_default_partition(model, model._meta.db_table + "_pt1")
+
+    partition1_name = model._meta.db_table + "_pt1"
+    schema_editor.add_default_partition(model, partition1_name)
 
     with connection.cursor() as cursor:
         introspection = connection.introspection
 
-        pn = introspection.get_partition_names(cursor, model._meta.db_table)
-        assert pn[0] == model._meta.db_table + "_pt1"
+        pt = introspection.get_partitioned_table(cursor, model._meta.db_table)
+        assert pt.name == model._meta.db_table
+        assert pt.method == method
+        assert pt.key == key
+        assert pt.partitions[0].name == partition1_name
 
 
 def test_schema_editor_create_partitioned_model_no_method():
@@ -123,8 +135,9 @@ def test_schema_editor_create_partitioned_model_no_method():
     with connection.cursor() as cursor:
         introspection = connection.introspection
 
-        ptt = introspection.get_partitioned_tables(cursor)
-        assert ptt[0].method == PostgresPartitioningMethod.RANGE
+        pt = introspection.get_partitioned_table(cursor, model._meta.db_table)
+        assert pt.method == PostgresPartitioningMethod.RANGE
+        assert len(pt.partitions) == 0
 
 
 def test_schema_editor_create_partitioned_model_no_key():
