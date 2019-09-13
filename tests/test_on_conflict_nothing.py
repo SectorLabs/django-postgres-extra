@@ -42,9 +42,8 @@ def test_on_conflict_nothing():
 
 
 def test_on_conflict_nothing_foreign_primary_key():
-    """Tests whether simple insert NOTHING works correctly when the primary key of
-    a field is a foreign key with a custom name.
-    """
+    """Tests whether simple insert NOTHING works correctly when the primary key
+    of a field is a foreign key with a custom name."""
 
     referenced_model = get_fake_model({})
 
@@ -179,9 +178,9 @@ def test_on_conflict_nothing_foreign_key_by_id():
 
 
 def test_on_conflict_nothing_duplicate_rows():
-    """Tests whether duplicate rows are filtered out when
-    doing a insert NOTHING and no error is raised when
-    the list of rows contains duplicates."""
+    """Tests whether duplicate rows are filtered out when doing a insert
+    NOTHING and no error is raised when the list of rows contains
+    duplicates."""
 
     model = get_fake_model({"amount": models.IntegerField(unique=True)})
 

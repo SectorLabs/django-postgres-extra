@@ -15,8 +15,8 @@ class PostgresModel(models.Model):
 
 
 class PostgresPartitionedModel(PostgresModel):
-    """Base class for taking advantage of PostgreSQL's
-    11.x native support for table partitioning."""
+    """Base class for taking advantage of PostgreSQL's 11.x native support for
+    table partitioning."""
 
     class Meta:
         abstract = True

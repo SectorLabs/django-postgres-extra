@@ -8,16 +8,14 @@ from . import base_impl
 
 @dataclass
 class PostgresIntrospectedPartitionTable:
-    """Data container for information about
-    a partition."""
+    """Data container for information about a partition."""
 
     name: str
 
 
 @dataclass
 class PostgresIntrospectedPartitonedTable:
-    """Data container for information about
-    a partitioned table."""
+    """Data container for information about a partitioned table."""
 
     name: str
     method: PostgresPartitioningMethod
@@ -26,8 +24,7 @@ class PostgresIntrospectedPartitonedTable:
 
 
 class PostgresIntrospection(base_impl.introspection()):
-    """Adds introspection features specific to
-    PostgreSQL."""
+    """Adds introspection features specific to PostgreSQL."""
 
     def get_partitioned_tables(
         self, cursor
@@ -73,8 +70,7 @@ class PostgresIntrospection(base_impl.introspection()):
         )
 
     def get_partition_key(self, cursor, table_name: str) -> List[str]:
-        """Gets the partition key for the specified partitioned
-        table.
+        """Gets the partition key for the specified partitioned table.
 
         Returns:
             A list of column names that are part of the
@@ -112,8 +108,8 @@ class PostgresIntrospection(base_impl.introspection()):
     def get_partitions(
         self, cursor, table_name
     ) -> List[PostgresIntrospectedPartitionTable]:
-        """Gets a list of partitions belonging to the
-        specified partitioned table."""
+        """Gets a list of partitions belonging to the specified partitioned
+        table."""
 
         sql = """
             SELECT

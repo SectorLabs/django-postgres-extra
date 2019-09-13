@@ -6,7 +6,8 @@ from .util import get_fake_model
 
 
 def test_insert():
-    """Tests whether inserts works when the primary key is explicitly specified."""
+    """Tests whether inserts works when the primary key is explicitly
+    specified."""
 
     model = get_fake_model(
         {"cookies": models.CharField(max_length=255, null=True)}
@@ -22,7 +23,8 @@ def test_insert():
 
 
 def test_insert_explicit_pk():
-    """Tests whether inserts works when the primary key is explicitly specified."""
+    """Tests whether inserts works when the primary key is explicitly
+    specified."""
 
     model = get_fake_model(
         {
@@ -64,10 +66,8 @@ def test_insert_on_conflict():
 
 
 def test_insert_on_conflict_explicit_pk():
-    """
-    Tests whether inserts works when a conflict is anticipated and the primary
-    key is explicitly specified.
-    """
+    """Tests whether inserts works when a conflict is anticipated and the
+    primary key is explicitly specified."""
 
     model = get_fake_model(
         {
@@ -89,7 +89,8 @@ def test_insert_on_conflict_explicit_pk():
 
 
 def test_insert_with_different_column_name():
-    """Tests whether inserts works when the primary key is explicitly specified."""
+    """Tests whether inserts works when the primary key is explicitly
+    specified."""
 
     model = get_fake_model(
         {

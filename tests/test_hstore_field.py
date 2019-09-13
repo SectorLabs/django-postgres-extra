@@ -4,8 +4,8 @@ from psqlextra.fields import HStoreField
 
 
 def test_hstore_field_deconstruct():
-    """Tests whether the :see:HStoreField's deconstruct()
-    method works properly."""
+    """Tests whether the :see:HStoreField's deconstruct() method works
+    properly."""
 
     original_kwargs = dict(uniqueness=["beer", "other"], required=[])
     _, _, _, new_kwargs = HStoreField(**original_kwargs).deconstruct()
@@ -28,7 +28,7 @@ def test_hstore_field_deconstruct():
     ],
 )
 def test_hstore_field_get_prep_value(input, output):
-    """Tests whether the :see:HStoreField's get_prep_value
-    method works properly."""
+    """Tests whether the :see:HStoreField's get_prep_value method works
+    properly."""
 
     assert HStoreField().get_prep_value(input) == output

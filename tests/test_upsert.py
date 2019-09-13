@@ -41,7 +41,8 @@ def test_upsert():
 
 
 def test_upsert_explicit_pk():
-    """Tests whether upserts works when the primary key is explicitly specified."""
+    """Tests whether upserts works when the primary key is explicitly
+    specified."""
 
     model = get_fake_model(
         {
@@ -114,8 +115,8 @@ def test_upsert_bulk():
 
 
 def test_upsert_bulk_no_rows():
-    """Tests whether bulk_upsert doesn't crash when specifying
-    no rows or a falsy value."""
+    """Tests whether bulk_upsert doesn't crash when specifying no rows or a
+    falsy value."""
 
     model = get_fake_model(
         {"name": models.CharField(max_length=255, null=True, unique=True)}
@@ -127,8 +128,8 @@ def test_upsert_bulk_no_rows():
 
 
 def test_bulk_upsert_return_models():
-    """Tests whether models are returned instead of dictionaries
-    when specifying the return_model=True argument."""
+    """Tests whether models are returned instead of dictionaries when
+    specifying the return_model=True argument."""
 
     model = get_fake_model(
         {
@@ -149,8 +150,8 @@ def test_bulk_upsert_return_models():
 
 
 def test_bulk_upsert_accepts_getitem_iterable():
-    """Tests whether an iterable only implementing
-    the __getitem__ method works correctly."""
+    """Tests whether an iterable only implementing the __getitem__ method works
+    correctly."""
 
     class GetItemIterable:
         def __init__(self, items):
@@ -178,8 +179,8 @@ def test_bulk_upsert_accepts_getitem_iterable():
 
 
 def test_bulk_upsert_accepts_iter_iterable():
-    """Tests whether an iterable only implementing
-    the __iter__ method works correctly."""
+    """Tests whether an iterable only implementing the __iter__ method works
+    correctly."""
 
     class IterIterable:
         def __init__(self, items):

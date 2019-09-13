@@ -27,8 +27,8 @@ def test_upsert_bulk_naive(benchmark):
     model.objects.bulk_create(rows)
 
     def _native_upsert(model, random_values):
-        """Performs a concurrency safe upsert
-        using the native PostgreSQL upsert."""
+        """Performs a concurrency safe upsert using the native PostgreSQL
+        upsert."""
 
         rows = [dict(field=random_value) for random_value in random_values]
 
@@ -56,8 +56,8 @@ def test_upsert_bulk_native(benchmark):
     model.objects.bulk_create(rows)
 
     def _native_upsert(model, random_values):
-        """Performs a concurrency safe upsert
-        using the native PostgreSQL upsert."""
+        """Performs a concurrency safe upsert using the native PostgreSQL
+        upsert."""
 
         rows = [dict(field=random_value) for random_value in random_values]
 

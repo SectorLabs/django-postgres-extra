@@ -18,8 +18,7 @@ def test_upsert_traditional(benchmark):
     model.objects.create(field=random_value)
 
     def _traditional_upsert(model, random_value):
-        """Performs a concurrency safe upsert
-        the traditional way."""
+        """Performs a concurrency safe upsert the traditional way."""
 
         try:
 
@@ -42,8 +41,8 @@ def test_upsert_native(benchmark):
     model.objects.create(field=random_value)
 
     def _native_upsert(model, random_value):
-        """Performs a concurrency safe upsert
-        using the native PostgreSQL upsert."""
+        """Performs a concurrency safe upsert using the native PostgreSQL
+        upsert."""
 
         return model.objects.upsert_and_get(
             conflict_target=["field"], fields=dict(field=random_value)

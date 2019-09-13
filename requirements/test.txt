@@ -8,3 +8,4 @@ pytest-benchmark==3.2.2
 pytest-django==3.4.8
 pytest-cov==2.7.1
 tox==3.11.1
+sl-docformatter==1.2

@@ -6,8 +6,8 @@ from django.db.models.fields import Field
 
 
 class HStoreField(DjangoHStoreField):
-    """Improved version of Django's :see:HStoreField that
-    adds support for database-level constraints.
+    """Improved version of Django's :see:HStoreField that adds support for
+    database-level constraints.
 
     Notes:
         - For the implementation of uniqueness, see the
@@ -29,11 +29,11 @@ class HStoreField(DjangoHStoreField):
         self.required = required
 
     def get_prep_value(self, value):
-        """Override the base class so it doesn't cast all values
-        to strings.
+        """Override the base class so it doesn't cast all values to strings.
 
-        psqlextra supports expressions in hstore fields, so casting
-        all values to strings is a bad idea."""
+        psqlextra supports expressions in hstore fields, so casting all
+        values to strings is a bad idea.
+        """
 
         value = Field.get_prep_value(self, value)
 
@@ -55,8 +55,8 @@ class HStoreField(DjangoHStoreField):
         return value
 
     def deconstruct(self):
-        """Gets the values to pass to :see:__init__ when
-        re-creating this object."""
+        """Gets the values to pass to :see:__init__ when re-creating this
+        object."""
 
         name, path, args, kwargs = super(HStoreField, self).deconstruct()
 

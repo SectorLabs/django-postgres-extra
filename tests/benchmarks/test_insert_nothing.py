@@ -20,8 +20,7 @@ def test_insert_nothing_traditional(benchmark):
     model.objects.create(field=random_value)
 
     def _traditional_insert(model, random_value):
-        """Performs a concurrency safe insert the
-        traditional way."""
+        """Performs a concurrency safe insert the traditional way."""
 
         try:
             with transaction.atomic():
@@ -42,8 +41,8 @@ def test_insert_nothing_native(benchmark):
     model.objects.create(field=random_value)
 
     def _native_insert(model, random_value):
-        """Performs a concurrency safeinsert
-        using the native PostgreSQL conflict resolution."""
+        """Performs a concurrency safeinsert using the native PostgreSQL
+        conflict resolution."""
 
         return model.objects.on_conflict(
             ["field"], ConflictAction.NOTHING

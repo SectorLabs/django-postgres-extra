@@ -11,9 +11,11 @@ from .util import define_fake_model
 
 
 def test_schema_editor_create_partitioned_model_range():
-    """Tests whether creating a partitioned model
-    and adding a list partition to it using the
-    :see:PostgresSchemaEditor works."""
+    """Tests whether creating a partitioned model and adding a list partition
+    to it using the.
+
+    :see:PostgresSchemaEditor works.
+    """
 
     method = PostgresPartitioningMethod.RANGE
     key = ["timestamp"]
@@ -47,9 +49,11 @@ def test_schema_editor_create_partitioned_model_range():
 
 
 def test_schema_editor_create_partitioned_model_list():
-    """Tests whether creating a partitioned model
-    and adding a range partition to it using the
-    :see:PostgresSchemaEditor works."""
+    """Tests whether creating a partitioned model and adding a range partition
+    to it using the.
+
+    :see:PostgresSchemaEditor works.
+    """
 
     method = PostgresPartitioningMethod.LIST
     key = ["category"]
@@ -81,9 +85,11 @@ def test_schema_editor_create_partitioned_model_list():
 
 
 def test_schema_editor_create_partitioned_model_default():
-    """Tests whether creating a partitioned model
-    and adding a default partition to it using the
-    :see:PostgresSchemaEditor works."""
+    """Tests whether creating a partitioned model and adding a default
+    partition to it using the.
+
+    :see:PostgresSchemaEditor works.
+    """
 
     method = PostgresPartitioningMethod.LIST
     key = ["category"]
@@ -115,10 +121,12 @@ def test_schema_editor_create_partitioned_model_default():
 
 
 def test_schema_editor_create_partitioned_model_no_method():
-    """Tests whether its possible to create a partitioned
-    model without explicitly setting a partitioning
-    method. The default is "range" so setting one
-    explicitely should not be needed."""
+    """Tests whether its possible to create a partitioned model without
+    explicitly setting a partitioning method.
+
+    The default is "range" so setting one explicitely should not be
+    needed.
+    """
 
     model = define_fake_model(
         {
@@ -141,11 +149,13 @@ def test_schema_editor_create_partitioned_model_no_method():
 
 
 def test_schema_editor_create_partitioned_model_no_key():
-    """Tests whether trying to create a partitioned model
-    without a partitioning key raises
+    """Tests whether trying to create a partitioned model without a
+    partitioning key raises.
+
     :see:ImproperlyConfigured as its not possible to create
     a partitioned model without one and we cannot
-    have a sane default."""
+    have a sane default.
+    """
 
     model = define_fake_model(
         {

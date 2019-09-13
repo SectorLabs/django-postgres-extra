@@ -11,7 +11,6 @@ from django.db.backends.postgresql.base import (  # isort:skip
 def backend():
     """Gets the base class for the custom database back-end.
 
-
     This should be the Django PostgreSQL back-end. However,
     some people are already using a custom back-end from
     another package. We are nice people and expose an option
@@ -56,17 +55,18 @@ def backend():
 def schema_editor():
     """Gets the base class for the schema editor.
 
-    We have to use the configured base back-end's
-    schema editor for this."""
+    We have to use the configured base back-end's schema editor for
+    this.
+    """
 
     return backend().SchemaEditorClass
 
 
 def introspection():
-    """Gets the base class for the introspection
-    class.
+    """Gets the base class for the introspection class.
 
-    We have to use the configured base back-end's
-    introspection class for this."""
+    We have to use the configured base back-end's introspection class
+    for this.
+    """
 
     return backend().introspection_class

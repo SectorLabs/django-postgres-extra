@@ -42,10 +42,8 @@ def test_on_conflict_update():
 
 
 def test_on_conflict_update_foreign_key_by_object():
-    """
-    Tests whether simple upsert works correctly when the conflicting field is a
-    foreign key specified as an object.
-    """
+    """Tests whether simple upsert works correctly when the conflicting field
+    is a foreign key specified as an object."""
 
     other_model = get_fake_model({})
 
@@ -97,10 +95,8 @@ def test_on_conflict_update_foreign_key_by_object():
 
 
 def test_on_conflict_update_foreign_key_by_id():
-    """
-    Tests whether simple upsert works correctly when the conflicting field is a
-    foreign key specified as an id.
-    """
+    """Tests whether simple upsert works correctly when the conflicting field
+    is a foreign key specified as an id."""
 
     other_model = get_fake_model({})
 

@@ -38,8 +38,8 @@ def test_on_conflict(conflict_action):
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_auto_fields(conflict_action):
-    """Asserts that fields that automatically add something
-    to the model automatically still work properly when upserting."""
+    """Asserts that fields that automatically add something to the model
+    automatically still work properly when upserting."""
 
     model = get_fake_model(
         {
@@ -77,8 +77,8 @@ def test_on_conflict_auto_fields(conflict_action):
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_foreign_key(conflict_action):
-    """Asserts that models with foreign key relationships
-    can safely be inserted."""
+    """Asserts that models with foreign key relationships can safely be
+    inserted."""
 
     model1 = get_fake_model(
         {"name": models.CharField(max_length=255, unique=True)}
@@ -117,9 +117,8 @@ def test_on_conflict_foreign_key(conflict_action):
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_partial_get(conflict_action):
-    """Asserts that when doing a insert_and_get with
-    only part of the columns on the model, all fields
-    are returned properly."""
+    """Asserts that when doing a insert_and_get with only part of the columns
+    on the model, all fields are returned properly."""
 
     model = get_fake_model(
         {
@@ -152,8 +151,8 @@ def test_on_conflict_partial_get(conflict_action):
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_invalid_target(conflict_action):
-    """Tests whether specifying a invalid value
-    for `conflict_target` raises an error."""
+    """Tests whether specifying a invalid value for `conflict_target` raises an
+    error."""
 
     model = get_fake_model(
         {"title": models.CharField(max_length=140, unique=True)}
@@ -176,8 +175,8 @@ def test_on_conflict_invalid_target(conflict_action):
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_outdated_model(conflict_action):
-    """Tests whether insert properly handles
-    fields that are in the database but not on the model.
+    """Tests whether insert properly handles fields that are in the database
+    but not on the model.
 
     This happens if somebody manually modified the database
     to add a column that is not present in the model.
@@ -208,8 +207,8 @@ def test_on_conflict_outdated_model(conflict_action):
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_custom_column_names(conflict_action):
-    """Asserts that models with custom column names (models
-    where the column and field name are different) work properly."""
+    """Asserts that models with custom column names (models where the column
+    and field name are different) work properly."""
 
     model = get_fake_model(
         {
@@ -229,8 +228,7 @@ def test_on_conflict_custom_column_names(conflict_action):
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_unique_together(conflict_action):
-    """Asserts that inserts on models with a unique_together
-    works properly."""
+    """Asserts that inserts on models with a unique_together works properly."""
 
     model = get_fake_model(
         {
@@ -254,8 +252,8 @@ def test_on_conflict_unique_together(conflict_action):
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_unique_together_fk(conflict_action):
-    """Asserts that inserts on models with a unique_together
-    and a foreign key relationship works properly."""
+    """Asserts that inserts on models with a unique_together and a foreign key
+    relationship works properly."""
 
     model = get_fake_model({"name": models.CharField(max_length=140)})
 
@@ -286,9 +284,8 @@ def test_on_conflict_unique_together_fk(conflict_action):
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_pk_conflict_target(conflict_action):
-    """Tests whether `on_conflict` properly accepts
-    the 'pk' as a conflict target, which should resolve
-    into the primary key of a model."""
+    """Tests whether `on_conflict` properly accepts the 'pk' as a conflict
+    target, which should resolve into the primary key of a model."""
 
     model = get_fake_model({"name": models.CharField(max_length=255)})
 
@@ -308,9 +305,8 @@ def test_on_conflict_pk_conflict_target(conflict_action):
 
 
 def test_on_conflict_default_value():
-    """Tests whether setting a default for a field and
-    not specifying it explicitely when upserting properly
-    causes the default value to be used."""
+    """Tests whether setting a default for a field and not specifying it
+    explicitely when upserting properly causes the default value to be used."""
 
     model = get_fake_model(
         {"title": models.CharField(max_length=255, default="great")}
@@ -331,9 +327,9 @@ def test_on_conflict_default_value():
 
 
 def test_on_conflict_default_value_no_overwrite():
-    """Tests whether setting a default for a field, inserting
-    a non-default value and then trying to update it without
-    specifying that field doesn't result in it being overwritten."""
+    """Tests whether setting a default for a field, inserting a non-default
+    value and then trying to update it without specifying that field doesn't
+    result in it being overwritten."""
 
     model = get_fake_model(
         {"title": models.CharField(max_length=255, default="great")}
@@ -354,8 +350,7 @@ def test_on_conflict_default_value_no_overwrite():
 
 
 def test_on_conflict_bulk():
-    """Tests whether using `on_conflict` with `insert_bulk`
-    properly works."""
+    """Tests whether using `on_conflict` with `insert_bulk` properly works."""
 
     model = get_fake_model(
         {"title": models.CharField(max_length=255, unique=True)}
@@ -380,7 +375,7 @@ def test_on_conflict_bulk():
 
 
 def test_bulk_return():
-    """Tests if primary keys are properly returned from 'bulk_insert'"""
+    """Tests if primary keys are properly returned from 'bulk_insert'."""
 
     model = get_fake_model(
         {
@@ -410,8 +405,8 @@ def test_bulk_return():
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_bulk_return_models(conflict_action):
-    """Tests whether models are returned instead of dictionaries
-    when specifying the return_model=True argument."""
+    """Tests whether models are returned instead of dictionaries when
+    specifying the return_model=True argument."""
 
     model = get_fake_model(
         {

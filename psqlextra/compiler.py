@@ -5,8 +5,8 @@ from psqlextra.expressions import HStoreValue
 
 
 class PostgresReturningUpdateCompiler(SQLUpdateCompiler):
-    """Compiler for SQL UPDATE statements that return
-    the primary keys of the affected rows."""
+    """Compiler for SQL UPDATE statements that return the primary keys of the
+    affected rows."""
 
     def execute_sql(self, _result_type):
         sql, params = self.as_sql()
@@ -23,12 +23,13 @@ class PostgresReturningUpdateCompiler(SQLUpdateCompiler):
         return super().as_sql()
 
     def _prepare_query_values(self):
-        """Extra prep on query values by converting
-        dictionaries into :see:HStoreValue expressions.
+        """Extra prep on query values by converting dictionaries into
+        :see:HStoreValue expressions.
 
-        This allows putting expressions in a dictionary.
-        The :see:HStoreValue will take care of resolving
-        the expressions inside the dictionary."""
+        This allows putting expressions in a dictionary. The
+        :see:HStoreValue will take care of resolving the expressions
+        inside the dictionary.
+        """
 
         new_query_values = []
         for field, model, val in self.query.values:
@@ -84,8 +85,8 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         ]
 
     def _rewrite_insert(self, sql, params, return_id=False):
-        """Rewrites a formed SQL INSERT query to include
-        the ON CONFLICT clause.
+        """Rewrites a formed SQL INSERT query to include the ON CONFLICT
+        clause.
 
         Arguments:
             sql:
@@ -120,8 +121,8 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         )
 
     def _rewrite_insert_update(self, sql, params, returning):
-        """Rewrites a formed SQL INSERT query to include
-        the ON CONFLICT DO UPDATE clause."""
+        """Rewrites a formed SQL INSERT query to include the ON CONFLICT DO
+        UPDATE clause."""
 
         update_columns = ", ".join(
             [
@@ -159,8 +160,8 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         )
 
     def _rewrite_insert_nothing(self, sql, params, returning):
-        """Rewrites a formed SQL INSERT query to include
-        the ON CONFLICT DO NOTHING clause."""
+        """Rewrites a formed SQL INSERT query to include the ON CONFLICT DO
+        NOTHING clause."""
 
         # build the conflict target, the columns to watch
         # for conflicts
@@ -203,8 +204,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         )
 
     def _build_conflict_target(self):
-        """Builds the `conflict_target` for the ON CONFLICT
-        clause."""
+        """Builds the `conflict_target` for the ON CONFLICT clause."""
 
         conflict_target = []
 
@@ -317,9 +317,8 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         )
 
     def _normalize_field_name(self, field_name) -> str:
-        """Normalizes a field name into a string by
-        extracting the field name if it was specified
-        as a reference to a HStore key (as a tuple).
+        """Normalizes a field name into a string by extracting the field name
+        if it was specified as a reference to a HStore key (as a tuple).
 
         Arguments:
             field_name:

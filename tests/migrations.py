@@ -21,8 +21,8 @@ from .util import define_fake_model
 
 @contextmanager
 def filtered_schema_editor(*filters: List[str]):
-    """Gets a schema editor, but filters executed SQL
-    statements based on the specified text filters.
+    """Gets a schema editor, but filters executed SQL statements based on the
+    specified text filters.
 
     Arguments:
         filters:
@@ -45,8 +45,8 @@ def filtered_schema_editor(*filters: List[str]):
 
 
 def execute_migration(schema_editor, operations, project=None):
-    """Executes the specified migration operations
-    using the specified schema editor.
+    """Executes the specified migration operations using the specified schema
+    editor.
 
     Arguments:
         schema_editor:
@@ -104,8 +104,8 @@ def create_drop_model(field, filters: List[str]):
 
 @contextmanager
 def alter_db_table(field, filters: List[str]):
-    """Creates a model with the specified field
-    and then renames the database table.
+    """Creates a model with the specified field and then renames the database
+    table.
 
     Arguments:
         field:
@@ -289,12 +289,11 @@ def rename_field(field, filters: List[str]):
 
 
 class MigrationSimulator:
-    """Simulates a project and allows making and running
-    migrations."""
+    """Simulates a project and allows making and running migrations."""
 
     def __init__(self):
-        """Creates a new migration simulator with an empty
-        project state and no migrations."""
+        """Creates a new migration simulator with an empty project state and no
+        migrations."""
 
         import psqlextra.apps
 
@@ -334,8 +333,8 @@ class MigrationSimulator:
         return model
 
     def make_migrations(self):
-        """Runs the auto-detector and detects changes in
-        the project that can be put in a migration."""
+        """Runs the auto-detector and detects changes in the project that can
+        be put in a migration."""
 
         new_project_state = ProjectState.from_apps(self.apps)
 
@@ -353,8 +352,7 @@ class MigrationSimulator:
         return migration
 
     def migrate(self, *filters: List[str]):
-        """
-        Executes the recorded migrations.
+        """Executes the recorded migrations.
 
         Arguments:
             filters: List of strings to filter SQL statements on.

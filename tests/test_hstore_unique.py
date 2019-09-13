@@ -10,8 +10,8 @@ from .util import get_fake_model
 
 
 def test_hstore_unique_migration_create_drop_model():
-    """Tests whether indexes are properly created
-    and dropped when creating and dropping a model."""
+    """Tests whether indexes are properly created and dropped when creating and
+    dropping a model."""
 
     uniqueness = ["beer", "cookies"]
 
@@ -25,8 +25,8 @@ def test_hstore_unique_migration_create_drop_model():
 
 
 def test_hstore_unique_migration_alter_db_table():
-    """Tests whether indexes are renamed properly
-    when renaming the database table."""
+    """Tests whether indexes are renamed properly when renaming the database
+    table."""
 
     test = migrations.alter_db_table(
         HStoreField(uniqueness=["beer", "cookie"]),
@@ -41,8 +41,7 @@ def test_hstore_unique_migration_alter_db_table():
 
 
 def test_hstore_unique_add_field():
-    """Tests whether adding a field properly
-    creates the indexes."""
+    """Tests whether adding a field properly creates the indexes."""
 
     test = migrations.add_field(
         HStoreField(uniqueness=["beer"]), ["CREATE UNIQUE", "DROP INDEX"]
@@ -54,8 +53,7 @@ def test_hstore_unique_add_field():
 
 
 def test_hstore_unique_remove_field():
-    """Tests whether removing a field properly
-    removes the index."""
+    """Tests whether removing a field properly removes the index."""
 
     test = migrations.remove_field(
         HStoreField(uniqueness=["beer"]), ["CREATE UNIQUE", "DROP INDEX"]
@@ -67,8 +65,8 @@ def test_hstore_unique_remove_field():
 
 
 def test_hstore_unique_alter_field_nothing():
-    """Tests whether no indexes are dropped when not
-    changing anything in the uniqueness."""
+    """Tests whether no indexes are dropped when not changing anything in the
+    uniqueness."""
 
     test = migrations.alter_field(
         HStoreField(uniqueness=["beer"]),
@@ -82,8 +80,8 @@ def test_hstore_unique_alter_field_nothing():
 
 
 def test_hstore_unique_alter_field_add():
-    """Tests whether only one index is created when
-    adding another key to the uniqueness."""
+    """Tests whether only one index is created when adding another key to the
+    uniqueness."""
 
     test = migrations.alter_field(
         HStoreField(uniqueness=["beer"]),
@@ -97,8 +95,8 @@ def test_hstore_unique_alter_field_add():
 
 
 def test_hstore_unique_alter_field_remove():
-    """Tests whether one index is dropped when removing
-    a key from uniqueness."""
+    """Tests whether one index is dropped when removing a key from
+    uniqueness."""
 
     test = migrations.alter_field(
         HStoreField(uniqueness=["beer"]),
@@ -112,8 +110,8 @@ def test_hstore_unique_alter_field_remove():
 
 
 def test_hstore_unique_alter_field_add_together():
-    """Tests whether adding one index is created
-    when adding a "unique together"."""
+    """Tests whether adding one index is created when adding a "unique
+    together"."""
 
     test = migrations.alter_field(
         HStoreField(uniqueness=["beer"]),
@@ -127,8 +125,8 @@ def test_hstore_unique_alter_field_add_together():
 
 
 def test_hstore_unique_alter_field_remove_together():
-    """Tests whether adding one index is dropped
-    when adding a "unique together"."""
+    """Tests whether adding one index is dropped when adding a "unique
+    together"."""
 
     test = migrations.alter_field(
         HStoreField(uniqueness=[("beer1", "beer2")]),
@@ -142,8 +140,8 @@ def test_hstore_unique_alter_field_remove_together():
 
 
 def test_hstore_unique_rename_field():
-    """Tests whether renaming a field doesn't
-    cause the index to be re-created."""
+    """Tests whether renaming a field doesn't cause the index to be re-
+    created."""
 
     test = migrations.rename_field(
         HStoreField(uniqueness=["beer", "cookies"]),
@@ -157,8 +155,7 @@ def test_hstore_unique_rename_field():
 
 
 def test_hstore_unique_enforcement():
-    """Tests whether the constraints are actually
-    properly enforced."""
+    """Tests whether the constraints are actually properly enforced."""
     model = get_fake_model({"title": HStoreField(uniqueness=["en"])})
 
     # should pass, table is empty and 'ar' does not have to be unique
@@ -172,8 +169,8 @@ def test_hstore_unique_enforcement():
 
 
 def test_hstore_unique_enforcement_together():
-    """Tests whether unique_together style constraints are
-    enforced properly."""
+    """Tests whether unique_together style constraints are enforced
+    properly."""
 
     model = get_fake_model({"title": HStoreField(uniqueness=[("en", "ar")])})
 

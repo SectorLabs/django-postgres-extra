@@ -106,8 +106,8 @@ class HStoreUniqueSchemaEditorSideEffect:
     def _rename_hstore_unique(
         self, old_table_name, new_table_name, old_field, new_field, keys
     ):
-        """Renames an existing UNIQUE constraint for the specified
-        hstore keys."""
+        """Renames an existing UNIQUE constraint for the specified hstore
+        keys."""
 
         old_name = self._unique_constraint_name(old_table_name, old_field, keys)
         new_name = self._unique_constraint_name(new_table_name, new_field, keys)
@@ -127,8 +127,8 @@ class HStoreUniqueSchemaEditorSideEffect:
 
     @staticmethod
     def _unique_constraint_name(table: str, field, keys):
-        """Gets the name for a UNIQUE INDEX that applies
-        to one or more keys in a hstore field.
+        """Gets the name for a UNIQUE INDEX that applies to one or more keys in
+        a hstore field.
 
         Arguments:
             table:
@@ -155,8 +155,7 @@ class HStoreUniqueSchemaEditorSideEffect:
         )
 
     def _iterate_uniqueness_keys(self, field):
-        """Iterates over the keys marked as "unique"
-        in the specified field.
+        """Iterates over the keys marked as "unique" in the specified field.
 
         Arguments:
             field:
@@ -174,8 +173,7 @@ class HStoreUniqueSchemaEditorSideEffect:
 
     @staticmethod
     def _compose_keys(constraint):
-        """Turns a string into a list of string or
-        returns it as a list."""
+        """Turns a string into a list of string or returns it as a list."""
         if isinstance(constraint, str):
             return [constraint]
 

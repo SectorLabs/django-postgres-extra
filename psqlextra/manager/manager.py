@@ -33,13 +33,12 @@ class PostgresQuerySet(models.QuerySet):
         self.index_predicate = None
 
     def annotate(self, **annotations):
-        """Custom version of the standard annotate function
-        that allows using field names as annotated fields.
+        """Custom version of the standard annotate function that allows using
+        field names as annotated fields.
 
-        Normally, the annotate function doesn't allow you
-        to use the name of an existing field on the model
-        as the alias name. This version of the function does
-        allow that.
+        Normally, the annotate function doesn't allow you to use the
+        name of an existing field on the model as the alias name. This
+        version of the function does allow that.
         """
 
         fields = {field.name: field for field in self.model._meta.get_fields()}
@@ -124,8 +123,8 @@ class PostgresQuerySet(models.QuerySet):
         action,
         index_predicate: str = None,
     ):
-        """Sets the action to take when conflicts arise when attempting
-        to insert/create a new row.
+        """Sets the action to take when conflicts arise when attempting to
+        insert/create a new row.
 
         Arguments:
             fields:
@@ -225,8 +224,7 @@ class PostgresQuerySet(models.QuerySet):
         return super().create(**fields).pk
 
     def insert_and_get(self, **fields):
-        """Creates a new record in the database and then gets
-        the entire row.
+        """Creates a new record in the database and then gets the entire row.
 
         This allows specifying custom conflict behavior using .on_conflict().
         If no special behavior was specified, this uses the normal Django create(..)
@@ -272,8 +270,8 @@ class PostgresQuerySet(models.QuerySet):
     def upsert(
         self, conflict_target: List, fields: Dict, index_predicate: str = None
     ) -> int:
-        """Creates a new record or updates the existing one
-        with the specified data.
+        """Creates a new record or updates the existing one with the specified
+        data.
 
         Arguments:
             conflict_target:
@@ -298,8 +296,8 @@ class PostgresQuerySet(models.QuerySet):
     def upsert_and_get(
         self, conflict_target: List, fields: Dict, index_predicate: str = None
     ):
-        """Creates a new record or updates the existing one
-        with the specified data and then gets the row.
+        """Creates a new record or updates the existing one with the specified
+        data and then gets the row.
 
         Arguments:
             conflict_target:
@@ -329,8 +327,8 @@ class PostgresQuerySet(models.QuerySet):
         index_predicate: str = None,
         return_model: bool = False,
     ):
-        """Creates a set of new records or updates the existing
-        ones with the specified data.
+        """Creates a set of new records or updates the existing ones with the
+        specified data.
 
         Arguments:
             conflict_target:
@@ -417,8 +415,7 @@ class PostgresQuerySet(models.QuerySet):
         return compiler
 
     def _is_magical_field(self, model_instance, field, is_insert: bool):
-        """Verifies whether this field is gonna modify something
-        on its own.
+        """Verifies whether this field is gonna modify something on its own.
 
         "Magical" means that a field modifies the field value
         during the pre_save.
@@ -564,8 +561,8 @@ class PostgresManager(models.Manager):
         action,
         index_predicate: str = None,
     ):
-        """Sets the action to take when conflicts arise when attempting
-        to insert/create a new row.
+        """Sets the action to take when conflicts arise when attempting to
+        insert/create a new row.
 
         Arguments:
             fields:
@@ -582,8 +579,8 @@ class PostgresManager(models.Manager):
     def upsert(
         self, conflict_target: List, fields: Dict, index_predicate: str = None
     ) -> int:
-        """Creates a new record or updates the existing one
-        with the specified data.
+        """Creates a new record or updates the existing one with the specified
+        data.
 
         Arguments:
             conflict_target:
@@ -606,8 +603,8 @@ class PostgresManager(models.Manager):
     def upsert_and_get(
         self, conflict_target: List, fields: Dict, index_predicate: str = None
     ):
-        """Creates a new record or updates the existing one
-        with the specified data and then gets the row.
+        """Creates a new record or updates the existing one with the specified
+        data and then gets the row.
 
         Arguments:
             conflict_target:
@@ -635,8 +632,8 @@ class PostgresManager(models.Manager):
         index_predicate: str = None,
         return_model: bool = False,
     ):
-        """Creates a set of new records or updates the existing
-        ones with the specified data.
+        """Creates a set of new records or updates the existing ones with the
+        specified data.
 
         Arguments:
             conflict_target:

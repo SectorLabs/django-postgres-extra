@@ -8,8 +8,8 @@ from .util import get_fake_model
 
 
 def mock_signal_handler(signal):
-    """Creates a new model and attaches the specified
-    signal to a mocked signal handler.
+    """Creates a new model and attaches the specified signal to a mocked signal
+    handler.
 
     Returns:
         The created model and the mocked signal handler.
@@ -29,8 +29,8 @@ def mock_signal_handler(signal):
 
 
 def test_create():
-    """Tests whether the create signal is properly emitted
-    when using QuerySet.create."""
+    """Tests whether the create signal is properly emitted when using
+    QuerySet.create."""
 
     model, signal_handler = mock_signal_handler(signals.create)
     instance = model.objects.create(title="beer")
@@ -40,8 +40,8 @@ def test_create():
 
 
 def test_model_save_create():
-    """Tests whether the create signal is properly
-    emitted when using Model.save()."""
+    """Tests whether the create signal is properly emitted when using
+    Model.save()."""
 
     model, signal_handler = mock_signal_handler(signals.create)
 
@@ -53,8 +53,8 @@ def test_model_save_create():
 
 
 def test_model_save_update():
-    """Tests whether the update signal properly
-    emitted when using Model.save()."""
+    """Tests whether the update signal properly emitted when using
+    Model.save()."""
 
     model, signal_handler = mock_signal_handler(signals.update)
 
@@ -67,8 +67,8 @@ def test_model_save_update():
 
 
 def test_model_delete():
-    """Tests whether the delete signal properly
-    emitted when using Model.delete()."""
+    """Tests whether the delete signal properly emitted when using
+    Model.delete()."""
 
     model, signal_handler = mock_signal_handler(signals.delete)
     instance = model.objects.create(title="beer")
@@ -80,8 +80,8 @@ def test_model_delete():
 
 
 def test_query_set_delete():
-    """Tests whether the delete signal is emitted
-    for each row that is deleted."""
+    """Tests whether the delete signal is emitted for each row that is
+    deleted."""
 
     model, signal_handler = mock_signal_handler(signals.delete)
 
@@ -98,8 +98,8 @@ def test_query_set_delete():
 
 
 def test_query_set_update():
-    """Tests whether the update signal is emitted
-    for each row that has been updated."""
+    """Tests whether the update signal is emitted for each row that has been
+    updated."""
 
     model, signal_handler = mock_signal_handler(signals.update)
 
@@ -114,8 +114,8 @@ def test_query_set_update():
 
 
 def test_query_set_update_boolean():
-    """Tests whether the update signal is emitted
-    for each row that has been updated with boolean values."""
+    """Tests whether the update signal is emitted for each row that has been
+    updated with boolean values."""
 
     model, signal_handler = mock_signal_handler(signals.update)
 

@@ -4,8 +4,7 @@ from django.db.models.sql.datastructures import Join
 
 
 class ConditionalJoin(Join):
-    """A custom JOIN statement that allows attaching
-    extra conditions."""
+    """A custom JOIN statement that allows attaching extra conditions."""
 
     def __init__(self, *args, **kwargs):
         """Initializes a new instance of :see:ConditionalJoin."""
@@ -52,8 +51,8 @@ class ConditionalJoin(Join):
 
     @classmethod
     def from_join(cls, join: Join) -> "ConditionalJoin":
-        """Creates a new :see:ConditionalJoin from the
-        specified :see:Join object.
+        """Creates a new :see:ConditionalJoin from the specified :see:Join
+        object.
 
         Arguments:
             join:

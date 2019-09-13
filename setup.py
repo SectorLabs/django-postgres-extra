@@ -88,6 +88,13 @@ setup(
             "Checks if the code is auto-formatted",
             [["black", "--check", "setup.py", "psqlextra", "tests"]],
         ),
+        "format_docstrings": create_command(
+            "Auto-formats doc strings", [["docformatter", "-r", "-i", "."]]
+        ),
+        "format_docstrings_verify": create_command(
+            "Verifies that doc strings are properly formatted",
+            [["docformatter", "-r", "-c", "."]],
+        ),
         "sort_imports": create_command(
             "Automatically sorts imports",
             [
@@ -108,6 +115,7 @@ setup(
             "Automatically format code and fix linting errors",
             [
                 ["python", "setup.py", "format"],
+                ["python", "setup.py", "format_docstrings"],
                 ["python", "setup.py", "sort_imports"],
                 ["python", "setup.py", "lint_fix"],
             ],
@@ -117,6 +125,7 @@ setup(
             [
                 [
                     ["python", "setup.py", "format_verify"],
+                    ["python", "setup.py", "format_docstrings_verify"],
                     ["python", "setup.py", "sort_imports_verify"],
                     ["python", "setup.py", "lint"],
                 ]

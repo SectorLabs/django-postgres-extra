@@ -10,8 +10,8 @@ from .util import get_fake_model
 
 
 def test_deconstruct():
-    """Tests whether the :see:HStoreField's deconstruct()
-    method works properly."""
+    """Tests whether the :see:HStoreField's deconstruct() method works
+    properly."""
 
     original_kwargs = dict(
         condition="field IS NULL", name="great_index", fields=["field", "build"]
@@ -84,7 +84,7 @@ def test_cui_migrations():
 
 
 def test_cui_upserting():
-    """Tests upserting respects the :see:ConditionalUniqueIndex rules"""
+    """Tests upserting respects the :see:ConditionalUniqueIndex rules."""
     model = get_fake_model(
         fields={
             "a": models.IntegerField(),
@@ -138,7 +138,7 @@ def test_cui_upserting():
 
 
 def test_cui_inserting():
-    """Tests inserting respects the :see:ConditionalUniqueIndex rules"""
+    """Tests inserting respects the :see:ConditionalUniqueIndex rules."""
 
     model = get_fake_model(
         fields={

@@ -114,8 +114,8 @@ class HStoreRequiredSchemaEditorSideEffect:
     def _rename_hstore_required(
         self, old_table_name, new_table_name, old_field, new_field, key
     ):
-        """Renames an existing REQUIRED CONSTRAINT for the specified
-        hstore key."""
+        """Renames an existing REQUIRED CONSTRAINT for the specified hstore
+        key."""
 
         old_name = self._required_constraint_name(
             old_table_name, old_field, key
@@ -143,8 +143,7 @@ class HStoreRequiredSchemaEditorSideEffect:
 
     @staticmethod
     def _required_constraint_name(table: str, field, key):
-        """Gets the name for a CONSTRAINT that applies
-        to a single hstore key.
+        """Gets the name for a CONSTRAINT that applies to a single hstore key.
 
         Arguments:
             table:
@@ -169,8 +168,7 @@ class HStoreRequiredSchemaEditorSideEffect:
 
     @staticmethod
     def _iterate_required_keys(field):
-        """Iterates over the keys marked as "required"
-        in the specified field.
+        """Iterates over the keys marked as "required" in the specified field.
 
         Arguments:
             field:

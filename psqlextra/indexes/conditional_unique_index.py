@@ -4,8 +4,7 @@ from django.db.models.indexes import Index
 
 
 class ConditionalUniqueIndex(Index):
-    """
-    Creates a partial unique index based on a given condition.
+    """Creates a partial unique index based on a given condition.
 
     Useful, for example, if you need unique combination of foreign keys, but you might want to include
     NULL as a valid value. In that case, you can just use:
@@ -50,7 +49,8 @@ class ConditionalUniqueIndex(Index):
             return sql_create_index % sql_parameters
 
     def deconstruct(self):
-        """Serializes the :see:ConditionalUniqueIndex for the migrations file."""
+        """Serializes the :see:ConditionalUniqueIndex for the migrations
+        file."""
         path = "%s.%s" % (self.__class__.__module__, self.__class__.__name__)
         path = path.replace("django.db.models.indexes", "django.db.models")
         return (

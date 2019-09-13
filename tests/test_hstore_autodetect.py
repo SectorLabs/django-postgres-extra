@@ -6,8 +6,7 @@ from psqlextra.fields import HStoreField
 
 
 def _make_project_state(model_states):
-    """Shortcut to make :see:ProjectState from a list
-    of predefined models."""
+    """Shortcut to make :see:ProjectState from a list of predefined models."""
 
     project_state = ProjectState()
     for model_state in model_states:
@@ -16,8 +15,8 @@ def _make_project_state(model_states):
 
 
 def _detect_changes(before_states, after_states):
-    """Uses the migration autodetector to detect changes
-    in the specified project states."""
+    """Uses the migration autodetector to detect changes in the specified
+    project states."""
 
     return MigrationAutodetector(
         _make_project_state(before_states), _make_project_state(after_states)
@@ -25,8 +24,7 @@ def _detect_changes(before_states, after_states):
 
 
 def _assert_autodetector(changes, expected):
-    """Asserts whether the results of the auto detector
-    are as expected."""
+    """Asserts whether the results of the auto detector are as expected."""
 
     assert "tests" in changes
     assert len("tests") > 0
@@ -45,8 +43,8 @@ def _assert_autodetector(changes, expected):
 
 
 def test_hstore_autodetect_uniqueness():
-    """Tests whether changes in the `uniqueness`
-    option are properly detected by the auto detector."""
+    """Tests whether changes in the `uniqueness` option are properly detected
+    by the auto detector."""
 
     before = [
         migrations.state.ModelState(
@@ -72,8 +70,8 @@ def test_hstore_autodetect_uniqueness():
 
 
 def test_hstore_autodetect_required():
-    """Tests whether changes in the `required`
-    option are properly detected by the auto detector."""
+    """Tests whether changes in the `required` option are properly detected by
+    the auto detector."""
 
     before = [
         migrations.state.ModelState(

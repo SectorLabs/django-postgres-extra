@@ -15,10 +15,9 @@ from .side_effects import (
 
 
 class PostgresSchemaEditor(base_impl.schema_editor()):
-    """Schema editor that adds extra methods for
-    PostgreSQL specific features and hooks into
-    existing implementations to add side effects
-    specific to PostgreSQL."""
+    """Schema editor that adds extra methods for PostgreSQL specific features
+    and hooks into existing implementations to add side effects specific to
+    PostgreSQL."""
 
     sql_partition_by = " PARTITION BY %s (%s)"
     sql_add_default_partition = "CREATE TABLE %s PARTITION OF %s DEFAULT"
@@ -148,8 +147,9 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     def add_default_partition(self, model: Model, name: str) -> None:
         """Creates a new default partition for the specified partitioned model.
 
-        A default partition is a partition where rows are
-        routed to when no more specific partition is a match."""
+        A default partition is a partition where rows are routed to when
+        no more specific partition is a match.
+        """
         # asserts the model is a model set up for partitioning
         self._partitioning_properties_for_model(model)
 
@@ -209,12 +209,13 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             side_effect.alter_field(model, old_field, new_field, strict)
 
     def _extract_sql(self, method, *args):
-        """Calls the specified method with the specified arguments
-        and intercepts the SQL statement it WOULD execute.
+        """Calls the specified method with the specified arguments and
+        intercepts the SQL statement it WOULD execute.
 
-        We use this to figure out the exact SQL statement
-        Django would execute. We can then make a small modification
-        and execute it ourselves."""
+        We use this to figure out the exact SQL statement Django would
+        execute. We can then make a small modification and execute it
+        ourselves.
+        """
 
         original_execute_func = copy.deepcopy(self.execute)
 

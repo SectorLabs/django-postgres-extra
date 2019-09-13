@@ -4,10 +4,10 @@ from django.db.models import CharField, expressions
 class HStoreValue(expressions.Expression):
     """Represents a HStore value.
 
-    The base PostgreSQL implementation Django provides,
-    always represents HStore values as dictionaries,
-    but this doesn't work if you want to use expressions
-    inside hstore values."""
+    The base PostgreSQL implementation Django provides, always
+    represents HStore values as dictionaries, but this doesn't work if
+    you want to use expressions inside hstore values.
+    """
 
     def __init__(self, value):
         """Initializes a new instance."""
@@ -141,14 +141,15 @@ class HStoreRef(expressions.F):
 
 
 class NonGroupableFunc(expressions.Func):
-    """A version of Django's :see:Func expression that
-    is _never_ included in the GROUP BY clause."""
+    """A version of Django's :see:Func expression that is _never_ included in
+    the GROUP BY clause."""
 
     def get_group_by_cols(self):
         """Gets the columns to be included in the GROUP BY clause.
 
-        We have to override this because Django's default behavior
-        is to include function calls in GROUP by clauses."""
+        We have to override this because Django's default behavior is to
+        include function calls in GROUP by clauses.
+        """
         return []
 
 

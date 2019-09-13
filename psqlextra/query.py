@@ -107,8 +107,7 @@ class PostgresQuery(sql.Query):
     def add_fields(
         self, field_names: List[str], allow_m2m: bool = True
     ) -> bool:
-        """
-        Adds the given (model) fields to the select set. The field names are
+        """Adds the given (model) fields to the select set. The field names are
         added in the order specified.
 
         This overrides the base class's add_fields method. This is called by
@@ -158,13 +157,11 @@ class PostgresQuery(sql.Query):
     def _is_hstore_field(
         self, field_name: str
     ) -> Tuple[bool, Optional[models.Field]]:
-        """Gets whether the field with the specified name is a
-        HStoreField.
+        """Gets whether the field with the specified name is a HStoreField.
 
-        Returns
-            A tuple of a boolean indicating whether the field
-            with the specified name is a HStoreField, and the
-            field instance.
+        Returns     A tuple of a boolean indicating whether the field
+        with the specified name is a HStoreField, and the     field
+        instance.
         """
 
         field_instance = None

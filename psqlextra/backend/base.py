@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 class DatabaseWrapper(base_impl.backend()):
     """Wraps the standard PostgreSQL database back-end.
 
-    Overrides the schema editor with our custom
-    schema editor and makes sure the `hstore`
-    extension is enabled."""
+    Overrides the schema editor with our custom schema editor and makes
+    sure the `hstore` extension is enabled.
+    """
 
     SchemaEditorClass = PostgresSchemaEditor
     introspection_class = PostgresIntrospection
@@ -22,8 +22,9 @@ class DatabaseWrapper(base_impl.backend()):
     def prepare_database(self):
         """Ran to prepare the configured database.
 
-        This is where we enable the `hstore` extension
-        if it wasn't enabled yet."""
+        This is where we enable the `hstore` extension if it wasn't
+        enabled yet.
+        """
 
         super().prepare_database()
         with self.cursor() as cursor:

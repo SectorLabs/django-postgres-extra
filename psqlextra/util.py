@@ -5,8 +5,8 @@ from .manager import PostgresManager
 
 @contextmanager
 def postgres_manager(model):
-    """Allows you to use the :see:PostgresManager with
-    the specified model instance on the fly.
+    """Allows you to use the :see:PostgresManager with the specified model
+    instance on the fly.
 
     Arguments:
         model:

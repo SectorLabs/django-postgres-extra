@@ -9,8 +9,8 @@ from .fake_model import get_fake_model
 
 @pytest.fixture
 def model():
-    """Test models, where the first model has a foreign
-    key relationship to the second."""
+    """Test models, where the first model has a foreign key relationship to the
+    second."""
 
     return get_fake_model({"title": HStoreField()})
 
@@ -23,16 +23,16 @@ def modelobj(model):
 
 
 def test_query_values_hstore(model, modelobj):
-    """Tests that selecting all the keys properly works
-    and returns a :see:LocalizedValue instance."""
+    """Tests that selecting all the keys properly works and returns a
+    :see:LocalizedValue instance."""
 
     result = list(model.objects.values("title"))[0]
     assert result["title"] == modelobj.title
 
 
 def test_query_values_hstore_key(model, modelobj):
-    """Tests whether selecting a single key from a :see:HStoreField
-    using the query set's .values() works properly."""
+    """Tests whether selecting a single key from a :see:HStoreField using the
+    query set's .values() works properly."""
 
     result = list(model.objects.values("title__en", "title__ar"))[0]
     assert result["title__en"] == modelobj.title["en"]
@@ -40,8 +40,8 @@ def test_query_values_hstore_key(model, modelobj):
 
 
 def test_query_values_list_hstore_key(model, modelobj):
-    """Tests that selecting a single key from a :see:HStoreField
-    using the query set's .values_list() works properly."""
+    """Tests that selecting a single key from a :see:HStoreField using the
+    query set's .values_list() works properly."""
 
     result = list(model.objects.values_list("title__en", "title__ar"))[0]
     assert result[0] == modelobj.title["en"]
@@ -50,9 +50,9 @@ def test_query_values_list_hstore_key(model, modelobj):
 
 @pytest.mark.xfail(reason="has to be fixed as part of issue #8")
 def test_query_values_hstore_key_through_fk():
-    """Tests whether selecting a single key from a :see:HStoreField
-    using the query set's .values() works properly when there's a
-    foreign key relationship involved."""
+    """Tests whether selecting a single key from a :see:HStoreField using the
+    query set's .values() works properly when there's a foreign key
+    relationship involved."""
 
     fmodel = get_fake_model({"name": HStoreField()})
 

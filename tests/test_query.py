@@ -8,10 +8,11 @@ from .fake_model import get_fake_model
 
 
 def test_query_annotate_hstore_key_ref():
-    """Tests whether annotating using a :see:HStoreRef expression
-    works correctly.
+    """Tests whether annotating using a :see:HStoreRef expression works
+    correctly.
 
-    This allows you to select an individual hstore key."""
+    This allows you to select an individual hstore key.
+    """
 
     model_fk = get_fake_model({"title": HStoreField()})
 
@@ -32,8 +33,7 @@ def test_query_annotate_hstore_key_ref():
 
 
 def test_query_annotate_rename():
-    """Tests whether field names can be overwritten
-    with a annotated field."""
+    """Tests whether field names can be overwritten with a annotated field."""
 
     model = get_fake_model({"title": models.CharField(max_length=12)})
 
@@ -44,8 +44,8 @@ def test_query_annotate_rename():
 
 
 def test_query_hstore_f_ref():
-    """Tests whether F(..) expressions can be used in
-    hstore values when performing update queries."""
+    """Tests whether F(..) expressions can be used in hstore values when
+    performing update queries."""
 
     model = get_fake_model(
         {"name": models.CharField(max_length=255), "name_new": HStoreField()}
