@@ -9,7 +9,7 @@ from psqlextra.migrations import operations
 from psqlextra.models import PostgresPartitionedModel
 from psqlextra.types import PostgresPartitioningMethod
 
-from .migrations import execute_migration
+from .migrations import apply_migration
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def test_migration_operations_create_partitioned_table(method, create_model):
     expected in a migration."""
 
     create_operation = create_model(method)
-    execute_migration(connection.schema_editor(), [create_operation])
+    apply_migration(connection.schema_editor(), [create_operation])
 
     with connection.cursor() as cursor:
         table = connection.introspection.get_partitioned_table(
@@ -62,7 +62,7 @@ def test_migration_operations_delete_partitioned_table(method, create_model):
 
     create_operation = create_model(method)
 
-    execute_migration(
+    apply_migration(
         connection.schema_editor(),
         [create_operation, DeleteModel(create_operation.name)],
     )
@@ -109,7 +109,7 @@ def test_migration_operations_add_delete_partition(
     project = migrations.state.ProjectState.from_apps(apps)
 
     create_operation = create_model(method)
-    execute_migration(
+    apply_migration(
         connection.schema_editor(), [create_operation, operation], project
     )
 
@@ -121,7 +121,7 @@ def test_migration_operations_add_delete_partition(
         assert len(table.partitions) == 1
         assert table.partitions[0].name == f"{table.name}_{operation.name}"
 
-    execute_migration(
+    apply_migration(
         connection.schema_editor(),
         [
             operations.PostgresDeletePartition(

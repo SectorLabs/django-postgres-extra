@@ -44,7 +44,9 @@ def filtered_schema_editor(*filters: List[str]):
         ]
 
 
-def execute_migration(schema_editor, operations, project=None):
+def apply_migration(
+    schema_editor, operations, project=None, backwards: bool = False
+):
     """Executes the specified migration operations using the specified schema
     editor.
 
@@ -59,6 +61,10 @@ def execute_migration(schema_editor, operations, project=None):
         project:
             The project state to use during the
             migrations.
+
+        backwards:
+            Whether to apply the operations
+            in reverse (backwards).
     """
 
     project = project or migrations.state.ProjectState.from_apps(apps)
@@ -69,7 +75,10 @@ def execute_migration(schema_editor, operations, project=None):
     Migration.operations = operations
 
     executor = MigrationExecutor(schema_editor.connection)
-    executor.apply_migration(project, Migration("eh", "tests"))
+    if not backwards:
+        executor.apply_migration(project, Migration("eh", "tests"))
+    else:
+        executor.unapply_migration(project, Migration("eh", "tests"))
 
 
 @contextmanager
@@ -89,7 +98,7 @@ def create_drop_model(field, filters: List[str]):
     model = define_fake_model({"title": field})
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
-        execute_migration(
+        apply_migration(
             schema_editor,
             [
                 migrations.CreateModel(
@@ -121,7 +130,7 @@ def alter_db_table(field, filters: List[str]):
     project = migrations.state.ProjectState.from_apps(apps)
 
     with connection.schema_editor() as schema_editor:
-        execute_migration(
+        apply_migration(
             schema_editor,
             [
                 migrations.CreateModel(
@@ -132,7 +141,7 @@ def alter_db_table(field, filters: List[str]):
         )
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
-        execute_migration(
+        apply_migration(
             schema_editor,
             [migrations.AlterModelTable(model.__name__, "NewTableName")],
             project,
@@ -158,14 +167,14 @@ def add_field(field, filters: List[str]):
     project = migrations.state.ProjectState.from_apps(apps)
 
     with connection.schema_editor() as schema_editor:
-        execute_migration(
+        apply_migration(
             schema_editor,
             [migrations.CreateModel(model.__name__, fields=[])],
             project,
         )
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
-        execute_migration(
+        apply_migration(
             schema_editor,
             [migrations.AddField(model.__name__, "title", field)],
             project,
@@ -191,7 +200,7 @@ def remove_field(field, filters: List[str]):
     project = migrations.state.ProjectState.from_apps(apps)
 
     with connection.schema_editor() as schema_editor:
-        execute_migration(
+        apply_migration(
             schema_editor,
             [
                 migrations.CreateModel(
@@ -202,7 +211,7 @@ def remove_field(field, filters: List[str]):
         )
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
-        execute_migration(
+        apply_migration(
             schema_editor,
             [migrations.RemoveField(model.__name__, "title")],
             project,
@@ -231,7 +240,7 @@ def alter_field(old_field, new_field, filters: List[str]):
     project = migrations.state.ProjectState.from_apps(apps)
 
     with connection.schema_editor() as schema_editor:
-        execute_migration(
+        apply_migration(
             schema_editor,
             [
                 migrations.CreateModel(
@@ -242,7 +251,7 @@ def alter_field(old_field, new_field, filters: List[str]):
         )
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
-        execute_migration(
+        apply_migration(
             schema_editor,
             [migrations.AlterField(model.__name__, "title", new_field)],
             project,
@@ -268,7 +277,7 @@ def rename_field(field, filters: List[str]):
     project = migrations.state.ProjectState.from_apps(apps)
 
     with connection.schema_editor() as schema_editor:
-        execute_migration(
+        apply_migration(
             schema_editor,
             [
                 migrations.CreateModel(
@@ -279,7 +288,7 @@ def rename_field(field, filters: List[str]):
         )
 
     with filtered_schema_editor(*filters) as (schema_editor, calls):
-        execute_migration(
+        apply_migration(
             schema_editor,
             [migrations.RenameField(model.__name__, "title", "newtitle")],
             project,
