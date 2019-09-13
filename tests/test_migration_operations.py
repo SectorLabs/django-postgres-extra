@@ -2,7 +2,6 @@ import pytest
 
 from django.apps import apps
 from django.db import connection, migrations, models
-from django.db.migrations.operations.models import DeleteModel
 
 from psqlextra.manager import PostgresManager
 from psqlextra.migrations import operations
@@ -10,6 +9,60 @@ from psqlextra.models import PostgresPartitionedModel
 from psqlextra.types import PostgresPartitioningMethod
 
 from .migrations import apply_migration
+
+
+def _partitioned_table_exists(op: operations.PostgresCreatePartitionedModel):
+    """Checks whether the specified partitioned model operation was succesfully
+    applied."""
+
+    model_table_name = f"tests_{op.name}"
+
+    with connection.cursor() as cursor:
+        table = connection.introspection.get_partitioned_table(
+            cursor, model_table_name
+        )
+
+        if not table:
+            return False
+
+        part_options = op.partitioning_options
+
+        if table.method != part_options["method"]:
+            return False
+
+        if table.key != part_options["key"]:
+            return False
+
+    return True
+
+
+def _partition_exists(model_op, op):
+    """Checks whether the parttitioned model and partition operations were
+    succesfully applied."""
+
+    model_table_name = f"tests_{model_op.name}"
+
+    with connection.cursor() as cursor:
+        table = connection.introspection.get_partitioned_table(
+            cursor, model_table_name
+        )
+
+        if not table:
+            return False
+
+        partition = next(
+            (
+                partition
+                for partition in table.partitions
+                if partition.name == f"{model_table_name}_{op.name}"
+            ),
+            None,
+        )
+
+        if not partition:
+            return False
+
+    return True
 
 
 @pytest.fixture
@@ -45,35 +98,46 @@ def test_migration_operations_create_partitioned_table(method, create_model):
     expected in a migration."""
 
     create_operation = create_model(method)
-    apply_migration(connection.schema_editor(), [create_operation])
+    state = migrations.state.ProjectState.from_apps(apps)
 
-    with connection.cursor() as cursor:
-        table = connection.introspection.get_partitioned_table(
-            cursor, f"tests_{create_operation.name}"
-        )
+    # migrate forwards, is the table there?
+    apply_migration([create_operation], state)
+    assert _partitioned_table_exists(create_operation)
 
-        part_options = create_operation.partitioning_options
-        assert table.method == part_options["method"]
-        assert table.key == part_options["key"]
+    # migrate backwards, is the table there?
+    apply_migration([create_operation], state=state, backwards=True)
+    assert not _partitioned_table_exists(create_operation)
 
 
 @pytest.mark.parametrize("method", PostgresPartitioningMethod.all())
 def test_migration_operations_delete_partitioned_table(method, create_model):
-    """Tests whether a :see:PostgresDeletePartitionedModel can be deleted using
-    the standard :see:DeleteModel operation."""
+    """Tests whether the see :PostgresDeletePartitionedModel operation works as
+    expected in a migration."""
 
     create_operation = create_model(method)
-
-    apply_migration(
-        connection.schema_editor(),
-        [create_operation, DeleteModel(create_operation.name)],
+    delete_operation = operations.PostgresDeletePartitionedModel(
+        create_operation.name
     )
 
-    with connection.cursor() as cursor:
-        table = connection.introspection.get_partitioned_table(
-            cursor, f"tests_{create_operation.name}"
-        )
-        assert not table
+    state = migrations.state.ProjectState.from_apps(apps)
+
+    # migrate forwards, create model
+    apply_migration([create_operation], state)
+    assert _partitioned_table_exists(create_operation)
+
+    # record intermediate state, the state we'll
+    # migrate backwards to
+    intm_state = state.clone()
+
+    # migrate forwards, delete model
+    apply_migration([delete_operation], state)
+    assert not _partitioned_table_exists(create_operation)
+
+    # migrate backwards, delete model
+    delete_operation.database_backwards(
+        "tests", connection.schema_editor(), state, intm_state
+    )
+    assert _partitioned_table_exists(create_operation)
 
 
 @pytest.mark.parametrize(
@@ -108,36 +172,20 @@ def test_migration_operations_add_delete_partition(
     """Tests whether adding partitions and then removing them works as
     expected."""
 
-    project = migrations.state.ProjectState.from_apps(apps)
-
-    # apply migration to create model and one partition
     create_operation = create_model(method)
-    apply_migration(
-        connection.schema_editor(), [create_operation, operation], project
-    )
+    state = migrations.state.ProjectState.from_apps(apps)
 
-    with connection.cursor() as cursor:
-        table = connection.introspection.get_partitioned_table(
-            cursor, f"tests_{create_operation.name}"
-        )
-
-        assert len(table.partitions) == 1
-        assert table.partitions[0].name == f"{table.name}_{operation.name}"
+    # migrate forwards, create model and partition
+    apply_migration([create_operation, operation], state)
+    assert _partition_exists(create_operation, operation)
 
     # apply migration to delete the partition
     apply_migration(
-        connection.schema_editor(),
         [
             operations.PostgresDeletePartition(
                 model_name=create_operation.name, name=operation.name
             )
         ],
-        project,
+        state,
     )
-
-    with connection.cursor() as cursor:
-        partitions = connection.introspection.get_partitions(
-            cursor, f"tests_{create_operation.name}"
-        )
-
-        assert len(partitions) == 0
+    assert not _partition_exists(create_operation, operation)

@@ -51,11 +51,8 @@ def test_cui_migrations():
         AddIndex(model_name="mymodel", index=index_2),
     ]
 
-    with filtered_schema_editor("CREATE UNIQUE INDEX") as (
-        schema_editor,
-        calls,
-    ):
-        apply_migration(schema_editor, ops)
+    with filtered_schema_editor("CREATE UNIQUE INDEX") as calls:
+        apply_migration(ops)
 
     calls = [call[0] for _, call, _ in calls["CREATE UNIQUE INDEX"]]
 

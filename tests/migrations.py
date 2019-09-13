@@ -1,8 +1,6 @@
-
 from contextlib import contextmanager
 from typing import List
 from unittest import mock
-
 
 from django.apps import apps
 from django.db import connection, migrations
@@ -30,7 +28,7 @@ def filtered_schema_editor(*filters: List[str]):
             PostgresSchemaEditor, "execute", wraps=wrapper_for
         ) as execute:
             filter_results = {}
-            yield schema_editor, filter_results
+            yield filter_results
 
     for filter_text in filters:
         filter_results[filter_text] = [
@@ -38,22 +36,16 @@ def filtered_schema_editor(*filters: List[str]):
         ]
 
 
-def apply_migration(
-    schema_editor, operations, project=None, backwards: bool = False
-):
+def apply_migration(operations, state=None, backwards: bool = False):
     """Executes the specified migration operations using the specified schema
     editor.
 
     Arguments:
-        schema_editor:
-            The schema editor to use to
-            execute the migrations.
-
         operations:
             The migration operations to execute.
 
-        project:
-            The project state to use during the
+        state:
+            The state state to use during the
             migrations.
 
         backwards:
@@ -61,18 +53,22 @@ def apply_migration(
             in reverse (backwards).
     """
 
-    project = project or migrations.state.ProjectState.from_apps(apps)
+    state = state or migrations.state.ProjectState.from_apps(apps)
 
     class Migration(migrations.Migration):
         pass
 
     Migration.operations = operations
 
-    executor = MigrationExecutor(schema_editor.connection)
+    migration = Migration("migration", "tests")
+    executor = MigrationExecutor(connection)
+
     if not backwards:
-        executor.apply_migration(project, Migration("eh", "tests"))
+        executor.apply_migration(state, migration)
     else:
-        executor.unapply_migration(project, Migration("eh", "tests"))
+        executor.unapply_migration(state, migration)
+
+    return migration
 
 
 @contextmanager
@@ -91,15 +87,14 @@ def create_drop_model(field, filters: List[str]):
 
     model = define_fake_model({"title": field})
 
-    with filtered_schema_editor(*filters) as (schema_editor, calls):
+    with filtered_schema_editor(*filters) as calls:
         apply_migration(
-            schema_editor,
             [
                 migrations.CreateModel(
                     model.__name__, fields=[("title", field.clone())]
                 ),
                 migrations.DeleteModel(model.__name__),
-            ],
+            ]
         )
 
     yield calls
@@ -121,24 +116,20 @@ def alter_db_table(field, filters: List[str]):
     """
 
     model = define_fake_model()
-    project = migrations.state.ProjectState.from_apps(apps)
+    state = migrations.state.ProjectState.from_apps(apps)
 
-    with connection.schema_editor() as schema_editor:
-        apply_migration(
-            schema_editor,
-            [
-                migrations.CreateModel(
-                    model.__name__, fields=[("title", field.clone())]
-                )
-            ],
-            project,
-        )
+    apply_migration(
+        [
+            migrations.CreateModel(
+                model.__name__, fields=[("title", field.clone())]
+            )
+        ],
+        state,
+    )
 
-    with filtered_schema_editor(*filters) as (schema_editor, calls):
+    with filtered_schema_editor(*filters) as calls:
         apply_migration(
-            schema_editor,
-            [migrations.AlterModelTable(model.__name__, "NewTableName")],
-            project,
+            [migrations.AlterModelTable(model.__name__, "NewTableName")], state
         )
 
     yield calls
@@ -158,20 +149,13 @@ def add_field(field, filters: List[str]):
     """
 
     model = define_fake_model()
-    project = migrations.state.ProjectState.from_apps(apps)
+    state = migrations.state.ProjectState.from_apps(apps)
 
-    with connection.schema_editor() as schema_editor:
-        apply_migration(
-            schema_editor,
-            [migrations.CreateModel(model.__name__, fields=[])],
-            project,
-        )
+    apply_migration([migrations.CreateModel(model.__name__, fields=[])], state)
 
-    with filtered_schema_editor(*filters) as (schema_editor, calls):
+    with filtered_schema_editor(*filters) as calls:
         apply_migration(
-            schema_editor,
-            [migrations.AddField(model.__name__, "title", field)],
-            project,
+            [migrations.AddField(model.__name__, "title", field)], state
         )
 
     yield calls
@@ -191,24 +175,20 @@ def remove_field(field, filters: List[str]):
     """
 
     model = define_fake_model({"title": field})
-    project = migrations.state.ProjectState.from_apps(apps)
+    state = migrations.state.ProjectState.from_apps(apps)
 
-    with connection.schema_editor() as schema_editor:
-        apply_migration(
-            schema_editor,
-            [
-                migrations.CreateModel(
-                    model.__name__, fields=[("title", field.clone())]
-                )
-            ],
-            project,
-        )
+    apply_migration(
+        [
+            migrations.CreateModel(
+                model.__name__, fields=[("title", field.clone())]
+            )
+        ],
+        state,
+    )
 
-    with filtered_schema_editor(*filters) as (schema_editor, calls):
+    with filtered_schema_editor(*filters) as calls:
         apply_migration(
-            schema_editor,
-            [migrations.RemoveField(model.__name__, "title")],
-            project,
+            [migrations.RemoveField(model.__name__, "title")], state
         )
 
     yield calls
@@ -231,24 +211,20 @@ def alter_field(old_field, new_field, filters: List[str]):
     """
 
     model = define_fake_model({"title": old_field})
-    project = migrations.state.ProjectState.from_apps(apps)
+    state = migrations.state.ProjectState.from_apps(apps)
 
-    with connection.schema_editor() as schema_editor:
-        apply_migration(
-            schema_editor,
-            [
-                migrations.CreateModel(
-                    model.__name__, fields=[("title", old_field.clone())]
-                )
-            ],
-            project,
-        )
+    apply_migration(
+        [
+            migrations.CreateModel(
+                model.__name__, fields=[("title", old_field.clone())]
+            )
+        ],
+        state,
+    )
 
-    with filtered_schema_editor(*filters) as (schema_editor, calls):
+    with filtered_schema_editor(*filters) as calls:
         apply_migration(
-            schema_editor,
-            [migrations.AlterField(model.__name__, "title", new_field)],
-            project,
+            [migrations.AlterField(model.__name__, "title", new_field)], state
         )
 
     yield calls
@@ -268,24 +244,20 @@ def rename_field(field, filters: List[str]):
     """
 
     model = define_fake_model({"title": field})
-    project = migrations.state.ProjectState.from_apps(apps)
+    state = migrations.state.ProjectState.from_apps(apps)
 
-    with connection.schema_editor() as schema_editor:
-        apply_migration(
-            schema_editor,
-            [
-                migrations.CreateModel(
-                    model.__name__, fields=[("title", field.clone())]
-                )
-            ],
-            project,
-        )
+    apply_migration(
+        [
+            migrations.CreateModel(
+                model.__name__, fields=[("title", field.clone())]
+            )
+        ],
+        state,
+    )
 
-    with filtered_schema_editor(*filters) as (schema_editor, calls):
+    with filtered_schema_editor(*filters) as calls:
         apply_migration(
-            schema_editor,
-            [migrations.RenameField(model.__name__, "title", "newtitle")],
-            project,
+            [migrations.RenameField(model.__name__, "title", "newtitle")], state
         )
 
     yield calls
