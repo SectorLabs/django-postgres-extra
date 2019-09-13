@@ -9,7 +9,7 @@ from . import migrations
 from .util import get_fake_model
 
 
-def test_migration_create_drop_model():
+def test_hstore_unique_migration_create_drop_model():
     """Tests whether indexes are properly created
     and dropped when creating and dropping a model."""
 
@@ -24,7 +24,7 @@ def test_migration_create_drop_model():
         assert len(calls["DROP INDEX"]) == len(uniqueness)
 
 
-def test_migration_alter_db_table():
+def test_hstore_unique_migration_alter_db_table():
     """Tests whether indexes are renamed properly
     when renaming the database table."""
 
@@ -40,7 +40,7 @@ def test_migration_alter_db_table():
         assert len(calls.get("DROP INDEX", [])) == 0
 
 
-def test_add_field():
+def test_hstore_unique_add_field():
     """Tests whether adding a field properly
     creates the indexes."""
 
@@ -53,7 +53,7 @@ def test_add_field():
         assert len(calls.get("DROP INDEX", [])) == 0
 
 
-def test_remove_field():
+def test_hstore_unique_remove_field():
     """Tests whether removing a field properly
     removes the index."""
 
@@ -66,7 +66,7 @@ def test_remove_field():
         assert len(calls.get("DROP INDEX", [])) == 1
 
 
-def test_alter_field_nothing():
+def test_hstore_unique_alter_field_nothing():
     """Tests whether no indexes are dropped when not
     changing anything in the uniqueness."""
 
@@ -81,7 +81,7 @@ def test_alter_field_nothing():
         assert len(calls.get("DROP INDEX", [])) == 0
 
 
-def test_alter_field_add():
+def test_hstore_unique_alter_field_add():
     """Tests whether only one index is created when
     adding another key to the uniqueness."""
 
@@ -96,7 +96,7 @@ def test_alter_field_add():
         assert len(calls.get("DROP INDEX", [])) == 0
 
 
-def test_alter_field_remove():
+def test_hstore_unique_alter_field_remove():
     """Tests whether one index is dropped when removing
     a key from uniqueness."""
 
@@ -111,7 +111,7 @@ def test_alter_field_remove():
         assert len(calls.get("DROP INDEX", [])) == 1
 
 
-def test_alter_field_add_together():
+def test_hstore_unique_alter_field_add_together():
     """Tests whether adding one index is created
     when adding a "unique together"."""
 
@@ -126,7 +126,7 @@ def test_alter_field_add_together():
         assert len(calls.get("DROP INDEX", [])) == 0
 
 
-def test_alter_field_remove_together():
+def test_hstore_unique_alter_field_remove_together():
     """Tests whether adding one index is dropped
     when adding a "unique together"."""
 
@@ -141,7 +141,7 @@ def test_alter_field_remove_together():
         assert len(calls.get("DROP INDEX", [])) == 1
 
 
-def test_rename_field():
+def test_hstore_unique_rename_field():
     """Tests whether renaming a field doesn't
     cause the index to be re-created."""
 
@@ -156,7 +156,7 @@ def test_rename_field():
         assert len(calls.get("DROP INDEX", [])) == 0
 
 
-def test_enforcement():
+def test_hstore_unique_enforcement():
     """Tests whether the constraints are actually
     properly enforced."""
     model = get_fake_model({"title": HStoreField(uniqueness=["en"])})
@@ -171,7 +171,7 @@ def test_enforcement():
             model.objects.create(title={"en": "unique", "ar": "notunique"})
 
 
-def test_enforcement_together():
+def test_hstore_unique_enforcement_together():
     """Tests whether unique_together style constraints are
     enforced properly."""
 

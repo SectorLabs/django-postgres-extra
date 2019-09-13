@@ -20,6 +20,10 @@ class ConflictAction(Enum):
     NOTHING = "NOTHING"
     UPDATE = "UPDATE"
 
+    @classmethod
+    def all(cls) -> List["ConflictAction"]:
+        return [choice for choice in cls]
+
 
 class PostgresQuery(sql.Query):
     def rename_annotations(self, annotations) -> None:

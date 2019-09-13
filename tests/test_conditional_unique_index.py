@@ -22,7 +22,7 @@ def test_deconstruct():
         assert new_kwargs[key] == value
 
 
-def test_migrations():
+def test_cui_migrations():
     """Tests whether the migrations are properly generated and executed."""
 
     simulator = MigrationSimulator()
@@ -83,7 +83,7 @@ def test_migrations():
             Model.objects.create(id=2, name=None, other_name="other_name")
 
 
-def test_upserting():
+def test_cui_upserting():
     """Tests upserting respects the :see:ConditionalUniqueIndex rules"""
     model = get_fake_model(
         fields={
@@ -137,7 +137,7 @@ def test_upserting():
     assert model.objects.filter(a=1, b=1, c=2).count() == 1
 
 
-def test_inserting():
+def test_cui_inserting():
     """Tests inserting respects the :see:ConditionalUniqueIndex rules"""
 
     model = get_fake_model(

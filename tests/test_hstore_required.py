@@ -8,7 +8,7 @@ from . import migrations
 from .util import get_fake_model
 
 
-def test_migration_create_drop_model():
+def test_hstore_required_migration_create_drop_model():
     """Tests whether constraints are properly created
     and dropped when creating and dropping a model."""
 
@@ -23,7 +23,7 @@ def test_migration_create_drop_model():
         assert len(calls["DROP CONSTRAINT"]) == len(required)
 
 
-def test_migration_alter_db_table():
+def test_hstore_required_migration_alter_db_table():
     """Tests whether constraints are renamed properly
     when renaming the database table."""
 
@@ -38,7 +38,7 @@ def test_migration_alter_db_table():
         assert len(calls.get("DROP CONSTRAINT", [])) == 0
 
 
-def test_add_field():
+def test_hstore_required_add_field():
     """Tests whether adding a field properly
     creates the constraints."""
 
@@ -51,7 +51,7 @@ def test_add_field():
         assert len(calls.get("DROP CONSTRAINT", [])) == 0
 
 
-def test_remove_field():
+def test_hstore_required_remove_field():
     """Tests whether removing a field properly
     removes the constraint."""
 
@@ -64,7 +64,7 @@ def test_remove_field():
         assert len(calls.get("DROP CONSTRAINT", [])) == 1
 
 
-def test_alter_field_nothing():
+def test_hstore_required_alter_field_nothing():
     """Tests whether no constraints are dropped when not
     changing anything in the required."""
 
@@ -79,7 +79,7 @@ def test_alter_field_nothing():
         assert len(calls.get("DROP CONSTRAINT", [])) == 0
 
 
-def test_alter_field_add():
+def test_hstore_required_alter_field_add():
     """Tests whether only one constraint is created when
     adding another key to the required."""
 
@@ -94,7 +94,7 @@ def test_alter_field_add():
         assert len(calls.get("DROP CONSTRAINT", [])) == 0
 
 
-def test_alter_field_remove():
+def test_hstore_required_alter_field_remove():
     """Tests whether one constraint is dropped when removing
     a key from required."""
 
@@ -109,7 +109,7 @@ def test_alter_field_remove():
         assert len(calls.get("DROP CONSTRAINT", [])) == 1
 
 
-def test_rename_field():
+def test_hstore_required_rename_field():
     """Tests whether renaming a field doesn't
     cause the constraint to be re-created."""
 
@@ -124,7 +124,7 @@ def test_rename_field():
         assert len(calls.get("DROP CONSTRAINT", [])) == 0
 
 
-def test_required_enforcement():
+def test_hstore_required_required_enforcement():
     """Tests whether the constraints are actually
     properly enforced."""
 
@@ -134,10 +134,9 @@ def test_required_enforcement():
         model.objects.create(title={"ar": "hello"})
 
 
-def test_no_required():
+def test_hstore_required_no_required():
     """Tests whether setting `required` to False casues
     no requiredness constraints to be added."""
 
     model = get_fake_model({"title": HStoreField(required=False)})
-
     model.objects.create(title={"ar": "hello"})

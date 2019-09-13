@@ -1,7 +1,7 @@
 from django.db import connection
 
 
-def test_hstore_extension_enabled():
+def test_db_backend_hstore_extension_enabled():
     """Tests whether the `hstore` extension was
     enabled automatically."""
 

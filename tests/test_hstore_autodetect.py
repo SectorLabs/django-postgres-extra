@@ -5,7 +5,7 @@ from django.db.migrations.state import ProjectState
 from psqlextra.fields import HStoreField
 
 
-def make_project_state(model_states):
+def _make_project_state(model_states):
     """Shortcut to make :see:ProjectState from a list
     of predefined models."""
 
@@ -15,16 +15,16 @@ def make_project_state(model_states):
     return project_state
 
 
-def detect_changes(before_states, after_states):
+def _detect_changes(before_states, after_states):
     """Uses the migration autodetector to detect changes
     in the specified project states."""
 
     return MigrationAutodetector(
-        make_project_state(before_states), make_project_state(after_states)
+        _make_project_state(before_states), _make_project_state(after_states)
     )._detect_changes()
 
 
-def assert_autodetector(changes, expected):
+def _assert_autodetector(changes, expected):
     """Asserts whether the results of the auto detector
     are as expected."""
 
@@ -44,7 +44,7 @@ def assert_autodetector(changes, expected):
         assert real_kwargs == expected_kwargs
 
 
-def test_uniqueness():
+def test_hstore_autodetect_uniqueness():
     """Tests whether changes in the `uniqueness`
     option are properly detected by the auto detector."""
 
@@ -59,9 +59,9 @@ def test_uniqueness():
         )
     ]
 
-    changes = detect_changes(before, after)
+    changes = _detect_changes(before, after)
 
-    assert_autodetector(
+    _assert_autodetector(
         changes,
         [
             migrations.AlterField(
@@ -71,7 +71,7 @@ def test_uniqueness():
     )
 
 
-def test_required():
+def test_hstore_autodetect_required():
     """Tests whether changes in the `required`
     option are properly detected by the auto detector."""
 
@@ -86,9 +86,9 @@ def test_required():
         )
     ]
 
-    changes = detect_changes(before, after)
+    changes = _detect_changes(before, after)
 
-    assert_autodetector(
+    _assert_autodetector(
         changes,
         [
             migrations.AlterField(

@@ -3,7 +3,7 @@ import pytest
 from psqlextra.fields import HStoreField
 
 
-def test_deconstruct():
+def test_hstore_field_deconstruct():
     """Tests whether the :see:HStoreField's deconstruct()
     method works properly."""
 
@@ -27,7 +27,7 @@ def test_deconstruct():
         (["1", "2", "3"], ["1", "2", "3"]),
     ],
 )
-def test_get_prep_value(input, output):
+def test_hstore_field_get_prep_value(input, output):
     """Tests whether the :see:HStoreField's get_prep_value
     method works properly."""
 

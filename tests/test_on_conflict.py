@@ -9,10 +9,8 @@ from psqlextra.query import ConflictAction
 
 from .util import get_fake_model
 
-CONFLICT_ACTIONS = (ConflictAction.UPDATE, ConflictAction.NOTHING)
 
-
-@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+@pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict(conflict_action):
     """Tests whether simple inserts work correctly."""
 
@@ -38,7 +36,7 @@ def test_on_conflict(conflict_action):
     assert obj1.cookies == obj.cookies
 
 
-@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+@pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_auto_fields(conflict_action):
     """Asserts that fields that automatically add something
     to the model automatically still work properly when upserting."""
@@ -77,7 +75,7 @@ def test_on_conflict_auto_fields(conflict_action):
         assert obj1.date_updated == obj2.date_updated
 
 
-@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+@pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_foreign_key(conflict_action):
     """Asserts that models with foreign key relationships
     can safely be inserted."""
@@ -117,7 +115,7 @@ def test_on_conflict_foreign_key(conflict_action):
     assert model2_row.model1.id == model1_row.id
 
 
-@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+@pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_partial_get(conflict_action):
     """Asserts that when doing a insert_and_get with
     only part of the columns on the model, all fields
@@ -152,7 +150,7 @@ def test_on_conflict_partial_get(conflict_action):
         assert obj1.updated_at == obj2.updated_at
 
 
-@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+@pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_invalid_target(conflict_action):
     """Tests whether specifying a invalid value
     for `conflict_target` raises an error."""
@@ -176,7 +174,7 @@ def test_on_conflict_invalid_target(conflict_action):
         )
 
 
-@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+@pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_outdated_model(conflict_action):
     """Tests whether insert properly handles
     fields that are in the database but not on the model.
@@ -208,7 +206,7 @@ def test_on_conflict_outdated_model(conflict_action):
     )
 
 
-@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+@pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_custom_column_names(conflict_action):
     """Asserts that models with custom column names (models
     where the column and field name are different) work properly."""
@@ -229,7 +227,7 @@ def test_on_conflict_custom_column_names(conflict_action):
     )
 
 
-@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+@pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_unique_together(conflict_action):
     """Asserts that inserts on models with a unique_together
     works properly."""
@@ -254,7 +252,7 @@ def test_on_conflict_unique_together(conflict_action):
     assert id1 == id2
 
 
-@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+@pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_unique_together_fk(conflict_action):
     """Asserts that inserts on models with a unique_together
     and a foreign key relationship works properly."""
@@ -286,7 +284,7 @@ def test_on_conflict_unique_together_fk(conflict_action):
     assert id3 == id4
 
 
-@pytest.mark.parametrize("conflict_action", CONFLICT_ACTIONS)
+@pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_on_conflict_pk_conflict_target(conflict_action):
     """Tests whether `on_conflict` properly accepts
     the 'pk' as a conflict target, which should resolve
@@ -410,9 +408,7 @@ def test_bulk_return():
         assert obj["id"] == index
 
 
-@pytest.mark.parametrize(
-    "conflict_action", [ConflictAction.UPDATE, ConflictAction.NOTHING]
-)
+@pytest.mark.parametrize("conflict_action", ConflictAction.all())
 def test_bulk_return_models(conflict_action):
     """Tests whether models are returned instead of dictionaries
     when specifying the return_model=True argument."""

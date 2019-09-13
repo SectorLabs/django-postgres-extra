@@ -22,7 +22,7 @@ def modelobj(model):
     return model.objects.create(title={"en": "english", "ar": "arabic"})
 
 
-def test_values_hstore(model, modelobj):
+def test_query_values_hstore(model, modelobj):
     """Tests that selecting all the keys properly works
     and returns a :see:LocalizedValue instance."""
 
@@ -30,7 +30,7 @@ def test_values_hstore(model, modelobj):
     assert result["title"] == modelobj.title
 
 
-def test_values_hstore_key(model, modelobj):
+def test_query_values_hstore_key(model, modelobj):
     """Tests whether selecting a single key from a :see:HStoreField
     using the query set's .values() works properly."""
 
@@ -39,7 +39,7 @@ def test_values_hstore_key(model, modelobj):
     assert result["title__ar"] == modelobj.title["ar"]
 
 
-def test_values_list_hstore_key(model, modelobj):
+def test_query_values_list_hstore_key(model, modelobj):
     """Tests that selecting a single key from a :see:HStoreField
     using the query set's .values_list() works properly."""
 
@@ -49,7 +49,7 @@ def test_values_list_hstore_key(model, modelobj):
 
 
 @pytest.mark.xfail(reason="has to be fixed as part of issue #8")
-def test_values_hstore_key_through_fk():
+def test_query_values_hstore_key_through_fk():
     """Tests whether selecting a single key from a :see:HStoreField
     using the query set's .values() works properly when there's a
     foreign key relationship involved."""

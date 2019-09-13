@@ -7,7 +7,7 @@ from psqlextra.fields import HStoreField
 from .fake_model import get_fake_model
 
 
-def test_annotate_hstore_key_ref():
+def test_query_annotate_hstore_key_ref():
     """Tests whether annotating using a :see:HStoreRef expression
     works correctly.
 
@@ -31,7 +31,7 @@ def test_annotate_hstore_key_ref():
     assert queryset["english_title"] == "english"
 
 
-def test_annotate_rename():
+def test_query_annotate_rename():
     """Tests whether field names can be overwritten
     with a annotated field."""
 
@@ -43,7 +43,7 @@ def test_annotate_rename():
     assert obj.title == "swen"
 
 
-def test_hstore_f_ref():
+def test_query_hstore_f_ref():
     """Tests whether F(..) expressions can be used in
     hstore values when performing update queries."""
 
