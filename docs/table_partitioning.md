@@ -11,10 +11,7 @@
 Partitioned tables are declared like regular Django models with a special base class and two extra options to set the partitioning method and key.
 
 ### Declaring the model
-Inherit your model from `psqlextra.models.PostgresPartitionedModel` and set the `partitioning_method` and `partitioning_key` attributes on your model.
-
-
-`partitioning_key` must be a list of field names to partition by.
+Inherit your model from `psqlextra.models.PostgresPartitionedModel` and declare a child class named `PartitioningMeta`. On the meta class, specify the partitioning method and key.
 
 
 ```python
@@ -24,8 +21,9 @@ from psqlextra.types import PostgresPartitioningMethod
 from psqlextra.models import PostgresPartitionedModel
 
 class MyModel(PostgresPartitionedModel):
-    partitioning_method = PostgresPartitioningMethod.RANGE
-    partitioning_key = ["timestamp"]
+    class PartitioningMeta:
+        method = PostgresPartitioningMethod.RANGE
+        key = ["timestamp"]
 
     name = models.TextField()
     timestamp = models.DateTimeField() 

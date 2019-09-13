@@ -4,10 +4,9 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import connection, models
 
 from psqlextra.backend.schema import PostgresSchemaEditor
-from psqlextra.models import PostgresPartitionedModel
 from psqlextra.types import PostgresPartitioningMethod
 
-from .util import define_fake_model
+from .util import define_fake_partitioning_model
 
 
 def test_schema_editor_create_delete_partitioned_model_range():
@@ -20,14 +19,9 @@ def test_schema_editor_create_delete_partitioned_model_range():
     method = PostgresPartitioningMethod.RANGE
     key = ["timestamp"]
 
-    model = define_fake_model(
-        {
-            "name": models.TextField(),
-            "timestamp": models.DateTimeField(),
-            "partitioning_method": method,
-            "partitioning_key": key,
-        },
-        PostgresPartitionedModel,
+    model = define_fake_partitioning_model(
+        {"name": models.TextField(), "timestamp": models.DateTimeField()},
+        {"method": method, "key": key},
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -70,14 +64,9 @@ def test_schema_editor_create_delete_partitioned_model_list():
     method = PostgresPartitioningMethod.LIST
     key = ["category"]
 
-    model = define_fake_model(
-        {
-            "name": models.TextField(),
-            "category": models.TextField(),
-            "partitioning_method": method,
-            "partitioning_key": key,
-        },
-        PostgresPartitionedModel,
+    model = define_fake_partitioning_model(
+        {"name": models.TextField(), "category": models.TextField()},
+        {"method": method, "key": key},
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -120,14 +109,9 @@ def test_schema_editor_create_delete_partitioned_model_default():
     method = PostgresPartitioningMethod.LIST
     key = ["category"]
 
-    model = define_fake_model(
-        {
-            "name": models.TextField(),
-            "category": models.TextField(),
-            "partitioning_method": method,
-            "partitioning_key": key,
-        },
-        PostgresPartitionedModel,
+    model = define_fake_partitioning_model(
+        {"name": models.TextField(), "category": models.TextField()},
+        {"method": method, "key": key},
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -168,13 +152,9 @@ def test_schema_editor_create_partitioned_model_no_method():
     needed.
     """
 
-    model = define_fake_model(
-        {
-            "name": models.CharField(max_length=255),
-            "timestamp": models.DateTimeField(),
-            "partitioning_key": ["timestamp"],
-        },
-        PostgresPartitionedModel,
+    model = define_fake_partitioning_model(
+        {"name": models.TextField(), "timestamp": models.DateTimeField()},
+        {"key": ["timestamp"]},
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -197,13 +177,9 @@ def test_schema_editor_create_partitioned_model_no_key():
     have a sane default.
     """
 
-    model = define_fake_model(
-        {
-            "name": models.CharField(max_length=255),
-            "timestamp": models.DateTimeField(),
-            "partitioning_method": PostgresPartitioningMethod.RANGE,
-        },
-        PostgresPartitionedModel,
+    model = define_fake_partitioning_model(
+        {"name": models.TextField(), "timestamp": models.DateTimeField()},
+        {"method": PostgresPartitioningMethod.RANGE},
     )
 
     schema_editor = PostgresSchemaEditor(connection)

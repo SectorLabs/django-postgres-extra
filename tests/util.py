@@ -4,10 +4,16 @@ from django.contrib.postgres.operations import HStoreExtension
 from django.db import connection, migrations
 from django.db.migrations.executor import MigrationExecutor
 
-from psqlextra.models import PostgresModel
+from psqlextra.models import (
+    PostgresModel,
+    PostgresPartitionedModel,
+    PostgresPartitionedModelMeta,
+)
 
 
-def define_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
+def define_fake_model(
+    fields=None, model_base=PostgresModel, meta_options={}, **attributes
+):
     name = str(uuid.uuid4()).replace("-", "")[:8]
 
     attributes = {
@@ -15,6 +21,7 @@ def define_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
         "__module__": __name__,
         "__name__": name,
         "Meta": type("Meta", (object,), meta_options),
+        **attributes,
     }
 
     if fields:
@@ -23,6 +30,17 @@ def define_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
     model = type(name, (model_base,), attributes)
 
     return model
+
+
+def define_fake_partitioning_model(fields=None, partitioning_options={}):
+    return define_fake_model(
+        fields=fields,
+        model_base=PostgresPartitionedModel,
+        meta_options={},
+        PartitioningMeta=type(
+            "PartitioningMeta", (object,), partitioning_options
+        ),
+    )
 
 
 def get_fake_model(fields=None, model_base=PostgresModel, meta_options={}):

@@ -1,6 +1,6 @@
 import copy
 
-from typing import Any, List, Tuple
+from typing import Any, List
 
 from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django.db.models import Field, Model
@@ -54,16 +54,14 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     def create_partitioned_model(self, model: Model) -> None:
         """Creates a new partitioned model."""
 
-        partitioning_method, partitioning_key = self._partitioning_properties_for_model(
-            model
-        )
+        meta = self._partitioning_properties_for_model(model)
 
         # get the sql statement that django creates for normal
         # table creations..
         sql, params = self._extract_sql(self.create_model, model)
 
         partitioning_key_sql = ", ".join(
-            self.quote_name(field_name) for field_name in partitioning_key
+            self.quote_name(field_name) for field_name in meta.key
         )
 
         # create a composite key that includes the partitioning key
@@ -76,7 +74,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         # extend the standard CREATE TABLE statement with
         # 'PARTITION BY ...'
         sql += self.sql_partition_by % (
-            partitioning_method.upper(),
+            meta.method.upper(),
             partitioning_key_sql,
         )
 
@@ -257,9 +255,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         return intercepted_args
 
     @staticmethod
-    def _partitioning_properties_for_model(
-        model: Model
-    ) -> Tuple[PostgresPartitioningMethod, Any]:
+    def _partitioning_properties_for_model(model: Model):
         """Gets the partitioning options for the specified model.
 
         Raises:
@@ -268,10 +264,17 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
                 for partitioning.
         """
 
-        partitioning_method = getattr(model, "partitioning_method", None)
-        partitioning_key = getattr(model, "partitioning_key", None)
+        meta = getattr(model, "_partitioning_meta", None)
+        if not meta:
+            raise ImproperlyConfigured(
+                (
+                    "Model '%s' is not properly configured to be partitioned."
+                    " Create the `PartitioningMeta` class as a child of '%s'."
+                )
+                % (model.__name__, model.__name__)
+            )
 
-        if not partitioning_method or not partitioning_key:
+        if not meta.method or not meta.key:
             raise ImproperlyConfigured(
                 (
                     "Model '%s' is not properly configured to be partitioned."
@@ -280,16 +283,16 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
                 % model.__name__
             )
 
-        if partitioning_method not in PostgresPartitioningMethod:
+        if meta.method not in PostgresPartitioningMethod:
             raise ImproperlyConfigured(
                 (
                     "Model '%s' is not properly configured to be partitioned."
                     " '%s' is not a member of the PostgresPartitioningMethod enum."
                 )
-                % (model.__name__, partitioning_method)
+                % (model.__name__, meta.method)
             )
 
-        if not isinstance(partitioning_key, list):
+        if not isinstance(meta.key, list):
             raise ImproperlyConfigured(
                 (
                     "Model '%s' is not properly configured to be partitioned."
@@ -300,7 +303,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             )
 
         try:
-            for field_name in partitioning_key:
+            for field_name in meta.key:
                 model._meta.get_field(field_name)
         except FieldDoesNotExist:
             raise ImproperlyConfigured(
@@ -309,10 +312,10 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
                     " Field in partitioning key '%s' is not a valid field on"
                     " the model."
                 )
-                % (model.__name__, partitioning_key)
+                % (model.__name__, meta.key)
             )
 
-        return partitioning_method, partitioning_key
+        return meta
 
     def _create_partition_name(self, model: Model, name: str) -> str:
         return "%s_%s" % (model._meta.db_table, name)
