@@ -2,8 +2,8 @@
 
 `django-postgres-extra` supports all available partitioning methods:
 
-* Range
-* List
+* `PARTITION BY RANGE`
+* `PARTITION BY LIST`
 
 ## Partitioned tables
 Partitioned tables are declared like regular Django models with a special base class and two extra options to set the partitioning method and key.
@@ -27,9 +27,6 @@ class MyModel(PostgresPartitionedModel):
     timestamp = models.DateTimeField() 
 ```
 
-### Creating a migration
-Use Django's standard `python manage.py makemigrations` to generate a migration to create your model. Once generated, modify the migration file and replace the `django.db.migrations.operations.CreateModel` with `psqlextra.migrations.operations.CreatePartitionedModel`.
-
 ## Adding/removing partitions
 Postgres does not have support for automatically creating new partitions as needed. Therefor, one must manually add new partitions. Depending on the partitioning method you have chosen, the partition has to be created differently.
 
@@ -39,16 +36,16 @@ Partitions are tables. Each partition must be given a unique name. `django-postg
 
 ### Using migrations
 #### Adding a range partition
-Use the `psqlextra.migrations.operations.AddRangePartition` operation to add a new range partition. Only use this operation when your partitioned model uses the `PostgresPartitioningMethod.RANGE`.
+Use the `psqlextra.migrations.operations.PostgresAddRangePartition` operation to add a new range partition. Only use this operation when your partitioned model uses the `PostgresPartitioningMethod.RANGE`.
 
 ```python
 from django.db import migrations, models
 
-from psqlextra.migrations.operations import AddRangePartition
+from psqlextra.migrations.operations import PostgresAddRangePartition
 
 class Migration(migrations.Migration):
     operations = [
-        AddRangePartition(
+        PostgresAddRangePartition(
            model_name="mypartitionedmodel",
            name="pt1",
            from_values="2019-01-01",
@@ -58,16 +55,16 @@ class Migration(migrations.Migration):
 ```
 
 #### Adding a list partition
-Use the `psqlextra.migrations.operations.AddListPartition` operation to add a new list partition. Only use this operation when your partitioned model uses the `PostgresPartitioningMethod.LIST`.
+Use the `psqlextra.migrations.operations.PostgresAddListPartition` operation to add a new list partition. Only use this operation when your partitioned model uses the `PostgresPartitioningMethod.LIST`.
 
 ```python
 from django.db import migrations, models
 
-from psqlextra.migrations.operations import AddRangePartition
+from psqlextra.migrations.operations import PostgresAddRangePartition
 
 class Migration(migrations.Migration):
     operations = [
-        AddListPartition(
+        PostgresAddListPartition(
            model_name="mypartitionedmodel",
            name="pt1",
            values=["car", "boat"],
@@ -76,18 +73,18 @@ class Migration(migrations.Migration):
 ```
 
 #### Adding a default partition
-Use the `psqlextra.migrations.operations.AddDefaultPartition` operation to add a new default partition. A default partition is the partition where records get saved that couldn't fit in any other partition.
+Use the `psqlextra.migrations.operations.PostgresAddDefaultPartition` operation to add a new default partition. A default partition is the partition where records get saved that couldn't fit in any other partition.
 
 Note that you can only have one default partition per partitioned table/model.
 
 ```python
 from django.db import migrations, models
 
-from psqlextra.migrations.operations import AddDefaultPartition
+from psqlextra.migrations.operations import PostgresAddDefaultPartition
 
 class Migration(migrations.Migration):
     operations = [
-        AddDefaultPartition(
+        PostgresAddDefaultPartition(
            model_name="mypartitionedmodel",
            name="default",
         ),
