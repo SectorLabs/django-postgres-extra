@@ -39,9 +39,6 @@ def filtered_schema_editor(*filters: List[str]):
             yield schema_editor, filter_results
 
     for filter_text in filters:
-        for call in execute.mock_calls:
-            print(call)
-
         filter_results[filter_text] = [
             call for call in execute.mock_calls if filter_text in str(call)
         ]
