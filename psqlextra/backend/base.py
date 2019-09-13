@@ -3,7 +3,8 @@ import logging
 from django.db import ProgrammingError
 
 from . import base_impl
-from .schema import SchemaEditor
+from .introspection import PostgresIntrospection
+from .schema import PostgresSchemaEditor
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,8 @@ class DatabaseWrapper(base_impl.backend()):
     schema editor and makes sure the `hstore`
     extension is enabled."""
 
-    SchemaEditorClass = SchemaEditor
+    SchemaEditorClass = PostgresSchemaEditor
+    introspection_class = PostgresIntrospection
 
     def prepare_database(self):
         """Ran to prepare the configured database.

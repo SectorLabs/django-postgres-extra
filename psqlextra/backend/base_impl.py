@@ -60,3 +60,13 @@ def schema_editor():
     schema editor for this."""
 
     return backend().SchemaEditorClass
+
+
+def introspection():
+    """Gets the base class for the introspection
+    class.
+
+    We have to use the configured base back-end's
+    introspection class for this."""
+
+    return backend().introspection_class
