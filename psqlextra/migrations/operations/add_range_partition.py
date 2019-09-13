@@ -1,10 +1,10 @@
-from django.db.migrations.operations.base import Operation
+from .partition import PostgresPartitionOperation
 
 
-class PostgresAddRangePartition(Operation):
+class PostgresAddRangePartition(PostgresPartitionOperation):
     """Adds a new range partition to a :see:PartitionedPostgresModel."""
 
-    def __init__(self, model_name, name, from_values, to_values):
+    def __init__(self, model_name: str, name: str, from_values, to_values):
         """Initializes new instance of :see:AddRangePartition.
 
         Arguments:
@@ -25,8 +25,8 @@ class PostgresAddRangePartition(Operation):
                 partition.
         """
 
-        self.model_name = model_name
-        self.name = name
+        super().__init__(model_name, name)
+
         self.from_values = from_values
         self.to_values = to_values
 
@@ -38,11 +38,9 @@ class PostgresAddRangePartition(Operation):
             )
 
     def deconstruct(self):
-        kwargs = {
-            "model_name": self.model_name,
-            "name": self.name,
-            "from_values": self.from_values,
-            "to_values": self.to_values,
-        }
+        name, args, kwargs = super().deconstruct()
 
-        return (self.__class__.__qualname__, [], kwargs)
+        kwargs["from_values"] = self.from_values
+        kwargs["to_values"] = self.to_values
+
+        return name, args, kwargs

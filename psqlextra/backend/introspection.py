@@ -69,42 +69,6 @@ class PostgresIntrospection(base_impl.introspection()):
             None,
         )
 
-    def get_partition_key(self, cursor, table_name: str) -> List[str]:
-        """Gets the partition key for the specified partitioned table.
-
-        Returns:
-            A list of column names that are part of the
-            partition key.
-        """
-
-        sql = """
-            SELECT
-                col.column_name
-            FROM
-                (SELECT partrelid,
-                        partnatts,
-                        CASE partstrat
-                            WHEN 'l' THEN 'list'
-                            WHEN 'r' THEN 'range'
-                        END AS partition_strategy,
-                        Unnest(partattrs) column_index
-                 FROM pg_partitioned_table) pt
-            JOIN
-                pg_class par
-            ON par.oid = pt.partrelid
-            JOIN
-                information_schema.COLUMNS col
-            ON
-                col.table_schema = par.relnamespace :: regnamespace :: text
-                AND col.table_name = par.relname
-                AND ordinal_position = pt.column_index
-            WHERE
-                table_name = %s
-        """
-
-        cursor.execute(sql, (table_name,))
-        return [row[0] for row in cursor.fetchall()]
-
     def get_partitions(
         self, cursor, table_name
     ) -> List[PostgresIntrospectedPartitionTable]:
@@ -140,3 +104,39 @@ class PostgresIntrospection(base_impl.introspection()):
             PostgresIntrospectedPartitionTable(name=row[0])
             for row in cursor.fetchall()
         ]
+
+    def get_partition_key(self, cursor, table_name: str) -> List[str]:
+        """Gets the partition key for the specified partitioned table.
+
+        Returns:
+            A list of column names that are part of the
+            partition key.
+        """
+
+        sql = """
+            SELECT
+                col.column_name
+            FROM
+                (SELECT partrelid,
+                        partnatts,
+                        CASE partstrat
+                            WHEN 'l' THEN 'list'
+                            WHEN 'r' THEN 'range'
+                        END AS partition_strategy,
+                        Unnest(partattrs) column_index
+                 FROM pg_partitioned_table) pt
+            JOIN
+                pg_class par
+            ON par.oid = pt.partrelid
+            JOIN
+                information_schema.COLUMNS col
+            ON
+                col.table_schema = par.relnamespace :: regnamespace :: text
+                AND col.table_name = par.relname
+                AND ordinal_position = pt.column_index
+            WHERE
+                table_name = %s
+        """
+
+        cursor.execute(sql, (table_name,))
+        return [row[0] for row in cursor.fetchall()]

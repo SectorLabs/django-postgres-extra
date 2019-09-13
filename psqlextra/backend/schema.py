@@ -177,10 +177,10 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     def delete_partition(self, model: Model, name: str) -> None:
         """Deletes the partition with the specified name."""
 
-        self.execute(
-            self.sql_drop_partition,
-            self.quote_name(self._create_partition_name(model, name)),
+        sql = self.sql_delete_partition % self.quote_name(
+            self._create_partition_name(model, name)
         )
+        self.execute(sql)
 
     def delete_model(self, model: Model) -> None:
         """Drops/deletes an existing model."""
