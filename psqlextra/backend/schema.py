@@ -21,6 +21,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     specific to PostgreSQL."""
 
     sql_partition_by = " PARTITION BY %s (%s)"
+    sql_add_default_partition = "CREATE TABLE %s PARTITION OF %s DEFAULT"
     sql_add_range_partition = (
         "CREATE TABLE %s PARTITION OF %s FOR VALUES FROM (%s) TO (%s)"
     )
@@ -143,6 +144,21 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         )
 
         self.execute(sql, values)
+
+    def add_default_partition(self, model: Model, name: str) -> None:
+        """Creates a new default partition for the specified partitioned model.
+
+        A default partition is a partition where rows are
+        routed to when no more specific partition is a match."""
+        # asserts the model is a model set up for partitioning
+        self._partitioning_properties_for_model(model)
+
+        sql = self.sql_add_default_partition % (
+            self.quote_name(name),
+            self.quote_name(model._meta.db_table),
+        )
+
+        self.execute(sql)
 
     def delete_model(self, model: Model) -> None:
         """Drops/deletes an existing model."""
