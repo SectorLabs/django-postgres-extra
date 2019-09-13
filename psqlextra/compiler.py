@@ -23,7 +23,8 @@ class PostgresReturningUpdateCompiler(SQLUpdateCompiler):
         return super().as_sql()
 
     def _prepare_query_values(self):
-        """Extra prep on query values by converting dictionaries into
+        """Extra prep on query values by converting dictionaries into.
+
         :see:HStoreValue expressions.
 
         This allows putting expressions in a dictionary. The

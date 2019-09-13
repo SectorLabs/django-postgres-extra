@@ -23,8 +23,10 @@ def modelobj(model):
 
 
 def test_query_values_hstore(model, modelobj):
-    """Tests that selecting all the keys properly works and returns a
-    :see:LocalizedValue instance."""
+    """Tests that selecting all the keys properly works and returns a.
+
+    :see:LocalizedValue instance.
+    """
 
     result = list(model.objects.values("title"))[0]
     assert result["title"] == modelobj.title

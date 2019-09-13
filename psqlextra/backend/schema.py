@@ -27,6 +27,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     sql_add_list_partition = (
         "CREATE TABLE %s PARTITION OF %s FOR VALUES IN (%s)"
     )
+    sql_delete_partition = "DROP TABLE %s"
 
     side_effects = [
         HStoreUniqueSchemaEditorSideEffect(),
@@ -81,6 +82,11 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         self.execute(sql, params)
 
+    def delete_partitioned_model(self, model: Model) -> None:
+        """Drops the specified partitioned model."""
+
+        return self.delete_model(model)
+
     def add_range_partition(
         self, model: Model, name: str, from_values: Any, to_values: Any
     ) -> None:
@@ -91,7 +97,8 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
                 Partitioned model to create a partition for.
 
             name:
-                Name to give to the new partition table.
+                Name to give to the new partition.
+                Final name will be "{table_name}_{partition_name}"
 
             from_values:
                 Start of the partitioning key range of
@@ -108,7 +115,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         self._partitioning_properties_for_model(model)
 
         sql = self.sql_add_range_partition % (
-            self.quote_name(name),
+            self.quote_name(self._create_partition_name(model, name)),
             self.quote_name(model._meta.db_table),
             "%s",
             "%s",
@@ -127,6 +134,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
             name:
                 Name to give to the new partition.
+                Final name will be "{table_name}_{partition_name}"
 
             values:
                 Partition key values that should be
@@ -137,7 +145,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         self._partitioning_properties_for_model(model)
 
         sql = self.sql_add_list_partition % (
-            self.quote_name(name),
+            self.quote_name(self._create_partition_name(model, name)),
             self.quote_name(model._meta.db_table),
             ",".join(["%s" for _ in range(len(values))]),
         )
@@ -149,16 +157,33 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         A default partition is a partition where rows are routed to when
         no more specific partition is a match.
+
+        Arguments:
+            model:
+                Partitioned model to create a partition for.
+
+            name:
+                Name to give to the new partition.
+                Final name will be "{table_name}_{partition_name}"
         """
+
         # asserts the model is a model set up for partitioning
         self._partitioning_properties_for_model(model)
 
         sql = self.sql_add_default_partition % (
-            self.quote_name(name),
+            self.quote_name(self._create_partition_name(model, name)),
             self.quote_name(model._meta.db_table),
         )
 
         self.execute(sql)
+
+    def delete_partition(self, model: Model, name: str) -> None:
+        """Deletes the partition with the specified name."""
+
+        self.execute(
+            self.sql_drop_partition,
+            self.quote_name(self._create_partition_name(model, name)),
+        )
 
     def delete_model(self, model: Model) -> None:
         """Drops/deletes an existing model."""
@@ -288,3 +313,6 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             )
 
         return partitioning_method, partitioning_key
+
+    def _create_partition_name(self, model: Model, name: str) -> str:
+        return "%s_%s" % (model._meta.db_table, name)
