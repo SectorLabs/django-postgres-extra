@@ -5,7 +5,7 @@ class AddRangePartition(Operation):
     """Adds a new range partition to a :see:PartitionedPostgresModel."""
 
     def __init__(self, model_name, name, from_values, to_values):
-        """Initializes new instance of :see:AddPartition.
+        """Initializes new instance of :see:AddRangePartition.
 
         Arguments:
             model_name:
