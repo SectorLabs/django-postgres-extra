@@ -1,4 +1,3 @@
-## Conflict handling
 The `PostgresManager` comes with full support for PostgreSQL's `ON CONFLICT DO ...`. This is an extremely useful feature for doing concurrency safe inserts. Often, when you want to insert a row, you want to overwrite it already exists, or simply leave the existing data there. This would require a `SELECT` first and then possibly a `INSERT`. Within those two queries, another process might make a change to the row. The alternative of trying to insert, ignoring the error and then doing a `UPDATE` is also not good. That would result in a a lot of write overhead (due to logging). Luckily, PostgreSQL offers `ON CONFLICT DO ...`, which allows you to specify what PostgreSQL should do in case that row already exists.
 
 `django-postgres-extra` brings full support for PostgreSQL's `ON CONFLICT DO ...`, allowing blazing fast and concurrency safe inserts:

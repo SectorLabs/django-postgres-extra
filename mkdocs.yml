@@ -2,11 +2,15 @@ site_name: django-postgres-extra
 theme: readthedocs
 pages:
 - Home: index.md
-- Managers & Models: managers_models.md
+- Managers & Models: managers-models.md
+- Conflict Handling: conflict-handling.md
 - HStore: hstore.md
+- Table Partitioning: table-partitioning.md
 - Indexes: indexes.md
 - Database engine: db-engine.md
+- Major Releases: major-releases.md
 plugins:
     - redirects:
         redirect_maps:
-            'manager.md': 'managers_models.md'
+            'manager.md': 'managers-models.md'
+            'conflict_handling.md': 'conflict-handling.md'

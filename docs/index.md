@@ -5,13 +5,13 @@ By seamless, we mean that any features we add will work truly seamlessly. You sh
 ## Features
 Explore the documentation to learn about all features:
 
-* [Managers & Models](/managers_models)
+* [Managers & Models](/managers-models)
 
     Use the custom manager and model to take advantage of all of the features described below. Most features do not work without using the `PostgresManager` and `PostgresModel`. 
 
     <br>
 
-* [Conflict Handling](/conflict_handling)
+* [Conflict Handling](/conflict-handling)
 
     
     Adds support for PostgreSQL's `ON CONFLICT` syntax for inserts. Supports for `DO UPDATE` and `DO NOTHING`. In other words; single statement, atomic, concurrency safe upserts.
@@ -41,12 +41,12 @@ Explore the documentation to learn about all features:
     <br>
 
 
-* [Table Partitioning](/table_partitioning)
+* [Table Partitioning](/table-partitioning)
 
     Adds support for PostgreSQL 11.x declarative table partitioning.
 
-    * [Partitioned tables](/table_partitioning#partitioned_tables)
-    * [Adding/removing partitions](/table_partitioning#adding_removing_partitions)
+    * [Partitioned tables](/table-partitioning#partitioned_tables)
+    * [Adding/removing partitions](/table-partitioning#adding_removing_partitions)
 
     <br>
 

@@ -1,5 +1,3 @@
-# Table Partitioning
-
 `django-postgres-extra` adds support for [PostgreSQL's 11.x declarative table partitioning](https://www.postgresql.org/docs/current/ddl-partitioning.html#DDL-PARTITIONING-DECLARATIVE).
 
 `django-postgres-extra` supports all available partitioning methods:

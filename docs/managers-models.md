@@ -1,5 +1,3 @@
-# Managers & Models
-
 `django-postgres-extra` provides the `psqlextra.manager.PostgresManager` which exposes a lot of functionality. Your model must use this manager in order to use most of this package's functionality.
 
 There are four ways to do this:
