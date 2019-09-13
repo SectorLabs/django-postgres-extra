@@ -1,6 +1,7 @@
 `psqlextra.fields.HStoreField` is based on Django's [HStoreField](https://docs.djangoproject.com/en/1.10/ref/contrib/postgres/fields/#hstorefield) and therefore supports everything Django does natively, plus more.
 
-## Unique constraint
+## Constraints
+### Unique
 The `uniqueness` constraint can be added on one or more `hstore` keys, similar to how a `UNIQUE` constraint can be added to a column. Setting this option causes unique indexes to be created on the specified keys.
 
 You can specify a `list` of strings to specify the keys that must be marked as unique:
@@ -26,7 +27,7 @@ myfield = HStoreField(uniqueness=[('key1', 'key2'), 'key3])
 
 In the example above, `key1` and `key2` must unique **together**, and `key3` must unique on its own. By default, none of the keys are marked as "unique".
 
-## Not null constraint
+### Required
 The `required` option can be added to ensure that the specified `hstore` keys are set for every row. This is similar to a `NOT NULL` constraint on a column. You can specify a list of `hstore` keys that are required:
 
 ```python

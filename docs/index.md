@@ -5,20 +5,50 @@ By seamless, we mean that any features we add will work truly seamlessly. You sh
 ## Features
 Explore the documentation to learn about all features:
 
-* [Manager](/manager)
-    * [Upserts](/manager/#upserting)
+* [Managers & Models](/managers_models)
+
+    Use the custom manager and model to take advantage of all of the features described below. Most features do not work without using the `PostgresManager` and `PostgresModel`. 
+
+    <br>
+
+* [Conflict Handling](/conflict_handling)
+
+    
+    Adds support for PostgreSQL's `ON CONFLICT` syntax for inserts. Supports for `DO UPDATE` and `DO NOTHING`. In other words; single statement, atomic, concurrency safe upserts.
+
+    <br>
+
 
 * [HStore](/hstore)
-    * [Unique constraint](/hstore/#unique-constraint)
-    * [Not null constraint](/hstore/#not-null-constraint)
+    
+    Built on top Django's built-in support for HStore field. Adds support for indices on keys and unique/required constraints.
 
-* [Signals](/signals)
-    * [Create](/signals/#psqlextrasignalscreate)
-    * [Update](/signals/#psqlextrasignalsupdate)
-    * [Delete](/signals/#psqlextrasignalsdelete)
+    All of these features integrate well with Django's migrations sytem.
+
+    * [Constraints](/hstore/#constraints)
+        * [Unique](/hstore/#unique)
+        * [Required](/hstore#required)
+
+    <br>
 
 * [Indexes](/indexes)
+
+    Custom index types supported by PostgreSQL, but not by Django.
+
+
     * [ConditionalUniqueIndex](/indexes/#conditional-unique-index)
+
+    <br>
+
+
+* [Table Partitioning](/table_partitioning)
+
+    Adds support for PostgreSQL 11.x declarative table partitioning.
+
+    * [Partitioned tables](/table_partitioning#partitioned_tables)
+    * [Adding/removing partitions](/table_partitioning#adding_removing_partitions)
+
+    <br>
 
 * [Database engine](/db-engine)
 
@@ -48,13 +78,19 @@ Explore the documentation to learn about all features:
 
 4. Make sure all models inherit from `psqlextra.models.PostgresModel` or use the `psqlextra.manager.PostgresManager`. Without this, most features **do not work**.
 
-5. Read the documentation about the custom database engine to avoid common pitfalls: [Database engine](/db-engine) .
+    * [Managers & Models](/managers_models)
+
+    <br>
+
+5. Read the documentation about the custom database engine to avoid common pitfalls.
+
+    * [Database engine](/db-engine)
 
 ## Requirements
 In order to use this package, your project must be using:
 
-* Python 3.5, or newer
-* PostgreSQL 9.6 or newer
-* Django 1.10 or newer
+* Python 3.7, or newer
+* PostgreSQL 10.x or newer
+* Django 1.11 or newer
 
-Python 3.5 is required because type hints are used. A feature only available in Python 3.5 and newer. PostgreSQL 9.6 is required to take advantage of the latest features such as `ltree`.
+Python 3.7 is required because type hints are used. A feature only available in Python 3.5 and newer. PostgreSQL 9.6 is required to take advantage of the latest features such as `ltree`.

@@ -2,8 +2,12 @@ site_name: django-postgres-extra
 theme: readthedocs
 pages:
 - Home: index.md
-- Manager: manager.md
+- Managers & Models: managers_models.md
 - HStore: hstore.md
 - Signals: signals.md
 - Indexes: indexes.md
 - Database engine: db-engine.md
+plugins:
+    - redirects:
+        redirect_maps:
+            'manager.md': 'managers_models.md'
