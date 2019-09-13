@@ -14,6 +14,8 @@ from .migrations import apply_migration
 
 @pytest.fixture
 def create_model():
+    """Factory for creating a :see:PostgresCreatePartitionedModel operation."""
+
     def _create_model(method):
         fields = [("name", models.TextField())]
 
@@ -108,6 +110,7 @@ def test_migration_operations_add_delete_partition(
 
     project = migrations.state.ProjectState.from_apps(apps)
 
+    # apply migration to create model and one partition
     create_operation = create_model(method)
     apply_migration(
         connection.schema_editor(), [create_operation, operation], project
@@ -121,6 +124,7 @@ def test_migration_operations_add_delete_partition(
         assert len(table.partitions) == 1
         assert table.partitions[0].name == f"{table.name}_{operation.name}"
 
+    # apply migration to delete the partition
     apply_migration(
         connection.schema_editor(),
         [

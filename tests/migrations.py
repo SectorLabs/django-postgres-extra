@@ -1,20 +1,14 @@
-import uuid
 
 from contextlib import contextmanager
 from typing import List
 from unittest import mock
 
-import django
 
-from django.apps import AppConfig, apps
-from django.apps.registry import Apps
+from django.apps import apps
 from django.db import connection, migrations
-from django.db.migrations.autodetector import MigrationAutodetector
 from django.db.migrations.executor import MigrationExecutor
-from django.db.migrations.state import ProjectState
 
 from psqlextra.backend.schema import PostgresSchemaEditor
-from psqlextra.models import PostgresModel
 
 from .util import define_fake_model
 
@@ -295,93 +289,3 @@ def rename_field(field, filters: List[str]):
         )
 
     yield calls
-
-
-class MigrationSimulator:
-    """Simulates a project and allows making and running migrations."""
-
-    def __init__(self):
-        """Creates a new migration simulator with an empty project state and no
-        migrations."""
-
-        import psqlextra.apps
-
-        self.app_label = self._generate_random_name()
-        self.app_config = type(
-            self.app_label,
-            (AppConfig,),
-            dict(name=self.app_label, verbose_name=self.app_label),
-        )(self.app_label, psqlextra.apps)
-
-        self.app_config.models = {}
-
-        self.apps = Apps()
-        self.apps.ready = False
-        if django.VERSION >= (2, 0):
-            self.apps.loading = False
-        self.apps.populate(installed_apps=[self.app_config])
-
-        self.project_state = ProjectState()
-        self.migrations = []
-
-    def define_model(self, fields, model_base=PostgresModel, meta_options={}):
-        name = self._generate_random_name()
-
-        attributes = {
-            "app_label": self.app_label,
-            "__module__": __name__,
-            "__name__": name,
-            "Meta": type("Meta", (object,), meta_options),
-        }
-
-        if fields:
-            attributes.update(fields)
-
-        model = type(name, (model_base,), attributes)
-        self.app_config.models[name] = model
-        return model
-
-    def make_migrations(self):
-        """Runs the auto-detector and detects changes in the project that can
-        be put in a migration."""
-
-        new_project_state = ProjectState.from_apps(self.apps)
-
-        autodetector = MigrationAutodetector(
-            self.project_state, new_project_state
-        )
-
-        changes = autodetector._detect_changes()
-        migrations = changes.get("tests", [])
-        migration = migrations[0] if len(migrations) > 0 else None
-
-        self.migrations.append(migration)
-
-        self.project_state = new_project_state
-        return migration
-
-    def migrate(self, *filters: List[str]):
-        """Executes the recorded migrations.
-
-        Arguments:
-            filters: List of strings to filter SQL statements on.
-
-        Returns:
-            The filtered calls of every migration
-        """
-
-        calls_for_migrations = []
-        while len(self.migrations) > 0:
-            migration = self.migrations.pop()
-
-            with filtered_schema_editor(*filters) as (schema_editor, calls):
-                migration_executor = MigrationExecutor(schema_editor.connection)
-                migration_executor.apply_migration(
-                    self.project_state, migration
-                )
-                calls_for_migrations.append(calls)
-
-        return calls_for_migrations
-
-    def _generate_random_name(self):
-        return str(uuid.uuid4()).replace("-", "")[:8]

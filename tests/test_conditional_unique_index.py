@@ -5,7 +5,7 @@ from django.db.migrations import AddIndex, CreateModel
 
 from psqlextra.indexes import ConditionalUniqueIndex
 
-from .migrations import MigrationSimulator
+from .migrations import apply_migration, filtered_schema_editor
 from .util import get_fake_model
 
 
@@ -25,62 +25,46 @@ def test_deconstruct():
 def test_cui_migrations():
     """Tests whether the migrations are properly generated and executed."""
 
-    simulator = MigrationSimulator()
-
-    Model = simulator.define_model(
-        fields={
-            "id": models.IntegerField(primary_key=True),
-            "name": models.CharField(max_length=255, null=True),
-            "other_name": models.CharField(max_length=255),
-        },
-        meta_options={
-            "indexes": [
-                ConditionalUniqueIndex(
-                    fields=["name", "other_name"],
-                    condition='"name" IS NOT NULL',
-                    name="index1",
-                ),
-                ConditionalUniqueIndex(
-                    fields=["other_name"],
-                    condition='"name" IS NULL',
-                    name="index2",
-                ),
-            ]
-        },
+    index_1 = ConditionalUniqueIndex(
+        fields=["name", "other_name"],
+        condition='"name" IS NOT NULL',
+        name="index1",
     )
 
-    migration = simulator.make_migrations()
-    assert len(migration.operations) == 3
+    index_2 = ConditionalUniqueIndex(
+        fields=["other_name"], condition='"name" IS NULL', name="index2"
+    )
 
-    operations = migration.operations
-    assert isinstance(operations[0], CreateModel)
-
-    for operation in operations[1:]:
-        assert isinstance(operation, AddIndex)
-
-    calls = [
-        call[0]
-        for _, call, _ in simulator.migrate("CREATE UNIQUE INDEX")[0][
-            "CREATE UNIQUE INDEX"
-        ]
+    ops = [
+        CreateModel(
+            name="mymodel",
+            fields=[
+                ("id", models.IntegerField(primary_key=True)),
+                ("name", models.CharField(max_length=255, null=True)),
+                ("other_name", models.CharField(max_length=255)),
+            ],
+            options={
+                # "indexes": [index_1, index_2],
+            },
+        ),
+        AddIndex(model_name="mymodel", index=index_1),
+        AddIndex(model_name="mymodel", index=index_2),
     ]
 
-    db_table = Model._meta.db_table
+    with filtered_schema_editor("CREATE UNIQUE INDEX") as (
+        schema_editor,
+        calls,
+    ):
+        apply_migration(schema_editor, ops)
+
+    calls = [call[0] for _, call, _ in calls["CREATE UNIQUE INDEX"]]
+
+    db_table = "tests_mymodel"
     query = 'CREATE UNIQUE INDEX "index1" ON "{0}" ("name", "other_name") WHERE "name" IS NOT NULL'
     assert str(calls[0]) == query.format(db_table)
 
     query = 'CREATE UNIQUE INDEX "index2" ON "{0}" ("other_name") WHERE "name" IS NULL'
     assert str(calls[1]) == query.format(db_table)
-
-    with transaction.atomic():
-        Model.objects.create(id=1, name="name", other_name="other_name")
-        with pytest.raises(IntegrityError):
-            Model.objects.create(id=2, name="name", other_name="other_name")
-
-    with transaction.atomic():
-        Model.objects.create(id=1, name=None, other_name="other_name")
-        with pytest.raises(IntegrityError):
-            Model.objects.create(id=2, name=None, other_name="other_name")
 
 
 def test_cui_upserting():
