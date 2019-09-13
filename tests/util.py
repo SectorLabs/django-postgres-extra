@@ -4,11 +4,7 @@ from django.contrib.postgres.operations import HStoreExtension
 from django.db import connection, migrations
 from django.db.migrations.executor import MigrationExecutor
 
-from psqlextra.models import (
-    PostgresModel,
-    PostgresPartitionedModel,
-    PostgresPartitionedModelMeta,
-)
+from psqlextra.models import PostgresModel, PostgresPartitionedModel
 
 
 def define_fake_model(
@@ -28,7 +24,6 @@ def define_fake_model(
         attributes.update(fields)
 
     model = type(name, (model_base,), attributes)
-
     return model
 
 

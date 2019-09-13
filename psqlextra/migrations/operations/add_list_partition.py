@@ -1,7 +1,7 @@
 from django.db.migrations.operations.base import Operation
 
 
-class AddListPartition(Operation):
+class PostgresAddListPartition(Operation):
     """Adds a new list partition to a :see:PartitionedPostgresModel."""
 
     def __init__(self, model_name, name, values):

@@ -1,7 +1,7 @@
 from django.db.migrations.operations.base import Operation
 
 
-class AddRangePartition(Operation):
+class PostgresAddRangePartition(Operation):
     """Adds a new range partition to a :see:PartitionedPostgresModel."""
 
     def __init__(self, model_name, name, from_values, to_values):

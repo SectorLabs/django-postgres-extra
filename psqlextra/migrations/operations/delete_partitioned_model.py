@@ -1,7 +1,7 @@
 from django.db.migrations.operations.models import DeleteModel
 
 
-class DeletePartitionedModel(DeleteModel):
+class PostgresDeletePartitionedModel(DeleteModel):
     """Deletes the partitioned model and all of its partitions."""
 
     def database_forwards(self, app_label, schema_editor, from_state, to_state):

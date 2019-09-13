@@ -1,7 +1,7 @@
 from django.db.migrations.operations.models import DeleteModel
 
 
-class DeletePartition(DeleteModel):
+class PostgresDeletePartition(DeleteModel):
     """Deletes a partition that's part of a :see:PartitionedPostgresModel."""
 
     def __init__(self, model_name, name):

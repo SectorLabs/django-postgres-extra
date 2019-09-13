@@ -1,7 +1,7 @@
 from django.db.migrations.operations.base import Operation
 
 
-class AddDefaultPartition(Operation):
+class PostgresAddDefaultPartition(Operation):
     """Adds a new default partition to a :see:PartitionedPostgresModel."""
 
     def __init__(self, model_name, name):

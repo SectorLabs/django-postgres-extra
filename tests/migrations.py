@@ -9,11 +9,11 @@ import django
 from django.apps import AppConfig, apps
 from django.apps.registry import Apps
 from django.db import connection, migrations
-from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.autodetector import MigrationAutodetector
 from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.state import ProjectState
 
+from psqlextra.backend.schema import PostgresSchemaEditor
 from psqlextra.models import PostgresModel
 
 from .util import define_fake_model
@@ -33,12 +33,15 @@ def filtered_schema_editor(*filters: List[str]):
     with connection.schema_editor() as schema_editor:
         wrapper_for = schema_editor.execute
         with mock.patch.object(
-            BaseDatabaseSchemaEditor, "execute", wraps=wrapper_for
+            PostgresSchemaEditor, "execute", wraps=wrapper_for
         ) as execute:
             filter_results = {}
             yield schema_editor, filter_results
 
     for filter_text in filters:
+        for call in execute.mock_calls:
+            print(call)
+
         filter_results[filter_text] = [
             call for call in execute.mock_calls if filter_text in str(call)
         ]
@@ -69,7 +72,7 @@ def execute_migration(schema_editor, operations, project=None):
     Migration.operations = operations
 
     executor = MigrationExecutor(schema_editor.connection)
-    executor.apply_migration(project, Migration("eh", "postgres_extra"))
+    executor.apply_migration(project, Migration("eh", "tests"))
 
 
 @contextmanager

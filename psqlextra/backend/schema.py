@@ -1,6 +1,5 @@
-import copy
-
 from typing import Any, List
+from unittest import mock
 
 from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django.db.models import Field, Model
@@ -240,19 +239,10 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         ourselves.
         """
 
-        original_execute_func = copy.deepcopy(self.execute)
+        with mock.patch.object(self, "execute") as execute:
+            method(*args)
 
-        intercepted_args = []
-
-        def _intercept(*args):
-            intercepted_args.extend(args)
-
-        self.execute = _intercept
-
-        method(*args)
-
-        self.execute = original_execute_func
-        return intercepted_args
+            return tuple(execute.mock_calls[0])[1]
 
     @staticmethod
     def _partitioning_properties_for_model(model: Model):
