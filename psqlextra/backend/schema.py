@@ -1,6 +1,9 @@
 import copy
 
+from typing import Any, List, Tuple
+
 from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
+from django.db.models import Field, Model
 
 from psqlextra.types import PostgresPartitioningMethod
 
@@ -39,7 +42,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         self.deferred_sql = []
 
-    def create_model(self, model):
+    def create_model(self, model: Model) -> None:
         """Creates a new model."""
 
         super().create_model(model)
@@ -47,7 +50,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         for side_effect in self.side_effects:
             side_effect.create_model(model)
 
-    def create_partitioned_model(self, model):
+    def create_partitioned_model(self, model: Model) -> None:
         """Creates a new partitioned model."""
 
         partitioning_method, partitioning_key = self._partitioning_properties_for_model(
@@ -78,7 +81,9 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         self.execute(sql, params)
 
-    def add_range_partition(self, model, name, from_values, to_values):
+    def add_range_partition(
+        self, model: Model, name: str, from_values: Any, to_values: Any
+    ) -> None:
         """Creates a new range partition for the specified partitioned model.
 
         Arguments:
@@ -111,7 +116,9 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         self.execute(sql, (from_values, to_values))
 
-    def add_list_partition(self, model, name, values):
+    def add_list_partition(
+        self, model: Model, name: str, values: List[Any]
+    ) -> None:
         """Creates a new list partition for the specified partitioned model.
 
         Arguments:
@@ -137,7 +144,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         self.execute(sql, values)
 
-    def delete_model(self, model):
+    def delete_model(self, model: Model) -> None:
         """Drops/deletes an existing model."""
 
         for side_effect in self.side_effects:
@@ -145,7 +152,9 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         super().delete_model(model)
 
-    def alter_db_table(self, model, old_db_table, new_db_table):
+    def alter_db_table(
+        self, model: Model, old_db_table: str, new_db_table: str
+    ) -> None:
         """Alters a table/model."""
 
         super().alter_db_table(model, old_db_table, new_db_table)
@@ -153,7 +162,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         for side_effect in self.side_effects:
             side_effect.alter_db_table(model, old_db_table, new_db_table)
 
-    def add_field(self, model, field):
+    def add_field(self, model: Model, field: Field) -> None:
         """Adds a new field to an exisiting model."""
 
         super().add_field(model, field)
@@ -161,7 +170,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         for side_effect in self.side_effects:
             side_effect.add_field(model, field)
 
-    def remove_field(self, model, field):
+    def remove_field(self, model: Model, field: Field) -> None:
         """Removes a field from an existing model."""
 
         for side_effect in self.side_effects:
@@ -169,7 +178,13 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         super().remove_field(model, field)
 
-    def alter_field(self, model, old_field, new_field, strict=False):
+    def alter_field(
+        self,
+        model: Model,
+        old_field: Field,
+        new_field: Field,
+        strict: bool = False,
+    ) -> None:
         """Alters an existing field on an existing model."""
 
         super().alter_field(model, old_field, new_field, strict)
@@ -200,7 +215,9 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         return intercepted_args
 
     @staticmethod
-    def _partitioning_properties_for_model(model):
+    def _partitioning_properties_for_model(
+        model: Model
+    ) -> Tuple[PostgresPartitioningMethod, Any]:
         """Gets the partitioning options for the specified model.
 
         Raises:
