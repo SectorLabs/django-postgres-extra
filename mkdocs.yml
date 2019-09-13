@@ -4,7 +4,6 @@ pages:
 - Home: index.md
 - Managers & Models: managers_models.md
 - HStore: hstore.md
-- Signals: signals.md
 - Indexes: indexes.md
 - Database engine: db-engine.md
 plugins:

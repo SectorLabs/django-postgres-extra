@@ -10,7 +10,6 @@ from django.db.models.fields import NOT_PROVIDED
 from django.db.models.sql import UpdateQuery
 from django.db.models.sql.constants import CURSOR
 
-from psqlextra import signals
 from psqlextra.compiler import (
     PostgresInsertCompiler,
     PostgresReturningUpdateCompiler,
@@ -108,10 +107,6 @@ class PostgresQuerySet(models.QuerySet):
         with transaction.atomic(using=self.db, savepoint=False):
             rows = compiler.execute_sql(CURSOR)
         self._result_cache = None
-
-        # send out a signal for each row
-        for row in rows:
-            signals.update.send(self.model, pk=row[0])
 
         # the original update(..) returns the amount of rows
         # affected, let's do the same
@@ -526,30 +521,6 @@ class PostgresManager(models.Manager):
                 % db_backend
             )
 
-        # hook into django signals to then trigger our own
-
-        django.db.models.signals.post_save.connect(
-            self._on_model_save, sender=self.model, weak=False
-        )
-
-        django.db.models.signals.pre_delete.connect(
-            self._on_model_delete, sender=self.model, weak=False
-        )
-
-        self._signals_connected = True
-
-    def __del__(self):
-        """Disconnects signals."""
-
-        if self._signals_connected is False:
-            return
-
-        # django.db.models.signals.post_save.disconnect(
-        #     self._on_model_save, sender=self.model)
-
-        # django.db.models.signals.pre_delete.disconnect(
-        #     self._on_model_delete, sender=self.model)
-
     def get_queryset(self):
         """Gets the query set to be used on this manager."""
 
@@ -657,21 +628,3 @@ class PostgresManager(models.Manager):
         return self.get_queryset().bulk_upsert(
             conflict_target, rows, index_predicate, return_model
         )
-
-    @staticmethod
-    def _on_model_save(sender, **kwargs):
-        """When a model gets created or updated."""
-
-        created, instance = kwargs["created"], kwargs["instance"]
-
-        if created:
-            signals.create.send(sender, pk=instance.pk)
-        else:
-            signals.update.send(sender, pk=instance.pk)
-
-    @staticmethod
-    def _on_model_delete(sender, **kwargs):
-        """When a model gets deleted."""
-
-        instance = kwargs["instance"]
-        signals.delete.send(sender, pk=instance.pk)

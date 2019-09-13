@@ -60,10 +60,6 @@ Major features
    * Null constraints
    * Select individual keys using ``.values()`` or ``.values_list()``
 
-3. **Extra signals**
-
-   * Updates
-
 4. **Extra expressions**
 
    * ``MIN`` and ``MAX`` for multiple value fields such as hstore and array.
