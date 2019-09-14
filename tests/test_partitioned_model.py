@@ -1,4 +1,3 @@
-
 from psqlextra.models import PostgresPartitionedModel
 from psqlextra.types import PostgresPartitioningMethod
 
@@ -20,8 +19,10 @@ def test_partitioning_model_options_meta():
 
 
 def test_partitioned_model_default_options():
-    """Tests whether the default partitioning options are set as expected on
-    :see:PostgresPartitionedModel."""
+    """Tests whether the default partitioning options are set as expected on.
+
+    :see:PostgresPartitionedModel.
+    """
 
     model = define_fake_partitioning_model()
 
