@@ -13,9 +13,9 @@ ROW_COUNT = 10000
 
 @pytest.mark.benchmark()
 def test_upsert_bulk_naive(benchmark):
-    model = get_fake_model({
-        'field': models.CharField(max_length=255, unique=True)
-    })
+    model = get_fake_model(
+        {"field": models.CharField(max_length=255, unique=True)}
+    )
 
     rows = []
     random_values = []
@@ -30,22 +30,21 @@ def test_upsert_bulk_naive(benchmark):
         """Performs a concurrency safe upsert
         using the native PostgreSQL upsert."""
 
-        rows = [
-            dict(field=random_value)
-            for random_value in random_values
-        ]
+        rows = [dict(field=random_value) for random_value in random_values]
 
         for row in rows:
-            model.objects.on_conflict(['field'], ConflictAction.UPDATE).insert(**row)
+            model.objects.on_conflict(["field"], ConflictAction.UPDATE).insert(
+                **row
+            )
 
     benchmark(_native_upsert, model, random_values)
 
 
 @pytest.mark.benchmark()
 def test_upsert_bulk_native(benchmark):
-    model = get_fake_model({
-        'field': models.CharField(max_length=255, unique=True)
-    })
+    model = get_fake_model(
+        {"field": models.CharField(max_length=255, unique=True)}
+    )
 
     rows = []
     random_values = []
@@ -60,11 +59,10 @@ def test_upsert_bulk_native(benchmark):
         """Performs a concurrency safe upsert
         using the native PostgreSQL upsert."""
 
-        rows = [
-            dict(field=random_value)
-            for random_value in random_values
-        ]
+        rows = [dict(field=random_value) for random_value in random_values]
 
-        model.objects.on_conflict(['field'], ConflictAction.UPDATE).bulk_insert(rows)
+        model.objects.on_conflict(["field"], ConflictAction.UPDATE).bulk_insert(
+            rows
+        )
 
     benchmark(_native_upsert, model, random_values)

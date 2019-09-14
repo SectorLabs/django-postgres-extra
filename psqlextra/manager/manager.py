@@ -1,17 +1,21 @@
-from typing import Dict, List, Union, Tuple
+from itertools import chain
+from typing import Dict, Iterable, List, Tuple, Union
 
 import django
+
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
 from django.db import models, transaction
+from django.db.models.fields import NOT_PROVIDED
 from django.db.models.sql import UpdateQuery
 from django.db.models.sql.constants import CURSOR
-from django.db.models.fields import NOT_PROVIDED
-from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
 
 from psqlextra import signals
-from psqlextra.compiler import (PostgresReturningUpdateCompiler,
-                                PostgresInsertCompiler)
-from psqlextra.query import PostgresQuery, PostgresInsertQuery, ConflictAction
+from psqlextra.compiler import (
+    PostgresInsertCompiler,
+    PostgresReturningUpdateCompiler,
+)
+from psqlextra.query import ConflictAction, PostgresInsertQuery, PostgresQuery
 
 
 class PostgresQuerySet(models.QuerySet):
@@ -38,10 +42,7 @@ class PostgresQuerySet(models.QuerySet):
         allow that.
         """
 
-        fields = {
-            field.name: field
-            for field in self.model._meta.get_fields()
-        }
+        fields = {field.name: field for field in self.model._meta.get_fields()}
 
         # temporarily rename the fields that have the same
         # name as a field name, we'll rename them back after
@@ -50,7 +51,7 @@ class PostgresQuerySet(models.QuerySet):
         renames = {}
         for name, value in annotations.items():
             if name in fields:
-                new_name = '%s_new' % name
+                new_name = "%s_new" % name
                 new_annotations[new_name] = value
                 renames[new_name] = name
             else:
@@ -117,7 +118,12 @@ class PostgresQuerySet(models.QuerySet):
         # affected, let's do the same
         return len(rows)
 
-    def on_conflict(self, fields: List[Union[str, Tuple[str]]], action, index_predicate: str=None):
+    def on_conflict(
+        self,
+        fields: List[Union[str, Tuple[str]]],
+        action,
+        index_predicate: str = None,
+    ):
         """Sets the action to take when conflicts arise when attempting
         to insert/create a new row.
 
@@ -147,7 +153,7 @@ class PostgresQuerySet(models.QuerySet):
 
         Arguments:
             rows:
-                An array of dictionaries, where each dictionary
+                An iterable of dictionaries, where each dictionary
                 describes the fields to insert.
 
             return_model (default: False):
@@ -160,12 +166,36 @@ class PostgresQuerySet(models.QuerySet):
         """
 
         if self.conflict_target or self.conflict_action:
-            compiler = self._build_insert_compiler(rows)
+            deduped_rows = rows
+
+            # when we do a ConflictAction.NOTHING, we are actually
+            # doing a ON CONFLICT DO UPDATE with a trick to avoid
+            # touching conflicting rows... however, ON CONFLICT UPDATE
+            # barfs when you specify the exact same row twice:
+            #
+            # > "cannot affect row a second time"
+            #
+            # we filter out the duplicates here to make sure we maintain
+            # the same behaviour as the real ON CONFLICT DO NOTHING
+            if self.conflict_action == ConflictAction.NOTHING:
+                deduped_rows = []
+                for row in rows:
+                    if row in deduped_rows:
+                        continue
+
+                    deduped_rows.append(row)
+
+            compiler = self._build_insert_compiler(deduped_rows)
             objs = compiler.execute_sql(return_id=True)
             if return_model:
-                return [self.model(**dict(r, **k)) for r, k in zip(rows, objs)]
+                return [
+                    self.model(**dict(row, **obj))
+                    for row, obj in zip(deduped_rows, objs)
+                ]
             else:
-                return [dict(r, **k) for r, k in zip(rows, objs)]
+                return [
+                    dict(row, **obj) for row, obj in zip(deduped_rows, objs)
+                ]
 
         # no special action required, use the standard Django bulk_create(..)
         return super().bulk_create([self.model(**fields) for fields in rows])
@@ -216,26 +246,32 @@ class PostgresQuerySet(models.QuerySet):
         compiler = self._build_insert_compiler([fields])
         rows = compiler.execute_sql(return_id=False)
 
+        if not rows:
+            return None
+
         columns = rows[0]
 
-        # get a list of columns that are officially part of the model
-        model_columns = [
-            field.column
-            for field in self.model._meta.local_concrete_fields
-        ]
+        # get a list of columns that are officially part of the model and
+        # preserve the fact that the attribute name
+        # might be different than the database column name
+        model_columns = {}
+        for field in self.model._meta.local_concrete_fields:
+            model_columns[field.column] = field.attname
 
         # strip out any columns/fields returned by the db that
         # are not present in the model
         model_init_fields = {}
         for column_name, column_value in columns.items():
-            if column_name not in model_columns:
-                continue
-
-            model_init_fields[column_name] = column_value
+            try:
+                model_init_fields[model_columns[column_name]] = column_value
+            except KeyError:
+                pass
 
         return self.model(**model_init_fields)
 
-    def upsert(self, conflict_target: List, fields: Dict, index_predicate: str=None) -> int:
+    def upsert(
+        self, conflict_target: List, fields: Dict, index_predicate: str = None
+    ) -> int:
         """Creates a new record or updates the existing one
         with the specified data.
 
@@ -254,10 +290,14 @@ class PostgresQuerySet(models.QuerySet):
             The primary key of the row that was created/updated.
         """
 
-        self.on_conflict(conflict_target, ConflictAction.UPDATE, index_predicate)
+        self.on_conflict(
+            conflict_target, ConflictAction.UPDATE, index_predicate
+        )
         return self.insert(**fields)
 
-    def upsert_and_get(self, conflict_target: List, fields: Dict, index_predicate: str=None):
+    def upsert_and_get(
+        self, conflict_target: List, fields: Dict, index_predicate: str = None
+    ):
         """Creates a new record or updates the existing one
         with the specified data and then gets the row.
 
@@ -277,10 +317,18 @@ class PostgresQuerySet(models.QuerySet):
             that was created/updated.
         """
 
-        self.on_conflict(conflict_target, ConflictAction.UPDATE, index_predicate)
+        self.on_conflict(
+            conflict_target, ConflictAction.UPDATE, index_predicate
+        )
         return self.insert_and_get(**fields)
 
-    def bulk_upsert(self, conflict_target: List, rows: List[Dict], index_predicate: str=None):
+    def bulk_upsert(
+        self,
+        conflict_target: List,
+        rows: Iterable[Dict],
+        index_predicate: str = None,
+        return_model: bool = False,
+    ):
         """Creates a set of new records or updates the existing
         ones with the specified data.
 
@@ -294,20 +342,33 @@ class PostgresQuerySet(models.QuerySet):
             index_predicate:
                 The index predicate to satisfy an arbiter partial index (i.e. what partial index to use for checking
                 conflicts)
+
+            return_model (default: False):
+                If model instances should be returned rather than
+                just dicts.
+
+        Returns:
+            A list of either the dicts of the rows upserted, including the pk or
+            the models of the rows upserted
         """
 
-        if not rows or len(rows) <= 0:
-            return
+        def is_empty(r):
+            return all([False for _ in r])
 
-        self.on_conflict(conflict_target, ConflictAction.UPDATE, index_predicate)
-        return self.bulk_insert(rows)
+        if not rows or is_empty(rows):
+            return []
 
-    def _build_insert_compiler(self, rows: List[Dict]):
+        self.on_conflict(
+            conflict_target, ConflictAction.UPDATE, index_predicate
+        )
+        return self.bulk_insert(rows, return_model)
+
+    def _build_insert_compiler(self, rows: Iterable[Dict]):
         """Builds the SQL compiler for a insert query.
 
         Arguments:
             rows:
-                A list of dictionaries, where each entry
+                An iterable of dictionaries, where each entry
                 describes a record to insert.
 
         Returns:
@@ -320,14 +381,18 @@ class PostgresQuerySet(models.QuerySet):
         # we need to be certain that each row specifies the exact same
         # amount of fields/columns
         objs = []
-        field_count = len(rows[0])
-        for index, row in enumerate(rows):
+        rows_iter = iter(rows)
+        first_row = next(rows_iter)
+        field_count = len(first_row)
+        for index, row in enumerate(chain([first_row], rows_iter)):
             if field_count != len(row):
-                raise SuspiciousOperation((
-                    'In bulk upserts, you cannot have rows with different field '
-                    'configurations. Row {0} has a different field config than '
-                    'the first row.'
-                ).format(index))
+                raise SuspiciousOperation(
+                    (
+                        "In bulk upserts, you cannot have rows with different field "
+                        "configurations. Row {0} has a different field config than "
+                        "the first row."
+                    ).format(index)
+                )
 
             objs.append(self.model(**row))
 
@@ -335,7 +400,7 @@ class PostgresQuerySet(models.QuerySet):
         self._for_write = True
 
         # get the fields to be used during update/insert
-        insert_fields, update_fields = self._get_upsert_fields(rows[0])
+        insert_fields, update_fields = self._get_upsert_fields(first_row)
 
         # build a normal insert query
         query = PostgresInsertQuery(self.model)
@@ -416,7 +481,7 @@ class PostgresQuerySet(models.QuerySet):
 
         for field in model_instance._meta.local_concrete_fields:
             has_default = field.default != NOT_PROVIDED
-            if (field.name in kwargs or field.column in kwargs):
+            if field.name in kwargs or field.column in kwargs:
                 insert_fields.append(field)
                 update_fields.append(field)
                 continue
@@ -427,7 +492,7 @@ class PostgresQuerySet(models.QuerySet):
             # special handling for 'pk' which always refers to
             # the primary key, so if we the user specifies `pk`
             # instead of a concrete field, we have to handle that
-            if field.primary_key is True and 'pk' in kwargs:
+            if field.primary_key is True and "pk" in kwargs:
                 insert_fields.append(field)
                 update_fields.append(field)
                 continue
@@ -453,21 +518,26 @@ class PostgresManager(models.Manager):
 
         # make sure our back-end is set and refuse to proceed
         # if it's not set
-        db_backend = settings.DATABASES['default']['ENGINE']
-        if 'psqlextra' not in db_backend:
-            raise ImproperlyConfigured((
-                '\'%s\' is not the \'psqlextra.backend\'. '
-                'django-postgres-extra cannot function without '
-                'the \'psqlextra.backend\'. Set DATABASES.ENGINE.'
-            ) % db_backend)
+        db_backend = settings.DATABASES["default"]["ENGINE"]
+        if "psqlextra" not in db_backend:
+            raise ImproperlyConfigured(
+                (
+                    "'%s' is not the 'psqlextra.backend'. "
+                    "django-postgres-extra cannot function without "
+                    "the 'psqlextra.backend'. Set DATABASES.ENGINE."
+                )
+                % db_backend
+            )
 
         # hook into django signals to then trigger our own
 
         django.db.models.signals.post_save.connect(
-            self._on_model_save, sender=self.model, weak=False)
+            self._on_model_save, sender=self.model, weak=False
+        )
 
         django.db.models.signals.pre_delete.connect(
-            self._on_model_delete, sender=self.model, weak=False)
+            self._on_model_delete, sender=self.model, weak=False
+        )
 
         self._signals_connected = True
 
@@ -488,7 +558,12 @@ class PostgresManager(models.Manager):
 
         return PostgresQuerySet(self.model, using=self._db)
 
-    def on_conflict(self, fields: List[Union[str, Tuple[str]]], action, index_predicate: str=None):
+    def on_conflict(
+        self,
+        fields: List[Union[str, Tuple[str]]],
+        action,
+        index_predicate: str = None,
+    ):
         """Sets the action to take when conflicts arise when attempting
         to insert/create a new row.
 
@@ -504,7 +579,9 @@ class PostgresManager(models.Manager):
         """
         return self.get_queryset().on_conflict(fields, action, index_predicate)
 
-    def upsert(self, conflict_target: List, fields: Dict, index_predicate: str=None) -> int:
+    def upsert(
+        self, conflict_target: List, fields: Dict, index_predicate: str = None
+    ) -> int:
         """Creates a new record or updates the existing one
         with the specified data.
 
@@ -522,9 +599,13 @@ class PostgresManager(models.Manager):
             The primary key of the row that was created/updated.
         """
 
-        return self.get_queryset().upsert(conflict_target, fields, index_predicate)
+        return self.get_queryset().upsert(
+            conflict_target, fields, index_predicate
+        )
 
-    def upsert_and_get(self, conflict_target: List, fields: Dict, index_predicate: str=None):
+    def upsert_and_get(
+        self, conflict_target: List, fields: Dict, index_predicate: str = None
+    ):
         """Creates a new record or updates the existing one
         with the specified data and then gets the row.
 
@@ -543,9 +624,17 @@ class PostgresManager(models.Manager):
             that was created/updated.
         """
 
-        return self.get_queryset().upsert_and_get(conflict_target, fields, index_predicate)
+        return self.get_queryset().upsert_and_get(
+            conflict_target, fields, index_predicate
+        )
 
-    def bulk_upsert(self, conflict_target: List, rows: List[Dict], index_predicate: str=None):
+    def bulk_upsert(
+        self,
+        conflict_target: List,
+        rows: Iterable[Dict],
+        index_predicate: str = None,
+        return_model: bool = False,
+    ):
         """Creates a set of new records or updates the existing
         ones with the specified data.
 
@@ -558,15 +647,25 @@ class PostgresManager(models.Manager):
 
             rows:
                 Rows to upsert.
+
+            return_model (default: False):
+                If model instances should be returned rather than
+                just dicts.
+
+        Returns:
+            A list of either the dicts of the rows upserted, including the pk or
+            the models of the rows upserted
         """
 
-        return self.get_queryset().bulk_upsert(conflict_target, rows, index_predicate)
+        return self.get_queryset().bulk_upsert(
+            conflict_target, rows, index_predicate, return_model
+        )
 
     @staticmethod
     def _on_model_save(sender, **kwargs):
         """When a model gets created or updated."""
 
-        created, instance = kwargs['created'], kwargs['instance']
+        created, instance = kwargs["created"], kwargs["instance"]
 
         if created:
             signals.create.send(sender, pk=instance.pk)
@@ -577,5 +676,5 @@ class PostgresManager(models.Manager):
     def _on_model_delete(sender, **kwargs):
         """When a model gets deleted."""
 
-        instance = kwargs['instance']
+        instance = kwargs["instance"]
         signals.delete.send(sender, pk=instance.pk)

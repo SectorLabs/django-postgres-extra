@@ -1,5 +1,6 @@
 # Ignore virtual environments
 env/
+.env/
 
 # Ignore Python byte code cache
 *.pyc
@@ -23,3 +24,6 @@ dist/
 # Ignore temporary tox environments
 .tox/
 .pytest_cache/
+
+# Ignore PyCharm / IntelliJ files
+.idea/

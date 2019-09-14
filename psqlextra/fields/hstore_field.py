@@ -1,10 +1,8 @@
 from typing import List, Tuple, Union
 
+from django.contrib.postgres.fields import HStoreField as DjangoHStoreField
 from django.db.models.expressions import Expression
 from django.db.models.fields import Field
-from django.contrib.postgres.fields import HStoreField as DjangoHStoreField
-
-from psqlextra.expressions import HStoreValue
 
 
 class HStoreField(DjangoHStoreField):
@@ -16,9 +14,13 @@ class HStoreField(DjangoHStoreField):
           custom database back-end.
     """
 
-    def __init__(self, *args,
-                 uniqueness: List[Union[str, Tuple[str, ...]]]=None,
-                 required: List[str]=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        uniqueness: List[Union[str, Tuple[str, ...]]] = None,
+        required: List[str] = None,
+        **kwargs
+    ):
         """Initializes a new instance of :see:HStoreField."""
 
         super(HStoreField, self).__init__(*args, **kwargs)
@@ -56,13 +58,12 @@ class HStoreField(DjangoHStoreField):
         """Gets the values to pass to :see:__init__ when
         re-creating this object."""
 
-        name, path, args, kwargs = super(
-            HStoreField, self).deconstruct()
+        name, path, args, kwargs = super(HStoreField, self).deconstruct()
 
-        if self.uniqueness:
-            kwargs['uniqueness'] = self.uniqueness
+        if self.uniqueness is not None:
+            kwargs["uniqueness"] = self.uniqueness
 
-        if self.required:
-            kwargs['required'] = self.required
+        if self.required is not None:
+            kwargs["required"] = self.required
 
         return name, path, args, kwargs

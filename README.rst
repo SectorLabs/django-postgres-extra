@@ -7,22 +7,16 @@
       <br>
     </h1>
 
-====================  ===================
-**Quality**           |QualityBadge|_
-**Test coverage**     |CoverageBadge|_
+====================  ============================
+**Tests**             |TestsPassing|_
 **License**           |LicenseBadge|_
 **PyPi**              |PyPiBadge|_
-**Django versions**   >=1.11 (including 2.0)
-**Python versions**   >=3.5
-====================  ===================
+**Django versions**   1.11, 2.0, 2.1, 2.2
+**Python versions**   3.5, 3.6, 3.7, 3.8
+====================  ============================
 
-.. |QualityBadge| image:: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/badges/quality-score.png
-.. _QualityBadge: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/
-
-
-.. |CoverageBadge| image:: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/badges/coverage.png
-.. _CoverageBadge: https://scrutinizer-ci.com/g/SectorLabs/django-postgres-extra/
-
+.. |TestsPassing| image:: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master.svg?style=svg
+.. _TestsPassing: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master
 
 .. |LicenseBadge| image:: https://img.shields.io/:license-mit-blue.svg
 .. _LicenseBadge: http://doge.mit-license.org
@@ -45,6 +39,11 @@ Documentation
 * **Plain MarkDown**
 
   https://github.com/SectorLabs/django-postgres-extra/tree/master/docs
+
+Compatibility
+-------------
+
+`django-postgres-extra` is test on Python 3.5 - 3.8 with Django 1.11 - 2.2. It is likely that `django-postgres-extra` works with newer Python and Django versions, but this is not explicitely tested and therefor not guarenteed. If you encounter problems on newer versions, please _do_ open an issue or pull request.
 
 Major features
 --------------
@@ -88,7 +87,7 @@ Installation
 
         λ pip install django-postgres-extra
 
-2. Add ``postgres_extra`` and ``django.contrib.postgres`` to your ``INSTALLED_APPS``:
+2. Add ``psqlextra`` and ``django.contrib.postgres`` to your ``INSTALLED_APPS``:
 
    .. code-block:: python
 
@@ -130,7 +129,7 @@ FAQ - Frequently asked questions
 
 4. **Which Django versions does this package work with?**
 
-   Django 1.11 or newer (that includes Django 2.0).
+   Django 1.11 or newer (that includes Django 2.X).
 
 
 Working with the code
@@ -174,6 +173,7 @@ Working with the code
    .. code-block:: bash
 
        λ pip install -r requirements/test.txt
+       λ pip install -r requirements/analysis.txt
 
 5. Run the tests:
 
@@ -186,3 +186,9 @@ Working with the code
    .. code-block:: bash
 
        λ py.test -c pytest-benchmark.ini
+
+7. Auto-format code, sort imports and auto-fix linting errors:
+
+   .. code-block:: bash
+
+       λ python setup.py fix

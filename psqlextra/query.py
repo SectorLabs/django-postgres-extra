@@ -1,21 +1,24 @@
-from typing import List, Tuple, Optional, Dict, Any
+from collections import OrderedDict
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
+import django
+
+from django.core.exceptions import SuspiciousOperation
 from django.db import models
 from django.db.models import sql
 from django.db.models.constants import LOOKUP_SEP
-from django.core.exceptions import SuspiciousOperation
 
-from .fields import HStoreField
-from .expressions import HStoreColumn
 from .datastructures import ConditionalJoin
+from .expressions import HStoreColumn
+from .fields import HStoreField
 
 
 class ConflictAction(Enum):
     """Possible actions to take on a conflict."""
 
-    NOTHING = 'NOTHING'
-    UPDATE = 'UPDATE'
+    NOTHING = "NOTHING"
+    UPDATE = "UPDATE"
 
 
 class PostgresQuery(sql.Query):
@@ -35,15 +38,27 @@ class PostgresQuery(sql.Query):
             annotation = self.annotations.get(old_name)
 
             if not annotation:
-                raise SuspiciousOperation((
-                    'Cannot rename annotation "{old_name}" to "{new_name}", because there'
-                    ' is no annotation named "{old_name}".'
-                ).format(old_name=old_name, new_name=new_name))
+                raise SuspiciousOperation(
+                    (
+                        'Cannot rename annotation "{old_name}" to "{new_name}", because there'
+                        ' is no annotation named "{old_name}".'
+                    ).format(old_name=old_name, new_name=new_name)
+                )
 
             self._annotations = OrderedDict(
-                [(new_name, v) if k == old_name else (k, v) for k, v in self._annotations.items()])
-            self.set_annotation_mask(
-                (new_name if v == old_name else v for v in self.annotation_select_mask))
+                [
+                    (new_name, v) if k == old_name else (k, v)
+                    for k, v in self._annotations.items()
+                ]
+            )
+
+            if django.VERSION < (2, 0):
+                self.set_annotation_mask(
+                    (
+                        new_name if v == old_name else v
+                        for v in (self.annotation_select_mask or [])
+                    )
+                )
 
     def add_join_conditions(self, conditions: Dict[str, Any]) -> None:
         """Adds an extra condition to an existing JOIN.
@@ -61,18 +76,21 @@ class PostgresQuery(sql.Query):
 
         for name, value in conditions.items():
             parts = name.split(LOOKUP_SEP)
-            _, targets, _, joins, path = self.setup_joins(parts, opts, alias, allow_many=True)
-            self.trim_joins(targets, joins, path)
+            join_info = self.setup_joins(parts, opts, alias, allow_many=True)
+            self.trim_joins(join_info[1], join_info[3], join_info[4])
 
-            target_table = joins[-1]
-            field = targets[-1]
+            target_table = join_info[3][-1]
+            field = join_info[1][-1]
             join = self.alias_map.get(target_table)
 
             if not join:
-                raise SuspiciousOperation((
-                    'Cannot add an extra join condition for "%s", there\'s no'
-                    ' existing join to add it to.'
-                ) % target_table)
+                raise SuspiciousOperation(
+                    (
+                        'Cannot add an extra join condition for "%s", there\'s no'
+                        " existing join to add it to."
+                    )
+                    % target_table
+                )
 
             # convert the Join object into a ConditionalJoin object, which
             # allows us to add the extra condition
@@ -82,7 +100,9 @@ class PostgresQuery(sql.Query):
 
             join.add_condition(field, value)
 
-    def add_fields(self, field_names: List[str], allow_m2m: bool=True) -> bool:
+    def add_fields(
+        self, field_names: List[str], allow_m2m: bool = True
+    ) -> bool:
         """
         Adds the given (model) fields to the select set. The field names are
         added in the order specified.
@@ -111,19 +131,29 @@ class PostgresQuery(sql.Query):
                 is_hstore, field = self._is_hstore_field(column_name)
                 if is_hstore:
                     cols.append(
-                        HStoreColumn(self.model._meta.db_table or self.model.name, field, hstore_key)
+                        HStoreColumn(
+                            self.model._meta.db_table or self.model.name,
+                            field,
+                            hstore_key,
+                        )
                     )
                     continue
 
-            _, targets, _, joins, path = self.setup_joins(parts, opts, alias, allow_many=allow_m2m)
-            targets, final_alias, joins = self.trim_joins(targets, joins, path)
+            join_info = self.setup_joins(
+                parts, opts, alias, allow_many=allow_m2m
+            )
+            targets, final_alias, joins = self.trim_joins(
+                join_info[1], join_info[3], join_info[4]
+            )
 
             for target in targets:
                 cols.append(target.get_col(final_alias))
         if cols:
             self.set_select(cols)
 
-    def _is_hstore_field(self, field_name: str) -> Tuple[bool, Optional[models.Field]]:
+    def _is_hstore_field(
+        self, field_name: str
+    ) -> Tuple[bool, Optional[models.Field]]:
         """Gets whether the field with the specified name is a
         HStoreField.
 
@@ -155,7 +185,7 @@ class PostgresInsertQuery(sql.InsertQuery):
 
         self.update_fields = []
 
-    def values(self, objs: List, insert_fields: List, update_fields: List=[]):
+    def values(self, objs: List, insert_fields: List, update_fields: List = []):
         """Sets the values to be used in this query.
 
         Insert fields are fields that are definitely

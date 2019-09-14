@@ -6,9 +6,8 @@ def test_hstore_extension_enabled():
     enabled automatically."""
 
     with connection.cursor() as cursor:
-        cursor.execute((
-            'SELECT count(*) FROM pg_extension '
-            'WHERE extname = \'hstore\''
-        ))
+        cursor.execute(
+            ("SELECT count(*) FROM pg_extension " "WHERE extname = 'hstore'")
+        )
 
         assert cursor.fetchone()[0] == 1

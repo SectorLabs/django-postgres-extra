@@ -1,1 +1,1 @@
-default_app_config = 'psqlextra.apps.PostgresExtraAppConfig'
+default_app_config = "psqlextra.apps.PostgresExtraAppConfig"

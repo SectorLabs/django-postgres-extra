@@ -3,23 +3,22 @@ from ..fields import HStoreField
 
 class HStoreRequiredSchemaEditorMixin:
     sql_hstore_required_create = (
-        'ALTER TABLE {table} '
-        'ADD CONSTRAINT {name} '
-        'CHECK (({field}->\'{key}\') '
-        'IS NOT NULL)'
+        "ALTER TABLE {table} "
+        "ADD CONSTRAINT {name} "
+        "CHECK (({field}->'{key}') "
+        "IS NOT NULL)"
     )
 
     sql_hstore_required_rename = (
-        'ALTER TABLE {table} '
-        'RENAME CONSTRAINT '
-        '{old_name} '
-        'TO '
-        '{new_name}'
+        "ALTER TABLE {table} "
+        "RENAME CONSTRAINT "
+        "{old_name} "
+        "TO "
+        "{new_name}"
     )
 
     sql_hstore_required_drop = (
-        'ALTER TABLE {table} '
-        'DROP CONSTRAINT IF EXISTS {name}'
+        "ALTER TABLE {table} " "DROP CONSTRAINT IF EXISTS {name}"
     )
 
     def create_model(self, model):
@@ -49,32 +48,20 @@ class HStoreRequiredSchemaEditorMixin:
 
             for key in self._iterate_required_keys(field):
                 self._rename_hstore_required(
-                    old_db_table,
-                    new_db_table,
-                    field,
-                    field,
-                    key
+                    old_db_table, new_db_table, field, field, key
                 )
 
     def add_field(self, model, field):
         """Ran when a field is added to a model."""
 
         for key in self._iterate_required_keys(field):
-            self._create_hstore_required(
-                model._meta.db_table,
-                field,
-                key
-            )
+            self._create_hstore_required(model._meta.db_table, field, key)
 
     def remove_field(self, model, field):
         """Ran when a field is removed from a model."""
 
         for key in self._iterate_required_keys(field):
-            self._drop_hstore_required(
-                model._meta.db_table,
-                field,
-                key
-            )
+            self._drop_hstore_required(model._meta.db_table, field, key)
 
     def alter_field(self, model, old_field, new_field, strict=False):
         """Ran when the configuration on a field changed."""
@@ -85,8 +72,8 @@ class HStoreRequiredSchemaEditorMixin:
         if not is_old_field_hstore and not is_new_field_hstore:
             return
 
-        old_required = getattr(old_field, 'required', []) or []
-        new_required = getattr(new_field, 'required', []) or []
+        old_required = getattr(old_field, "required", []) or []
+        new_required = getattr(new_field, "required", []) or []
 
         # handle field renames before moving on
         if str(old_field.column) != str(new_field.column):
@@ -96,67 +83,61 @@ class HStoreRequiredSchemaEditorMixin:
                     model._meta.db_table,
                     old_field,
                     new_field,
-                    key
+                    key,
                 )
 
         # drop the constraints for keys that have been removed
         for key in old_required:
             if key not in new_required:
-                self._drop_hstore_required(
-                    model._meta.db_table,
-                    old_field,
-                    key
-                )
+                self._drop_hstore_required(model._meta.db_table, old_field, key)
 
         # create new constraints for keys that have been added
         for key in new_required:
             if key not in old_required:
                 self._create_hstore_required(
-                    model._meta.db_table,
-                    new_field,
-                    key
+                    model._meta.db_table, new_field, key
                 )
 
     def _create_hstore_required(self, table_name, field, key):
         """Creates a REQUIRED CONSTRAINT for the specified hstore key."""
 
-        name = self._required_constraint_name(
-            table_name, field, key)
+        name = self._required_constraint_name(table_name, field, key)
 
         sql = self.sql_hstore_required_create.format(
             name=self.quote_name(name),
             table=self.quote_name(table_name),
             field=self.quote_name(field.column),
-            key=key
+            key=key,
         )
         self.execute(sql)
 
-    def _rename_hstore_required(self, old_table_name, new_table_name,
-                                old_field, new_field, key):
+    def _rename_hstore_required(
+        self, old_table_name, new_table_name, old_field, new_field, key
+    ):
         """Renames an existing REQUIRED CONSTRAINT for the specified
         hstore key."""
 
         old_name = self._required_constraint_name(
-            old_table_name, old_field, key)
+            old_table_name, old_field, key
+        )
         new_name = self._required_constraint_name(
-            new_table_name, new_field, key)
+            new_table_name, new_field, key
+        )
 
         sql = self.sql_hstore_required_rename.format(
             table=self.quote_name(new_table_name),
             old_name=self.quote_name(old_name),
-            new_name=self.quote_name(new_name)
+            new_name=self.quote_name(new_name),
         )
         self.execute(sql)
 
     def _drop_hstore_required(self, table_name, field, key):
         """Drops a REQUIRED CONSTRAINT for the specified hstore key."""
 
-        name = self._required_constraint_name(
-            table_name, field, key)
+        name = self._required_constraint_name(table_name, field, key)
 
         sql = self.sql_hstore_required_drop.format(
-            table=self.quote_name(table_name),
-            name=self.quote_name(name)
+            table=self.quote_name(table_name), name=self.quote_name(name)
         )
         self.execute(sql)
 
@@ -182,10 +163,8 @@ class HStoreRequiredSchemaEditorMixin:
             The name for the UNIQUE index.
         """
 
-        return '{table}_{field}_required_{postfix}'.format(
-            table=table,
-            field=field.column,
-            postfix=key
+        return "{table}_{field}_required_{postfix}".format(
+            table=table, field=field.column, postfix=key
         )
 
     @staticmethod
@@ -199,7 +178,7 @@ class HStoreRequiredSchemaEditorMixin:
                 iterate over.
         """
 
-        required_keys = getattr(field, 'required', None)
+        required_keys = getattr(field, "required", None)
         if not required_keys:
             return
 

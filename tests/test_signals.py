@@ -15,10 +15,12 @@ def mock_signal_handler(signal):
         The created model and the mocked signal handler.
     """
 
-    model = get_fake_model({
-                'title': models.CharField(max_length=255),
-                'flag': models.BooleanField(default=False)
-            })
+    model = get_fake_model(
+        {
+            "title": models.CharField(max_length=255),
+            "flag": models.BooleanField(default=False),
+        }
+    )
 
     signal_handler = Mock()
     signal.connect(signal_handler, sender=model, weak=False)
@@ -31,10 +33,10 @@ def test_create():
     when using QuerySet.create."""
 
     model, signal_handler = mock_signal_handler(signals.create)
-    instance = model.objects.create(title='beer')
+    instance = model.objects.create(title="beer")
 
     assert signal_handler.call_count == 1
-    assert signal_handler.call_args[1]['pk'] == instance.pk
+    assert signal_handler.call_args[1]["pk"] == instance.pk
 
 
 def test_model_save_create():
@@ -43,11 +45,11 @@ def test_model_save_create():
 
     model, signal_handler = mock_signal_handler(signals.create)
 
-    instance = model(title='beer')
+    instance = model(title="beer")
     instance.save()
 
     assert signal_handler.call_count == 1
-    assert signal_handler.call_args[1]['pk'] == instance.pk
+    assert signal_handler.call_args[1]["pk"] == instance.pk
 
 
 def test_model_save_update():
@@ -56,12 +58,12 @@ def test_model_save_update():
 
     model, signal_handler = mock_signal_handler(signals.update)
 
-    instance = model(title='beer')
+    instance = model(title="beer")
     instance.save()  # create
     instance.save()  # update
 
     assert signal_handler.call_count == 1
-    assert signal_handler.call_args[1]['pk'] == instance.pk
+    assert signal_handler.call_args[1]["pk"] == instance.pk
 
 
 def test_model_delete():
@@ -69,12 +71,12 @@ def test_model_delete():
     emitted when using Model.delete()."""
 
     model, signal_handler = mock_signal_handler(signals.delete)
-    instance = model.objects.create(title='beer')
+    instance = model.objects.create(title="beer")
     instance_pk = instance.pk
     instance.delete()
 
     assert signal_handler.call_count == 1
-    assert signal_handler.call_args[1]['pk'] == instance_pk
+    assert signal_handler.call_args[1]["pk"] == instance_pk
 
 
 def test_query_set_delete():
@@ -83,16 +85,16 @@ def test_query_set_delete():
 
     model, signal_handler = mock_signal_handler(signals.delete)
 
-    instance_1 = model.objects.create(title='beer')
+    instance_1 = model.objects.create(title="beer")
     instance_1_pk = instance_1.pk
-    instance_2 = model.objects.create(title='more boar')
+    instance_2 = model.objects.create(title="more boar")
     instance_2_pk = instance_2.pk
 
     model.objects.all().delete()
 
     assert signal_handler.call_count == 2
-    assert signal_handler.call_args_list[0][1]['pk'] == instance_1_pk
-    assert signal_handler.call_args_list[1][1]['pk'] == instance_2_pk
+    assert signal_handler.call_args_list[0][1]["pk"] == instance_1_pk
+    assert signal_handler.call_args_list[1][1]["pk"] == instance_2_pk
 
 
 def test_query_set_update():
@@ -101,14 +103,14 @@ def test_query_set_update():
 
     model, signal_handler = mock_signal_handler(signals.update)
 
-    instance_1 = model.objects.create(title='beer')
-    instance_2 = model.objects.create(title='more boar')
+    instance_1 = model.objects.create(title="beer")
+    instance_2 = model.objects.create(title="more boar")
 
-    model.objects.all().update(title='cookies')
+    model.objects.all().update(title="cookies")
 
     assert signal_handler.call_count == 2
-    assert signal_handler.call_args_list[0][1]['pk'] == instance_1.pk
-    assert signal_handler.call_args_list[1][1]['pk'] == instance_2.pk
+    assert signal_handler.call_args_list[0][1]["pk"] == instance_1.pk
+    assert signal_handler.call_args_list[1][1]["pk"] == instance_2.pk
 
 
 def test_query_set_update_boolean():
@@ -117,11 +119,11 @@ def test_query_set_update_boolean():
 
     model, signal_handler = mock_signal_handler(signals.update)
 
-    instance_1 = model.objects.create(title='beer')
-    instance_2 = model.objects.create(title='more boar')
+    instance_1 = model.objects.create(title="beer")
+    instance_2 = model.objects.create(title="more boar")
 
     model.objects.all().update(flag=True)
 
     assert signal_handler.call_count == 2
-    assert signal_handler.call_args_list[0][1]['pk'] == instance_1.pk
-    assert signal_handler.call_args_list[1][1]['pk'] == instance_2.pk
+    assert signal_handler.call_args_list[0][1]["pk"] == instance_1.pk
+    assert signal_handler.call_args_list[1][1]["pk"] == instance_2.pk

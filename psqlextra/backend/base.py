@@ -4,11 +4,14 @@ import logging
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import ProgrammingError
-from django.db.backends.postgresql.base import \
-    DatabaseWrapper as Psycopg2DatabaseWrapper
 
-from .hstore_unique import HStoreUniqueSchemaEditorMixin
 from .hstore_required import HStoreRequiredSchemaEditorMixin
+from .hstore_unique import HStoreUniqueSchemaEditorMixin
+
+from django.db.backends.postgresql.base import (  # isort:skip
+    DatabaseWrapper as Psycopg2DatabaseWrapper,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,26 +30,32 @@ def _get_backend_base():
     """
     base_class_name = getattr(
         settings,
-        'POSTGRES_EXTRA_DB_BACKEND_BASE',
-        'django.db.backends.postgresql'
+        "POSTGRES_EXTRA_DB_BACKEND_BASE",
+        "django.db.backends.postgresql",
     )
 
-    base_class_module = importlib.import_module(base_class_name + '.base')
-    base_class = getattr(base_class_module, 'DatabaseWrapper', None)
+    base_class_module = importlib.import_module(base_class_name + ".base")
+    base_class = getattr(base_class_module, "DatabaseWrapper", None)
 
     if not base_class:
-        raise ImproperlyConfigured((
-            '\'%s\' is not a valid database back-end.'
-            ' The module does not define a DatabaseWrapper class.'
-            ' Check the value of POSTGRES_EXTRA_DB_BACKEND_BASE.'
-        ) % base_class_name)
+        raise ImproperlyConfigured(
+            (
+                "'%s' is not a valid database back-end."
+                " The module does not define a DatabaseWrapper class."
+                " Check the value of POSTGRES_EXTRA_DB_BACKEND_BASE."
+            )
+            % base_class_name
+        )
 
     if isinstance(base_class, Psycopg2DatabaseWrapper):
-        raise ImproperlyConfigured((
-            '\'%s\' is not a valid database back-end.'
-            ' It does inherit from the PostgreSQL back-end.'
-            ' Check the value of POSTGRES_EXTRA_DB_BACKEND_BASE.'
-        ) % base_class_name)
+        raise ImproperlyConfigured(
+            (
+                "'%s' is not a valid database back-end."
+                " It does inherit from the PostgreSQL back-end."
+                " Check the value of POSTGRES_EXTRA_DB_BACKEND_BASE."
+            )
+            % base_class_name
+        )
 
     return base_class
 
@@ -65,12 +74,11 @@ class SchemaEditor(_get_schema_editor_base()):
 
     post_processing_mixins = [
         HStoreUniqueSchemaEditorMixin(),
-        HStoreRequiredSchemaEditorMixin()
+        HStoreRequiredSchemaEditorMixin(),
     ]
 
     def __init__(self, connection, collect_sql=False, atomic=True):
-        super(SchemaEditor, self).__init__(
-            connection, collect_sql, atomic)
+        super(SchemaEditor, self).__init__(connection, collect_sql, atomic)
 
         self.base = super(SchemaEditor, self)
 
@@ -102,11 +110,7 @@ class SchemaEditor(_get_schema_editor_base()):
         )
 
         for mixin in self.post_processing_mixins:
-            mixin.alter_db_table(
-                model,
-                old_db_table,
-                new_db_table
-            )
+            mixin.alter_db_table(model, old_db_table, new_db_table)
 
     def add_field(self, model, field):
         """Ran when a field is added to a model."""
@@ -132,9 +136,7 @@ class SchemaEditor(_get_schema_editor_base()):
         )
 
         for mixin in self.post_processing_mixins:
-            mixin.alter_field(
-                model, old_field, new_field, strict
-            )
+            mixin.alter_field(model, old_field, new_field, strict)
 
 
 class DatabaseWrapper(_get_backend_base()):
@@ -155,12 +157,13 @@ class DatabaseWrapper(_get_backend_base()):
         super().prepare_database()
         with self.cursor() as cursor:
             try:
-                cursor.execute('CREATE EXTENSION IF NOT EXISTS hstore')
+                cursor.execute("CREATE EXTENSION IF NOT EXISTS hstore")
             except ProgrammingError:  # permission denied
                 logger.warning(
                     'Failed to create "hstore" extension. '
-                    'Tables with hstore columns may fail to migrate. '
-                    'If hstore is needed, make sure you are connected '
-                    'to the database as a superuser '
-                    'or add the extension manually.',
-                    exc_info=True)
+                    "Tables with hstore columns may fail to migrate. "
+                    "If hstore is needed, make sure you are connected "
+                    "to the database as a superuser "
+                    "or add the extension manually.",
+                    exc_info=True,
+                )

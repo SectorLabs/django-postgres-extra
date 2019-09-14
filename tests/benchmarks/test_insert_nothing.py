@@ -12,9 +12,9 @@ from ..util import get_fake_model
 
 @pytest.mark.benchmark()
 def test_insert_nothing_traditional(benchmark):
-    model = get_fake_model({
-        'field': models.CharField(max_length=255, unique=True)
-    })
+    model = get_fake_model(
+        {"field": models.CharField(max_length=255, unique=True)}
+    )
 
     random_value = str(uuid.uuid4())[:8]
     model.objects.create(field=random_value)
@@ -34,9 +34,9 @@ def test_insert_nothing_traditional(benchmark):
 
 @pytest.mark.benchmark()
 def test_insert_nothing_native(benchmark):
-    model = get_fake_model({
-        'field': models.CharField(max_length=255, unique=True)
-    })
+    model = get_fake_model(
+        {"field": models.CharField(max_length=255, unique=True)}
+    )
 
     random_value = str(uuid.uuid4())[:8]
     model.objects.create(field=random_value)
@@ -45,10 +45,8 @@ def test_insert_nothing_native(benchmark):
         """Performs a concurrency safeinsert
         using the native PostgreSQL conflict resolution."""
 
-        return (
-            model.objects
-            .on_conflict(['field'], ConflictAction.NOTHING)
-            .insert_and_get(field=random_value)
-        )
+        return model.objects.on_conflict(
+            ["field"], ConflictAction.NOTHING
+        ).insert_and_get(field=random_value)
 
     benchmark(_native_insert, model, random_value)

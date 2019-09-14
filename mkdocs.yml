@@ -1,4 +1,5 @@
 site_name: django-postgres-extra
+theme: readthedocs
 pages:
 - Home: index.md
 - Manager: manager.md

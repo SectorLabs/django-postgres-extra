@@ -1,20 +1,20 @@
 import uuid
 
+from django.contrib.postgres.operations import HStoreExtension
 from django.db import connection, migrations
 from django.db.migrations.executor import MigrationExecutor
-from django.contrib.postgres.operations import HStoreExtension
 
 from psqlextra.models import PostgresModel
 
 
 def define_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
-    name = str(uuid.uuid4()).replace('-', '')[:8]
+    name = str(uuid.uuid4()).replace("-", "")[:8]
 
     attributes = {
-        'app_label': 'tests',
-        '__module__': __name__,
-        '__name__': name,
-        'Meta': type('Meta', (object,), meta_options)
+        "app_label": "tests",
+        "__module__": __name__,
+        "__name__": name,
+        "Meta": type("Meta", (object,), meta_options),
     }
 
     if fields:
@@ -30,7 +30,6 @@ def get_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
     model = define_fake_model(fields, model_base, meta_options)
 
     class TestProject:
-
         def clone(self, *_args, **_kwargs):
             return self
 
@@ -44,7 +43,8 @@ def get_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
     with connection.schema_editor() as schema_editor:
         migration_executor = MigrationExecutor(schema_editor.connection)
         migration_executor.apply_migration(
-            TestProject(), TestMigration('eh', 'postgres_extra'))
+            TestProject(), TestMigration("eh", "postgres_extra")
+        )
 
         schema_editor.create_model(model)
 

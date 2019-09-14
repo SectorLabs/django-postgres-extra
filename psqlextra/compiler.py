@@ -37,11 +37,7 @@ class PostgresReturningUpdateCompiler(SQLUpdateCompiler):
             if isinstance(val, dict):
                 val = HStoreValue(val)
 
-            new_query_values.append((
-                field,
-                model,
-                val
-            ))
+            new_query_values.append((field, model, val))
 
         self.query.values = new_query_values
 
@@ -49,7 +45,7 @@ class PostgresReturningUpdateCompiler(SQLUpdateCompiler):
         """Builds the RETURNING part of the query."""
 
         qn = self.connection.ops.quote_name
-        return ' RETURNING %s' % qn(self.query.model._meta.pk.attname)
+        return " RETURNING %s" % qn(self.query.model._meta.pk.attname)
 
 
 class PostgresInsertCompiler(SQLInsertCompiler):
@@ -83,7 +79,8 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         return [
             {
                 column.name: row[column_index]
-                for column_index, column in enumerate(cursor.description) if row
+                for column_index, column in enumerate(cursor.description)
+                if row
             }
             for row in rows
         ]
@@ -107,26 +104,33 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             A tuple of the rewritten SQL query and new params.
         """
 
-        returning = self.qn(self.query.model._meta.pk.attname) if return_id else '*'
+        returning = (
+            self.qn(self.query.model._meta.pk.attname) if return_id else "*"
+        )
 
-        if self.query.conflict_action.value == 'UPDATE':
+        if self.query.conflict_action.value == "UPDATE":
             return self._rewrite_insert_update(sql, params, returning)
-        elif self.query.conflict_action.value == 'NOTHING':
+        elif self.query.conflict_action.value == "NOTHING":
             return self._rewrite_insert_nothing(sql, params, returning)
 
-        raise SuspiciousOperation((
-            '%s is not a valid conflict action, specify '
-            'ConflictAction.UPDATE or ConflictAction.NOTHING.'
-        ) % str(self.query.conflict_action))
+        raise SuspiciousOperation(
+            (
+                "%s is not a valid conflict action, specify "
+                "ConflictAction.UPDATE or ConflictAction.NOTHING."
+            )
+            % str(self.query.conflict_action)
+        )
 
     def _rewrite_insert_update(self, sql, params, returning):
         """Rewrites a formed SQL INSERT query to include
         the ON CONFLICT DO UPDATE clause."""
 
-        update_columns = ', '.join([
-            '{0} = EXCLUDED.{0}'.format(self.qn(field.column))
-            for field in self.query.update_fields
-        ])
+        update_columns = ", ".join(
+            [
+                "{0} = EXCLUDED.{0}".format(self.qn(field.column))
+                for field in self.query.update_fields
+            ]
+        )
 
         # build the conflict target, the columns to watch
         # for conflicts
@@ -135,14 +139,14 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         index_predicate = self.query.index_predicate
 
         sql_template = (
-            '{insert} ON CONFLICT {conflict_target} DO UPDATE '
-            'SET {update_columns} RETURNING {returning}'
+            "{insert} ON CONFLICT {conflict_target} DO UPDATE "
+            "SET {update_columns} RETURNING {returning}"
         )
 
         if index_predicate:
             sql_template = (
-                '{insert} ON CONFLICT {conflict_target} WHERE {index_predicate} DO UPDATE '
-                'SET {update_columns} RETURNING {returning}'
+                "{insert} ON CONFLICT {conflict_target} WHERE {index_predicate} DO UPDATE "
+                "SET {update_columns} RETURNING {returning}"
             )
 
         return (
@@ -153,7 +157,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
                 returning=returning,
                 index_predicate=index_predicate,
             ),
-            params
+            params,
         )
 
     def _rewrite_insert_nothing(self, sql, params, returning):
@@ -164,10 +168,12 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         # for conflicts
         conflict_target = self._build_conflict_target()
 
-        where_clause = ' AND '.join([
-            '{0} = %s'.format(self._format_field_name(field_name))
-            for field_name in self.query.conflict_target
-        ])
+        where_clause = " AND ".join(
+            [
+                "{0} = %s".format(self._format_field_name(field_name))
+                for field_name in self.query.conflict_target
+            ]
+        )
 
         where_clause_params = [
             self._format_field_value(field_name)
@@ -182,20 +188,20 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         # select from the table in case we're dealing with an existing row..
         return (
             (
-                'WITH insdata AS ('
-                '{insert} ON CONFLICT {conflict_target} DO UPDATE'
-                ' SET {pk_column} = NULL WHERE FALSE RETURNING {returning})'
-                ' SELECT * FROM insdata UNION ALL'
-                ' SELECT {returning} FROM {table} WHERE {where_clause} LIMIT 1;'
+                "WITH insdata AS ("
+                "{insert} ON CONFLICT {conflict_target} DO UPDATE"
+                " SET {pk_column} = NULL WHERE FALSE RETURNING {returning})"
+                " SELECT * FROM insdata UNION ALL"
+                " SELECT {returning} FROM {table} WHERE {where_clause} LIMIT 1;"
             ).format(
                 insert=sql,
                 conflict_target=conflict_target,
                 pk_column=self.qn(self.query.model._meta.pk.column),
                 returning=returning,
                 table=self.query.objs[0]._meta.db_table,
-                where_clause=where_clause
+                where_clause=where_clause,
             ),
-            params
+            params,
         )
 
     def _build_conflict_target(self):
@@ -205,22 +211,28 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         conflict_target = []
 
         if not isinstance(self.query.conflict_target, list):
-            raise SuspiciousOperation((
-                '%s is not a valid conflict target, specify '
-                'a list of column names, or tuples with column '
-                'names and hstore key.'
-            ) % str(self.query.conflict_target))
+            raise SuspiciousOperation(
+                (
+                    "%s is not a valid conflict target, specify "
+                    "a list of column names, or tuples with column "
+                    "names and hstore key."
+                )
+                % str(self.query.conflict_target)
+            )
 
         def _assert_valid_field(field_name):
             field_name = self._normalize_field_name(field_name)
             if self._get_model_field(field_name):
                 return
 
-            raise SuspiciousOperation((
-                '%s is not a valid conflict target, specify '
-                'a list of column names, or tuples with column '
-                'names and hstore key.'
-            ) % str(field_name))
+            raise SuspiciousOperation(
+                (
+                    "%s is not a valid conflict target, specify "
+                    "a list of column names, or tuples with column "
+                    "names and hstore key."
+                )
+                % str(field_name)
+            )
 
         for field_name in self.query.conflict_target:
             _assert_valid_field(field_name)
@@ -228,16 +240,13 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             # special handling for hstore keys
             if isinstance(field_name, tuple):
                 conflict_target.append(
-                    '(%s->\'%s\')' % (
-                        self._format_field_name(field_name),
-                        field_name[1]
-                    )
+                    "(%s->'%s')"
+                    % (self._format_field_name(field_name), field_name[1])
                 )
             else:
-                conflict_target.append(
-                    self._format_field_name(field_name))
+                conflict_target.append(self._format_field_name(field_name))
 
-        return '(%s)' % ','.join(conflict_target)
+        return "(%s)" % ",".join(conflict_target)
 
     def _get_model_field(self, name: str):
         """Gets the field on a model with the specified name.
@@ -258,7 +267,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
 
         # 'pk' has special meaning and always refers to the primary
         # key of a model, we have to respect this de-facto standard behaviour
-        if field_name == 'pk' and self.query.model._meta.pk:
+        if field_name == "pk" and self.query.model._meta.pk:
             return self.query.model._meta.pk
 
         for field in self.query.model._meta.local_concrete_fields:
@@ -299,7 +308,6 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         field = self._get_model_field(field_name)
 
         value = getattr(self.query.objs[0], field.attname)
-
         if isinstance(field, RelatedField) and isinstance(value, Model):
             value = value.pk
 
@@ -311,7 +319,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             # value. We rely on pre_save having already been done by the
             # underlying compiler so that things like FileField have already had
             # the opportunity to save out their data.
-            value
+            value,
         )
 
     def _normalize_field_name(self, field_name) -> str:
