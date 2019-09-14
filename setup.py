@@ -29,7 +29,7 @@ def create_command(text, commands):
 
 
 with open(
-    os.path.join(os.path.dirname(__file__), "README.rst"), encoding="utf-8"
+    os.path.join(os.path.dirname(__file__), "README.md"), encoding="utf-8"
 ) as readme:
     README = readme.read().split("h1>\n\n", 2)[1]
 
