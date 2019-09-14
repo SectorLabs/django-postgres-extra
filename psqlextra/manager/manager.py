@@ -507,7 +507,7 @@ class PostgresQuerySet(models.QuerySet):
         return insert_fields, update_fields
 
 
-class PostgresManager(models.Manager):
+class PostgresManager(models.Manager.from_queryset(PostgresQuerySet)):
     """Adds support for PostgreSQL specifics."""
 
     use_in_migrations = True
@@ -515,7 +515,7 @@ class PostgresManager(models.Manager):
     def __init__(self, *args, **kwargs):
         """Initializes a new instance of :see:PostgresManager."""
 
-        super(PostgresManager, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # make sure our back-end is set and refuse to proceed
         # if it's not set
@@ -529,111 +529,3 @@ class PostgresManager(models.Manager):
                 )
                 % db_backend
             )
-
-    def get_queryset(self):
-        """Gets the query set to be used on this manager."""
-
-        return PostgresQuerySet(self.model, using=self._db, hints=self._hints)
-
-    def on_conflict(
-        self,
-        fields: List[Union[str, Tuple[str]]],
-        action,
-        index_predicate: str = None,
-    ):
-        """Sets the action to take when conflicts arise when attempting to
-        insert/create a new row.
-
-        Arguments:
-            fields:
-                The fields the conflicts can occur in.
-
-            action:
-                The action to take when the conflict occurs.
-
-            index_predicate:
-                The index predicate to satisfy an arbiter partial index.
-        """
-        return self.get_queryset().on_conflict(fields, action, index_predicate)
-
-    def upsert(
-        self, conflict_target: List, fields: Dict, index_predicate: str = None
-    ) -> int:
-        """Creates a new record or updates the existing one with the specified
-        data.
-
-        Arguments:
-            conflict_target:
-                Fields to pass into the ON CONFLICT clause.
-
-            fields:
-                Fields to insert/update.
-
-            index_predicate:
-                The index predicate to satisfy an arbiter partial index.
-
-        Returns:
-            The primary key of the row that was created/updated.
-        """
-
-        return self.get_queryset().upsert(
-            conflict_target, fields, index_predicate
-        )
-
-    def upsert_and_get(
-        self, conflict_target: List, fields: Dict, index_predicate: str = None
-    ):
-        """Creates a new record or updates the existing one with the specified
-        data and then gets the row.
-
-        Arguments:
-            conflict_target:
-                Fields to pass into the ON CONFLICT clause.
-
-            fields:
-                Fields to insert/update.
-
-            index_predicate:
-                The index predicate to satisfy an arbiter partial index.
-
-        Returns:
-            The model instance representing the row
-            that was created/updated.
-        """
-
-        return self.get_queryset().upsert_and_get(
-            conflict_target, fields, index_predicate
-        )
-
-    def bulk_upsert(
-        self,
-        conflict_target: List,
-        rows: Iterable[Dict],
-        index_predicate: str = None,
-        return_model: bool = False,
-    ):
-        """Creates a set of new records or updates the existing ones with the
-        specified data.
-
-        Arguments:
-            conflict_target:
-                Fields to pass into the ON CONFLICT clause.
-
-            index_predicate:
-                The index predicate to satisfy an arbiter partial index.
-
-            rows:
-                Rows to upsert.
-
-            return_model (default: False):
-                If model instances should be returned rather than
-                just dicts.
-
-        Returns:
-            A list of either the dicts of the rows upserted, including the pk or
-            the models of the rows upserted
-        """
-
-        return self.get_queryset().bulk_upsert(
-            conflict_target, rows, index_predicate, return_model
-        )
