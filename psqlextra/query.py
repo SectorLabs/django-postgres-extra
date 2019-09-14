@@ -1,7 +1,6 @@
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
-
 from django.core.exceptions import SuspiciousOperation
 from django.db import models, router
 from django.db.models.fields import NOT_PROVIDED
@@ -157,7 +156,7 @@ class PostgresQuerySet(models.QuerySet):
         objs = compiler.execute_sql(return_id=True)
         if return_model:
             return [
-                self.model(**dict(row, **obj))
+                self._create_model_instance(dict(row, **obj), compiler.using)
                 for row, obj in zip(deduped_rows, objs)
             ]
         else:
@@ -237,7 +236,7 @@ class PostgresQuerySet(models.QuerySet):
             except KeyError:
                 pass
 
-        return self.model(**model_init_fields)
+        return self._create_model_instance(model_init_fields, compiler.using)
 
     def upsert(
         self,
@@ -354,6 +353,19 @@ class PostgresQuerySet(models.QuerySet):
         )
         return self.bulk_insert(rows, return_model, using=using)
 
+    def _create_model_instance(self, field_values, using: Optional[str] = None):
+        """Creates a new instance of the model with the specified field.
+
+        Use this after the row was inserted into the database. The new
+        instance will marked as "saved".
+        """
+
+        instance = self.model(**field_values)
+        instance._state.db = using
+        instance._state.adding = False
+
+        return instance
+
     def _build_insert_compiler(
         self, rows: Iterable[Dict], using: Optional[str] = None
     ):
@@ -371,6 +383,11 @@ class PostgresQuerySet(models.QuerySet):
         Returns:
             The SQL compiler for the insert.
         """
+
+        # ask the db router which connection to use
+        using = (
+            using or self._db or router.db_for_write(self.model, **self._hints)
+        )
 
         # create model objects, we also have to detect cases
         # such as:
@@ -391,7 +408,7 @@ class PostgresQuerySet(models.QuerySet):
                     ).format(index)
                 )
 
-            objs.append(self.model(**row))
+            objs.append(self._create_model_instance(row, using))
 
         # get the fields to be used during update/insert
         insert_fields, update_fields = self._get_upsert_fields(first_row)
@@ -402,11 +419,6 @@ class PostgresQuerySet(models.QuerySet):
         query.conflict_target = self.conflict_target
         query.index_predicate = self.index_predicate
         query.values(objs, insert_fields, update_fields)
-
-        # ask the db router which connection to use
-        using = (
-            using or self._db or router.db_for_write(self.model, **self._hints)
-        )
 
         compiler = query.get_compiler(using)
         return compiler

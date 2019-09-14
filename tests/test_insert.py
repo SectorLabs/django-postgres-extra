@@ -112,3 +112,30 @@ def test_insert_with_different_column_name():
 
     obj1 = model.objects.get()
     assert obj1.cookies == cookie_string
+
+
+def test_insert_many_to_many():
+    """Tests whether adding a rows to a m2m works after using insert_and_get.
+
+    The model returned by `insert_and_get` must be configured in a
+    special way. Just creating a instance of the model is not enough to
+    be able to add m2m rows.
+    """
+
+    model1 = get_fake_model({"name": models.TextField(primary_key=True)})
+
+    model2 = get_fake_model(
+        {
+            "name": models.TextField(primary_key=True),
+            "model1s": models.ManyToManyField(model1),
+        }
+    )
+
+    row2 = model2.objects.on_conflict(
+        ["name"], ConflictAction.UPDATE
+    ).insert_and_get(name="swen")
+
+    row1 = model1.objects.create(name="booh")
+
+    row2.model1s.add(row1)
+    row2.save()
