@@ -2,7 +2,6 @@ from collections import OrderedDict
 from enum import Enum
 from typing import List, Optional, Tuple
 
-import django
 
 from django.core.exceptions import SuspiciousOperation
 from django.db import models
@@ -54,14 +53,6 @@ class PostgresQuery(sql.Query):
                     for k, v in self._annotations.items()
                 ]
             )
-
-            if django.VERSION < (2, 0):
-                self.set_annotation_mask(
-                    (
-                        new_name if v == old_name else v
-                        for v in (self.annotation_select_mask or [])
-                    )
-                )
 
     def add_fields(
         self, field_names: List[str], allow_m2m: bool = True

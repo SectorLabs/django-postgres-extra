@@ -11,7 +11,7 @@
 **Tests**             |TestsPassing|_
 **License**           |LicenseBadge|_
 **PyPi**              |PyPiBadge|_
-**Django versions**   1.11, 2.0, 2.1, 2.2
+**Django versions**   2.0, 2.1, 2.2
 **Python versions**   3.7, 3.8
 ====================  ============================
 
@@ -43,7 +43,7 @@ Documentation
 Compatibility
 -------------
 
-`django-postgres-extra` is test on Python 3.7 - 3.8 with Django 1.11 - 2.2. It is likely that `django-postgres-extra` works with newer Python and Django versions, but this is not explicitely tested and therefor not guarenteed. If you encounter problems on newer versions, please _do_ open an issue or pull request.
+`django-postgres-extra` is test on Python 3.7 - 3.8 with Django 2.0 - 2.2. It is likely that `django-postgres-extra` works with newer Python and Django versions, but this is not explicitely tested and therefor not guarenteed. If you encounter problems on newer versions, please _do_ open an issue or pull request.
 
 Major features
 --------------
@@ -130,7 +130,7 @@ FAQ - Frequently asked questions
 
 4. **Which Django versions does this package work with?**
 
-   Django 1.11 or newer (that includes Django 2.X).
+   Django 2.0 or newer.
 
 
 Working with the code
@@ -138,8 +138,8 @@ Working with the code
 
 **Prerequisites**
 
-* PostgreSQL 9.6 or newer.
-* Django 1.11 or newer.
+* PostgreSQL 10 or newer.
+* Django 2.0 or newer.
 * Python 3.7 or newer.
 
 **Getting started**

@@ -91,6 +91,6 @@ In order to use this package, your project must be using:
 
 * Python 3.7, or newer
 * PostgreSQL 10.x or newer
-* Django 1.11 or newer
+* Django 2.0 or newer
 
-Python 3.7 is required because type hints are used. A feature only available in Python 3.5 and newer. PostgreSQL 9.6 is required to take advantage of the latest features such as `ltree`.
+Python 3.7 is required because type hints are used. A feature only available in Python 3.7 and newer. PostgreSQL 10.x is required to take advantage of the latest features such as `ltree`.
