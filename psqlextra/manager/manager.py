@@ -10,10 +10,7 @@ from django.db.models.fields import NOT_PROVIDED
 from django.db.models.sql import UpdateQuery
 from django.db.models.sql.constants import CURSOR
 
-from psqlextra.compiler import (
-    PostgresInsertCompiler,
-    PostgresReturningUpdateCompiler,
-)
+from psqlextra.compiler import PostgresInsertCompiler, PostgresUpdateCompiler
 from psqlextra.query import ConflictAction, PostgresInsertQuery, PostgresQuery
 
 
@@ -91,16 +88,14 @@ class PostgresQuerySet(models.QuerySet):
 
         # build the compiler for for the query
         connection = django.db.connections[self.db]
-        compiler = PostgresReturningUpdateCompiler(query, connection, self.db)
+        compiler = PostgresUpdateCompiler(query, connection, self.db)
 
         # execute the query
         with transaction.atomic(using=self.db, savepoint=False):
             rows = compiler.execute_sql(CURSOR)
         self._result_cache = None
 
-        # the original update(..) returns the amount of rows
-        # affected, let's do the same
-        return len(rows)
+        return rows
 
     def on_conflict(
         self,

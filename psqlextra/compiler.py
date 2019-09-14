@@ -6,19 +6,9 @@ from django.db.models.sql.compiler import SQLInsertCompiler, SQLUpdateCompiler
 from psqlextra.expressions import HStoreValue
 
 
-class PostgresReturningUpdateCompiler(SQLUpdateCompiler):
+class PostgresUpdateCompiler(SQLUpdateCompiler):
     """Compiler for SQL UPDATE statements that return the primary keys of the
     affected rows."""
-
-    def execute_sql(self, _result_type):
-        sql, params = self.as_sql()
-        sql += self._form_returning()
-
-        with self.connection.cursor() as cursor:
-            cursor.execute(sql, params)
-            primary_keys = cursor.fetchall()
-
-        return primary_keys
 
     def as_sql(self):
         self._prepare_query_values()
@@ -42,12 +32,6 @@ class PostgresReturningUpdateCompiler(SQLUpdateCompiler):
             new_query_values.append((field, model, val))
 
         self.query.values = new_query_values
-
-    def _form_returning(self):
-        """Builds the RETURNING part of the query."""
-
-        qn = self.connection.ops.quote_name
-        return " RETURNING %s" % qn(self.query.model._meta.pk.attname)
 
 
 class PostgresInsertCompiler(SQLInsertCompiler):
