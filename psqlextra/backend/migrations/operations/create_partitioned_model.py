@@ -13,8 +13,16 @@ class PostgresCreatePartitionedModel(CreateModel):
         "partitioning_options",
     ]
 
-    def __init__(self, *args, partitioning_options={}, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        name,
+        fields,
+        options=None,
+        partitioning_options={},
+        bases=None,
+        managers=None,
+    ):
+        super().__init__(name, fields, options, bases, managers)
 
         self.partitioning_options = partitioning_options or {}
 
@@ -60,4 +68,4 @@ class PostgresCreatePartitionedModel(CreateModel):
 
         description = super().describe()
         description = description.replace("model", "partitioned model")
-        return descripton
+        return description

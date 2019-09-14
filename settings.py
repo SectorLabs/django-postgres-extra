@@ -21,5 +21,6 @@ LANGUAGES = (
 )
 
 INSTALLED_APPS = (
+    'psqlextra',
     'tests',
 )
