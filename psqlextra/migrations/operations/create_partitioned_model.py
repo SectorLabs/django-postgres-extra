@@ -18,14 +18,6 @@ class PostgresCreatePartitionedModel(CreateModel):
 
         self.partitioning_options = partitioning_options or {}
 
-    def deconstruct(self):
-        name, args, kwargs = super().deconstruct()
-
-        if self.partitioning_options:
-            kwargs["partitioning_options"] = self.partitioning_options
-
-        return name, args, kwargs
-
     def state_forwards(self, app_label, state):
         state.add_model(
             PostgresPartitionedModelState(
@@ -38,13 +30,6 @@ class PostgresCreatePartitionedModel(CreateModel):
                 partitioning_options=dict(self.partitioning_options),
             )
         )
-
-    def describe(self):
-        """Gets a human readable text describing this migration."""
-
-        description = super().describe()
-        description = description.replace("model", "partitioned model")
-        return descripton
 
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
         """Apply this migration operation forwards."""
@@ -61,3 +46,18 @@ class PostgresCreatePartitionedModel(CreateModel):
         model = from_state.apps.get_model(app_label, self.name)
         if self.allow_migrate_model(schema_editor.connection.alias, model):
             schema_editor.delete_partitioned_model(model)
+
+    def deconstruct(self):
+        name, args, kwargs = super().deconstruct()
+
+        if self.partitioning_options:
+            kwargs["partitioning_options"] = self.partitioning_options
+
+        return name, args, kwargs
+
+    def describe(self):
+        """Gets a human readable text describing this migration."""
+
+        description = super().describe()
+        description = description.replace("model", "partitioned model")
+        return descripton

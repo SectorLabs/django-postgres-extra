@@ -3,6 +3,45 @@ from django.db.migrations.state import ModelState
 from psqlextra.models import PostgresPartitionedModel
 
 
+class PostgresPartitionState:
+    """Represents the state of a partition for a.
+
+    :see:PostgresPartitionedModel during a migration.
+    """
+
+    def __init__(self, app_label: str, model_name: str, name: str) -> None:
+        self.app_label = app_label
+        self.model_name = model_name
+        self.name = name
+
+
+class PostgresRangePartitionState(PostgresPartitionState):
+    """Represents the state of a range partition for a.
+
+    :see:PostgresPartitionedModel during a migration.
+    """
+
+    def __init__(
+        self, app_label: str, model_name: str, name: str, from_values, to_values
+    ):
+        super().__init__(app_label, model_name, name)
+
+        self.from_values = from_values
+        self.to_values = to_values
+
+
+class PostgresListPartitionState(PostgresPartitionState):
+    """Represents the state of a list partition for a.
+
+    :see:PostgresPartitionedModel during a migration.
+    """
+
+    def __init__(self, app_label: str, model_name: str, name: str, values):
+        super().__init__(app_label, model_name, name)
+
+        self.values = values
+
+
 class PostgresPartitionedModelState(ModelState):
     """Represents a :see:PostgresPartitionedModel.
 
@@ -26,6 +65,17 @@ class PostgresPartitionedModelState(ModelState):
         super().__init__(*args, **kwargs)
 
         self.partitioning_options = dict(partitioning_options)
+        self.partitions: Dict[str, PostgresPartitionState] = {}
+
+    def add_partition(self, partition: PostgresPartitionState):
+        """Adds a partition to this partitioned model state."""
+
+        self.partitions[partition.name] = partition
+
+    def delete_partition(self, name: str):
+        """Deletes a partition from this partitioned model state."""
+
+        del self.partitions[name]
 
     @classmethod
     def from_model(

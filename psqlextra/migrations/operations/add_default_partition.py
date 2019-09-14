@@ -1,8 +1,20 @@
+from psqlextra.migrations.state import PostgresPartitionState
+
 from .partition import PostgresPartitionOperation
 
 
 class PostgresAddDefaultPartition(PostgresPartitionOperation):
     """Adds a new default partition to a :see:PartitionedPostgresModel."""
+
+    def state_forwards(self, app_label, state):
+        model = state.models[(app_label, self.model_name)]
+        model.add_partition(
+            PostgresPartitionState(
+                app_label=app_label, model_name=self.model_name, name=self.name
+            )
+        )
+
+        state.reload_model(app_label, self.model_name)
 
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
         model = to_state.apps.get_model(app_label, self.model_name)

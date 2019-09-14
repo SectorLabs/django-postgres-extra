@@ -1,3 +1,5 @@
+from psqlextra.migrations.state import PostgresRangePartitionState
+
 from .partition import PostgresPartitionOperation
 
 
@@ -29,6 +31,20 @@ class PostgresAddRangePartition(PostgresPartitionOperation):
 
         self.from_values = from_values
         self.to_values = to_values
+
+    def state_forwards(self, app_label, state):
+        model = state.models[(app_label, self.model_name)]
+        model.add_partition(
+            PostgresRangePartitionState(
+                app_label=app_label,
+                model_name=self.model_name,
+                name=self.name,
+                from_values=self.from_values,
+                to_values=self.to_values,
+            )
+        )
+
+        state.reload_model(app_label, self.model_name)
 
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
         model = to_state.apps.get_model(app_label, self.model_name)

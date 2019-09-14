@@ -1,3 +1,5 @@
+from psqlextra.migrations.state import PostgresListPartitionState
+
 from .partition import PostgresPartitionOperation
 
 
@@ -22,6 +24,19 @@ class PostgresAddListPartition(PostgresPartitionOperation):
         super().__init__(model_name, name)
 
         self.values = values
+
+    def state_forwards(self, app_label, state):
+        model = state.models[(app_label, self.model_name)]
+        model.add_partition(
+            PostgresListPartitionState(
+                app_label=app_label,
+                model_name=self.model_name,
+                name=self.name,
+                values=self.values,
+            )
+        )
+
+        state.reload_model(app_label, self.model_name)
 
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
         model = to_state.apps.get_model(app_label, self.model_name)
