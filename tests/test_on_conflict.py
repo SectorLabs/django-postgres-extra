@@ -25,19 +25,19 @@ def test_on_conflict(conflict_action):
         [("title", "key1")], conflict_action
     ).insert_and_get(title={"key1": "beer"}, cookies="cheers")
 
-    obj1 = model.objects.on_conflict(
+    model.objects.on_conflict(
         [("title", "key1")], conflict_action
     ).insert_and_get(title={"key1": "beer"})
 
+    assert model.objects.count() == 1
+
     # make sure the data is actually in the db
-    obj1.refresh_from_db()
+    obj.refresh_from_db()
+    assert obj.title["key1"] == "beer"
+    assert obj.cookies == "cheers"
 
-    assert obj1.title["key1"] == "beer"
-    assert obj1.cookies == obj.cookies
 
-
-@pytest.mark.parametrize("conflict_action", ConflictAction.all())
-def test_on_conflict_auto_fields(conflict_action):
+def test_on_conflict_auto_fields():
     """Asserts that fields that automatically add something to the model
     automatically still work properly when upserting."""
 
@@ -49,13 +49,13 @@ def test_on_conflict_auto_fields(conflict_action):
         }
     )
 
-    obj1 = model.objects.on_conflict(["title"], conflict_action).insert_and_get(
-        title="beer"
-    )
+    obj1 = model.objects.on_conflict(
+        ["title"], ConflictAction.UPDATE
+    ).insert_and_get(title="beer")
 
-    obj2 = model.objects.on_conflict(["title"], conflict_action).insert_and_get(
-        title="beer"
-    )
+    obj2 = model.objects.on_conflict(
+        ["title"], ConflictAction.UPDATE
+    ).insert_and_get(title="beer")
 
     obj2.refresh_from_db()
 
@@ -68,11 +68,7 @@ def test_on_conflict_auto_fields(conflict_action):
     assert obj1.id == obj2.id
     assert obj1.title == obj2.title
     assert obj1.date_added == obj2.date_added
-
-    if conflict_action == ConflictAction.UPDATE:
-        assert obj1.date_updated != obj2.date_updated
-    elif conflict_action == ConflictAction.NOTHING:
-        assert obj1.date_updated == obj2.date_updated
+    assert obj1.date_updated != obj2.date_updated
 
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
@@ -115,8 +111,7 @@ def test_on_conflict_foreign_key(conflict_action):
     assert model2_row.model1.id == model1_row.id
 
 
-@pytest.mark.parametrize("conflict_action", ConflictAction.all())
-def test_on_conflict_partial_get(conflict_action):
+def test_on_conflict_partial_get():
     """Asserts that when doing a insert_and_get with only part of the columns
     on the model, all fields are returned properly."""
 
@@ -129,24 +124,20 @@ def test_on_conflict_partial_get(conflict_action):
         }
     )
 
-    obj1 = model.objects.on_conflict(["title"], conflict_action).insert_and_get(
-        title="beer", purpose="for-sale"
-    )
+    obj1 = model.objects.on_conflict(
+        ["title"], ConflictAction.UPDATE
+    ).insert_and_get(title="beer", purpose="for-sale")
 
-    obj2 = model.objects.on_conflict(["title"], conflict_action).insert_and_get(
-        title="beer"
-    )
+    obj2 = model.objects.on_conflict(
+        ["title"], ConflictAction.UPDATE
+    ).insert_and_get(title="beer")
 
     obj2.refresh_from_db()
 
     assert obj2.title == obj1.title
     assert obj2.purpose == obj1.purpose
     assert obj2.created_at == obj2.created_at
-
-    if conflict_action == ConflictAction.UPDATE:
-        assert obj1.updated_at != obj2.updated_at
-    elif conflict_action == ConflictAction.NOTHING:
-        assert obj1.updated_at == obj2.updated_at
+    assert obj1.updated_at != obj2.updated_at
 
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
@@ -226,8 +217,7 @@ def test_on_conflict_custom_column_names(conflict_action):
     )
 
 
-@pytest.mark.parametrize("conflict_action", ConflictAction.all())
-def test_on_conflict_unique_together(conflict_action):
+def test_on_conflict_unique_together():
     """Asserts that inserts on models with a unique_together works properly."""
 
     model = get_fake_model(
@@ -240,18 +230,17 @@ def test_on_conflict_unique_together(conflict_action):
     )
 
     id1 = model.objects.on_conflict(
-        ["first_name", "last_name"], conflict_action
+        ["first_name", "last_name"], ConflictAction.UPDATE
     ).insert(first_name="swen", last_name="kooij")
 
     id2 = model.objects.on_conflict(
-        ["first_name", "last_name"], conflict_action
+        ["first_name", "last_name"], ConflictAction.UPDATE
     ).insert(first_name="swen", last_name="kooij")
 
     assert id1 == id2
 
 
-@pytest.mark.parametrize("conflict_action", ConflictAction.all())
-def test_on_conflict_unique_together_fk(conflict_action):
+def test_on_conflict_unique_together_fk():
     """Asserts that inserts on models with a unique_together and a foreign key
     relationship works properly."""
 
@@ -272,30 +261,29 @@ def test_on_conflict_unique_together_fk(conflict_action):
     assert id1 != id2
 
     id3 = model2.objects.on_conflict(
-        ["model1_id", "model2_id"], conflict_action
+        ["model1_id", "model2_id"], ConflictAction.UPDATE
     ).insert(model1_id=id1, model2_id=id2)
 
     id4 = model2.objects.on_conflict(
-        ["model1_id", "model2_id"], conflict_action
+        ["model1_id", "model2_id"], ConflictAction.UPDATE
     ).insert(model1_id=id1, model2_id=id2)
 
     assert id3 == id4
 
 
-@pytest.mark.parametrize("conflict_action", ConflictAction.all())
-def test_on_conflict_pk_conflict_target(conflict_action):
+def test_on_conflict_pk_conflict_target():
     """Tests whether `on_conflict` properly accepts the 'pk' as a conflict
     target, which should resolve into the primary key of a model."""
 
     model = get_fake_model({"name": models.CharField(max_length=255)})
 
-    obj1 = model.objects.on_conflict(["pk"], conflict_action).insert_and_get(
-        pk=0, name="beer"
-    )
+    obj1 = model.objects.on_conflict(
+        ["pk"], ConflictAction.UPDATE
+    ).insert_and_get(pk=0, name="beer")
 
-    obj2 = model.objects.on_conflict(["pk"], conflict_action).insert_and_get(
-        pk=0, name="beer"
-    )
+    obj2 = model.objects.on_conflict(
+        ["pk"], ConflictAction.UPDATE
+    ).insert_and_get(pk=0, name="beer")
 
     assert obj1.name == "beer"
     assert obj2.name == "beer"

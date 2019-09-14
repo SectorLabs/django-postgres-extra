@@ -123,6 +123,19 @@ This is also known as a "upsert".
 
 This is preferable when the data you're about to insert is the same as the one that already exists. This is more performant because it avoids a write in case the row already exists.
 
+##### No conflicting rows returned
+When using `ConflictAction.NOTHING`, PostgreSQL only returns the row(s) that were created. Conflicting rows are not returned. See example below:
+
+```python
+# obj1 is _not_ none
+obj1 = MyModel.objects.on_conflict(['name'], ConflictAction.NOTHING).insert(name="me")
+
+# obj2 is none! object alreaddy exists
+obj2 = MyModel.objects.on_conflict(['name'], ConflictAction.NOTHING).insert(name="me")
+```
+
+This applies to both `.insert` and `.bulk_insert`.
+
 ### Bulk
 `bulk_insert` allows your to use conflict resolution for bulk inserts:
 

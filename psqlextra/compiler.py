@@ -2,8 +2,10 @@ from django.core.exceptions import SuspiciousOperation
 from django.db.models import Model
 from django.db.models.fields.related import RelatedField
 from django.db.models.sql.compiler import SQLInsertCompiler, SQLUpdateCompiler
+from django.db.utils import ProgrammingError
 
-from psqlextra.expressions import HStoreValue
+from .expressions import HStoreValue
+from .types import ConflictAction
 
 
 class PostgresUpdateCompiler(SQLUpdateCompiler):
@@ -59,7 +61,10 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             rows = []
             for sql, params in self.as_sql(return_id):
                 cursor.execute(sql, params)
-                rows.extend(cursor.fetchall())
+                try:
+                    rows.extend(cursor.fetchall())
+                except ProgrammingError:
+                    pass
 
         # create a mapping between column names and column value
         return [
@@ -94,22 +99,15 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             self.qn(self.query.model._meta.pk.attname) if return_id else "*"
         )
 
-        if self.query.conflict_action.value == "UPDATE":
-            return self._rewrite_insert_update(sql, params, returning)
-        elif self.query.conflict_action.value == "NOTHING":
-            return self._rewrite_insert_nothing(sql, params, returning)
-
-        raise SuspiciousOperation(
-            (
-                "%s is not a valid conflict action, specify "
-                "ConflictAction.UPDATE or ConflictAction.NOTHING."
-            )
-            % str(self.query.conflict_action)
+        return self._rewrite_insert_on_conflict(
+            sql, params, self.query.conflict_action.value, returning
         )
 
-    def _rewrite_insert_update(self, sql, params, returning):
-        """Rewrites a formed SQL INSERT query to include the ON CONFLICT DO
-        UPDATE clause."""
+    def _rewrite_insert_on_conflict(
+        self, sql, params, conflict_action: ConflictAction, returning
+    ):
+        """Rewrites a normal SQL INSERT query to add the 'ON CONFLICT'
+        clause."""
 
         update_columns = ", ".join(
             [
@@ -121,71 +119,28 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         # build the conflict target, the columns to watch
         # for conflicts
         conflict_target = self._build_conflict_target()
-
         index_predicate = self.query.index_predicate
 
         sql_template = (
-            "{insert} ON CONFLICT {conflict_target} DO UPDATE "
-            "SET {update_columns} RETURNING {returning}"
+            "{insert} ON CONFLICT {conflict_target} DO {conflict_action}"
         )
 
         if index_predicate:
-            sql_template = (
-                "{insert} ON CONFLICT {conflict_target} WHERE {index_predicate} DO UPDATE "
-                "SET {update_columns} RETURNING {returning}"
-            )
+            sql_template = "{insert} ON CONFLICT {conflict_target} WHERE {index_predicate} DO {conflict_action}"
+
+        if conflict_action == "UPDATE":
+            sql_template += " SET {update_columns}"
+
+        sql_template += " RETURNING {returning}"
 
         return (
             sql_template.format(
                 insert=sql,
                 conflict_target=conflict_target,
+                conflict_action=conflict_action,
                 update_columns=update_columns,
                 returning=returning,
                 index_predicate=index_predicate,
-            ),
-            params,
-        )
-
-    def _rewrite_insert_nothing(self, sql, params, returning):
-        """Rewrites a formed SQL INSERT query to include the ON CONFLICT DO
-        NOTHING clause."""
-
-        # build the conflict target, the columns to watch
-        # for conflicts
-        conflict_target = self._build_conflict_target()
-
-        where_clause = " AND ".join(
-            [
-                "{0} = %s".format(self._format_field_name(field_name))
-                for field_name in self.query.conflict_target
-            ]
-        )
-
-        where_clause_params = [
-            self._format_field_value(field_name)
-            for field_name in self.query.conflict_target
-        ]
-
-        params = params + tuple(where_clause_params)
-
-        # this looks complicated, and it is, but it is for a reason... a normal
-        # ON CONFLICT DO NOTHING doesn't return anything if the row already exists
-        # so we do DO UPDATE instead that never executes to lock the row, and then
-        # select from the table in case we're dealing with an existing row..
-        return (
-            (
-                "WITH insdata AS ("
-                "{insert} ON CONFLICT {conflict_target} DO UPDATE"
-                " SET {pk_column} = NULL WHERE FALSE RETURNING {returning})"
-                " SELECT * FROM insdata UNION ALL"
-                " SELECT {returning} FROM {table} WHERE {where_clause} LIMIT 1;"
-            ).format(
-                insert=sql,
-                conflict_target=conflict_target,
-                pk_column=self.qn(self.query.model._meta.pk.column),
-                returning=returning,
-                table=self.query.objs[0]._meta.db_table,
-                where_clause=where_clause,
             ),
             params,
         )

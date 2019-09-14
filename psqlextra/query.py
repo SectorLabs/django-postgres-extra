@@ -185,6 +185,9 @@ class PostgresQuerySet(models.QuerySet):
             rows = compiler.execute_sql(return_id=True)
 
             pk_field_name = self.model._meta.pk.name
+            if not rows or len(rows) == 0:
+                return None
+
             return rows[0][pk_field_name]
 
         # no special action required, use the standard Django create(..)

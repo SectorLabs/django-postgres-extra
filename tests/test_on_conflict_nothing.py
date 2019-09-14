@@ -18,6 +18,7 @@ def test_on_conflict_nothing():
         }
     )
 
+    # row does not conflict, new row should be created
     obj1 = model.objects.on_conflict(
         [("title", "key1")], ConflictAction.NOTHING
     ).insert_and_get(title={"key1": "beer"}, cookies="cheers")
@@ -26,19 +27,18 @@ def test_on_conflict_nothing():
     assert obj1.title["key1"] == "beer"
     assert obj1.cookies == "cheers"
 
+    # row conflicts, no new row should be created
     obj2 = model.objects.on_conflict(
         [("title", "key1")], ConflictAction.NOTHING
     ).insert_and_get(title={"key1": "beer"}, cookies="choco")
 
-    obj1.refresh_from_db()
-    obj2.refresh_from_db()
+    assert not obj2
 
     # assert that the 'cookies' field didn't change
-    assert obj1.id == obj2.id
+    obj1.refresh_from_db()
     assert obj1.title["key1"] == "beer"
     assert obj1.cookies == "cheers"
-    assert obj2.title["key1"] == "beer"
-    assert obj2.cookies == "cheers"
+    assert model.objects.count() == 1
 
 
 def test_on_conflict_nothing_foreign_primary_key():
@@ -58,6 +58,7 @@ def test_on_conflict_nothing_foreign_primary_key():
 
     referenced_obj = referenced_model.objects.create()
 
+    # row does not conflict, new row should be created
     obj1 = model.objects.on_conflict(
         ["parent_id"], ConflictAction.NOTHING
     ).insert_and_get(parent_id=referenced_obj.pk, cookies="cheers")
@@ -66,16 +67,16 @@ def test_on_conflict_nothing_foreign_primary_key():
     assert obj1.parent == referenced_obj
     assert obj1.cookies == "cheers"
 
+    # row conflicts, no new row should be created
     obj2 = model.objects.on_conflict(
         ["parent_id"], ConflictAction.NOTHING
     ).insert_and_get(parent_id=referenced_obj.pk, cookies="choco")
 
-    obj1.refresh_from_db()
-    obj2.refresh_from_db()
+    assert not obj2
 
-    assert obj1.pk == obj2.pk
+    obj1.refresh_from_db()
     assert obj1.cookies == "cheers"
-    assert obj2.cookies == "cheers"
+    assert model.objects.count() == 1
 
 
 def test_on_conflict_nothing_foreign_key_by_object():
@@ -95,6 +96,7 @@ def test_on_conflict_nothing_foreign_key_by_object():
 
     other_obj = other_model.objects.create()
 
+    # row does not conflict, new row should be created
     obj1 = model.objects.on_conflict(
         ["other"], ConflictAction.NOTHING
     ).insert_and_get(other=other_obj, data="some data")
@@ -113,22 +115,17 @@ def test_on_conflict_nothing_foreign_key_by_object():
             ).insert_and_get(other=obj1)
         )
 
+    # row conflicts, no new row should be created
     obj2 = model.objects.on_conflict(
         ["other"], ConflictAction.NOTHING
     ).insert_and_get(other=other_obj, data="different data")
 
-    assert obj2.other == other_obj
-    assert obj2.data == "some data"
+    assert not obj2
 
     obj1.refresh_from_db()
-    obj2.refresh_from_db()
-
-    # assert that the 'other' field didn't change
-    assert obj1.id == obj2.id
+    assert model.objects.count() == 1
     assert obj1.other == other_obj
-    assert obj2.other == other_obj
     assert obj1.data == "some data"
-    assert obj2.data == "some data"
 
 
 def test_on_conflict_nothing_foreign_key_by_id():
@@ -148,6 +145,7 @@ def test_on_conflict_nothing_foreign_key_by_id():
 
     other_obj = other_model.objects.create()
 
+    # row does not conflict, new row should be created
     obj1 = model.objects.on_conflict(
         ["other_id"], ConflictAction.NOTHING
     ).insert_and_get(other_id=other_obj.pk, data="some data")
@@ -159,22 +157,17 @@ def test_on_conflict_nothing_foreign_key_by_id():
     assert obj1.other == other_obj
     assert obj1.data == "some data"
 
+    # row conflicts, no new row should be created
     obj2 = model.objects.on_conflict(
         ["other_id"], ConflictAction.NOTHING
     ).insert_and_get(other_id=other_obj.pk, data="different data")
 
-    assert obj2.other == other_obj
-    assert obj2.data == "some data"
+    assert not obj2
+    assert model.objects.count() == 1
 
     obj1.refresh_from_db()
-    obj2.refresh_from_db()
-
-    # assert that the 'other' field didn't change
-    assert obj1.id == obj2.id
     assert obj1.other == other_obj
-    assert obj2.other == other_obj
     assert obj1.data == "some data"
-    assert obj2.data == "some data"
 
 
 def test_on_conflict_nothing_duplicate_rows():
