@@ -1,4 +1,4 @@
-from psqlextra.migrations.state import PostgresListPartitionState
+from psqlextra.backend.migrations.state import PostgresListPartitionState
 
 from .partition import PostgresPartitionOperation
 

@@ -3,8 +3,8 @@ import pytest
 from django.apps import apps
 from django.db import connection, migrations, models
 
+from psqlextra.backend.migrations import operations
 from psqlextra.manager import PostgresManager
-from psqlextra.migrations import operations
 from psqlextra.models import PostgresPartitionedModel
 from psqlextra.types import PostgresPartitioningMethod
 

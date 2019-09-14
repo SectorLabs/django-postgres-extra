@@ -1,6 +1,6 @@
 from django.db.migrations.operations.models import CreateModel
 
-from psqlextra.migrations.state import PostgresPartitionedModelState
+from psqlextra.backend.migrations.state import PostgresPartitionedModelState
 
 
 class PostgresCreatePartitionedModel(CreateModel):

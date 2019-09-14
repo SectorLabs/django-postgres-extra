@@ -5,11 +5,11 @@ import pytest
 from django.apps import apps
 from django.db import models
 
-from psqlextra.manager import PostgresManager
-from psqlextra.migrations.state import (
+from psqlextra.backend.migrations.state import (
     PostgresPartitionedModelState,
     PostgresPartitionState,
 )
+from psqlextra.manager import PostgresManager
 from psqlextra.models import PostgresPartitionedModel
 from psqlextra.types import PostgresPartitioningMethod
 
