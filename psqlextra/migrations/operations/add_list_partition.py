@@ -33,3 +33,6 @@ class PostgresAddListPartition(PostgresPartitionOperation):
         kwargs["values"] = self.values
 
         return name, args, kwargs
+
+    def describe(self) -> str:
+        return "Creates list partition %s on %s" % (self.name, self.model_name)

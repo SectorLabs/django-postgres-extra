@@ -44,3 +44,6 @@ class PostgresAddRangePartition(PostgresPartitionOperation):
         kwargs["to_values"] = self.to_values
 
         return name, args, kwargs
+
+    def describe(self) -> str:
+        return "Creates range partition %s on %s" % (self.name, self.model_name)

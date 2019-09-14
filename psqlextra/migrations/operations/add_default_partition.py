@@ -15,3 +15,9 @@ class PostgresAddDefaultPartition(PostgresPartitionOperation):
         model = to_state.apps.get_model(app_label, self.model_name)
         if self.allow_migrate_model(schema_editor.connection.alias, model):
             schema_editor.delete_partition(model, self.name)
+
+    def describe(self) -> str:
+        return "Creates default partition %s on %s" % (
+            self.name,
+            self.model_name,
+        )
