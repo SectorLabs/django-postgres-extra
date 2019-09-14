@@ -4,6 +4,7 @@ from django.db import ProgrammingError
 
 from . import base_impl
 from .introspection import PostgresIntrospection
+from .operations import PostgresOperations
 from .schema import PostgresSchemaEditor
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ class DatabaseWrapper(base_impl.backend()):
 
     SchemaEditorClass = PostgresSchemaEditor
     introspection_class = PostgresIntrospection
+    ops_class = PostgresOperations
 
     def prepare_database(self):
         """Ran to prepare the configured database.

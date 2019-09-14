@@ -70,3 +70,13 @@ def introspection():
     """
 
     return backend().introspection_class
+
+
+def operations():
+    """Gets the base class for the operations class.
+
+    We have to use the configured base back-end's operations class for
+    this.
+    """
+
+    return backend().ops_class

@@ -2,7 +2,6 @@ from collections import OrderedDict
 from enum import Enum
 from typing import List, Optional, Tuple
 
-
 from django.core.exceptions import SuspiciousOperation
 from django.db import models
 from django.db.models import sql
@@ -24,6 +23,21 @@ class ConflictAction(Enum):
 
 
 class PostgresQuery(sql.Query):
+    def chain(self, klass=None):
+        """Chains this query to another.
+
+        We override this so that we can make sure our subclassed query
+        classes are used.
+        """
+
+        if klass == sql.UpdateQuery:
+            return super().chain(PostgresUpdateQuery)
+
+        if klass == sql.InsertQuery:
+            return super().chain(PostgresInsertQuery)
+
+        return super().chain(klass)
+
     def rename_annotations(self, annotations) -> None:
         """Renames the aliases for the specified annotations:
 
@@ -126,6 +140,8 @@ class PostgresQuery(sql.Query):
 class PostgresInsertQuery(sql.InsertQuery):
     """Insert query using PostgreSQL."""
 
+    compiler = "PostgresInsertCompiler"
+
     def __init__(self, *args, **kwargs):
         """Initializes a new instance :see:PostgresInsertQuery."""
 
@@ -161,3 +177,9 @@ class PostgresInsertQuery(sql.InsertQuery):
 
         self.insert_values(insert_fields, objs, raw=False)
         self.update_fields = update_fields
+
+
+class PostgresUpdateQuery(sql.UpdateQuery):
+    """Update query using PostgreSQL."""
+
+    compiler = "PostgresUpdateCompiler"

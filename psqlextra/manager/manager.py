@@ -5,12 +5,10 @@ import django
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
-from django.db import models, transaction
+from django.db import models
 from django.db.models.fields import NOT_PROVIDED
-from django.db.models.sql import UpdateQuery
-from django.db.models.sql.constants import CURSOR
 
-from psqlextra.compiler import PostgresInsertCompiler, PostgresUpdateCompiler
+from psqlextra.compiler import PostgresInsertCompiler
 from psqlextra.query import ConflictAction, PostgresInsertQuery, PostgresQuery
 
 
@@ -73,27 +71,6 @@ class PostgresQuerySet(models.QuerySet):
 
         self.query.rename_annotations(annotations)
         return self
-
-    def update(self, **fields):
-        """Updates all rows that match the filter."""
-
-        # build up the query to execute
-        self._for_write = True
-
-        query = self.query.chain(UpdateQuery)
-        query._annotations = None
-        query.add_update_values(fields)
-
-        # build the compiler for for the query
-        connection = django.db.connections[self.db]
-        compiler = PostgresUpdateCompiler(query, connection, self.db)
-
-        # execute the query
-        with transaction.atomic(using=self.db, savepoint=False):
-            rows = compiler.execute_sql(CURSOR)
-        self._result_cache = None
-
-        return rows
 
     def on_conflict(
         self,
