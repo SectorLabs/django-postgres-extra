@@ -1,5 +1,17 @@
 `psqlextra.fields.HStoreField` is based on Django's [HStoreField](https://docs.djangoproject.com/en/1.10/ref/contrib/postgres/fields/#hstorefield) and therefore supports everything Django does natively, plus more.
 
+## HStore extension
+`django-postgres-extra` will automatically enable the `hstore` extension in your postgres database if not enabled yet.
+
+If you are not connecting to your database as a super user, this operation might fail.
+
+### Not a super user
+If you do not connect to your database as a super user then you'll have to enable the `hstore` extension yourself. You can stop `django-postgres-extra` from trying to automatically enable the extension by adding the following setting to your settings file:
+
+```python
+POSTGRES_EXTRA_AUTO_EXTENSION_SET_UP = False
+```
+
 ## Constraints
 ### Unique
 The `uniqueness` constraint can be added on one or more `hstore` keys, similar to how a `UNIQUE` constraint can be added to a column. Setting this option causes unique indexes to be created on the specified keys.

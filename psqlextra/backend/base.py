@@ -29,6 +29,13 @@ class DatabaseWrapper(base_impl.backend()):
         """
 
         super().prepare_database()
+
+        setup_ext = getattr(
+            setings, "POSTGRES_EXTRA_AUTO_EXTENSION_SET_UP", True
+        )
+        if not setup_ext:
+            return False
+
         with self.cursor() as cursor:
             try:
                 cursor.execute("CREATE EXTENSION IF NOT EXISTS hstore")
