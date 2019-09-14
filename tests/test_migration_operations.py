@@ -133,7 +133,7 @@ def test_migration_operations_delete_partitioned_table(method, create_model):
     apply_migration([delete_operation], state)
     assert not _partitioned_table_exists(create_operation)
 
-    # migrate backwards, delete model
+    # migrate backwards, undelete model
     delete_operation.database_backwards(
         "tests", connection.schema_editor(), state, intm_state
     )
@@ -141,11 +141,14 @@ def test_migration_operations_delete_partitioned_table(method, create_model):
 
 
 @pytest.mark.parametrize(
-    "method,operation",
+    "method,add_partition_operation,delete_partition_operation",
     [
         (
             PostgresPartitioningMethod.LIST,
             operations.PostgresAddDefaultPartition(
+                model_name="test", name="pt1"
+            ),
+            operations.PostgresDeleteDefaultPartition(
                 model_name="test", name="pt1"
             ),
         ),
@@ -157,17 +160,23 @@ def test_migration_operations_delete_partitioned_table(method, create_model):
                 from_values="2019-01-01",
                 to_values="2019-02-01",
             ),
+            operations.PostgresDeleteRangePartition(
+                model_name="test", name="pt1"
+            ),
         ),
         (
             PostgresPartitioningMethod.LIST,
             operations.PostgresAddListPartition(
                 model_name="test", name="pt1", values=["car", "boat"]
             ),
+            operations.PostgresDeleteListPartition(
+                model_name="test", name="pt1"
+            ),
         ),
     ],
 )
 def test_migration_operations_add_delete_partition(
-    method, operation, create_model
+    method, add_partition_operation, delete_partition_operation, create_model
 ):
     """Tests whether adding partitions and then removing them works as
     expected."""
@@ -176,16 +185,19 @@ def test_migration_operations_add_delete_partition(
     state = migrations.state.ProjectState.from_apps(apps)
 
     # migrate forwards, create model and partition
-    apply_migration([create_operation, operation], state)
-    assert _partition_exists(create_operation, operation)
+    apply_migration([create_operation, add_partition_operation], state)
+    assert _partition_exists(create_operation, add_partition_operation)
 
-    # apply migration to delete the partition
-    apply_migration(
-        [
-            operations.PostgresDeletePartition(
-                model_name=create_operation.name, name=operation.name
-            )
-        ],
-        state,
+    # record intermediate state, the state we'll
+    # migrate backwards to
+    intm_state = state.clone()
+
+    # migrate forwards, delete the partition
+    apply_migration([delete_partition_operation], state)
+    assert not _partition_exists(create_operation, add_partition_operation)
+
+    # migrate backwards, undelete the partition
+    delete_partition_operation.database_backwards(
+        "tests", connection.schema_editor(), state, intm_state
     )
-    assert not _partition_exists(create_operation, operation)
+    assert _partition_exists(create_operation, add_partition_operation)

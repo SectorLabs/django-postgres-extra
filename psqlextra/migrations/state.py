@@ -85,6 +85,7 @@ class PostgresPartitionedModelState(ModelState):
         model."""
 
         model_state = super().from_model(model, *args, **kwargs)
+        model_state.partitions = dict()
         model_state.partitioning_options = dict(
             model._partitioning_meta.original_attrs
         )
@@ -95,6 +96,7 @@ class PostgresPartitionedModelState(ModelState):
         """Gets an exact copy of this :see:PostgresPartitionedModelState."""
 
         model_state = super().clone()
+        model_state.partitions = dict(self.partitions)
         model_state.partitioning_options = dict(self.partitioning_options)
 
         return model_state
