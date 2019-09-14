@@ -1,3 +1,5 @@
+from typing import Dict, List
+
 from django.db.migrations.state import ModelState
 
 from psqlextra.models import PostgresPartitionedModel
@@ -52,7 +54,13 @@ class PostgresPartitionedModelState(ModelState):
     mutations, this gets rendered into a model.
     """
 
-    def __init__(self, *args, partitioning_options={}, **kwargs):
+    def __init__(
+        self,
+        *args,
+        partitions: List[PostgresPartitionState] = [],
+        partitioning_options={},
+        **kwargs
+    ):
         """Initializes a new instance of :see:PostgresPartitionedModelState.
 
         Arguments:
@@ -64,8 +72,10 @@ class PostgresPartitionedModelState(ModelState):
 
         super().__init__(*args, **kwargs)
 
+        self.partitions: Dict[str, PostgresPartitionState] = {
+            partition.name: partition for partition in partitions
+        }
         self.partitioning_options = dict(partitioning_options)
-        self.partitions: Dict[str, PostgresPartitionState] = {}
 
     def add_partition(self, partition: PostgresPartitionState):
         """Adds a partition to this partitioned model state."""

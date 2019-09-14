@@ -6,7 +6,10 @@ from django.apps import apps
 from django.db import models
 
 from psqlextra.manager import PostgresManager
-from psqlextra.migrations.state import PostgresPartitionedModelState
+from psqlextra.migrations.state import (
+    PostgresPartitionedModelState,
+    PostgresPartitionState,
+)
 from psqlextra.models import PostgresPartitionedModel
 from psqlextra.types import PostgresPartitioningMethod
 
@@ -26,8 +29,8 @@ def model():
     return model
 
 
-def test_partitioned_model_state_copies_options():
-    """Tests whether the model state copies the partitioning options.
+def test_partitioned_model_state_copies():
+    """Tests whether cloning the model state properly copies all the options.
 
     If it does not copy them, bad things can happen as the state is
     mutated to build up migration state.
@@ -52,6 +55,7 @@ def test_partitioned_model_state_from_model(model):
     expected."""
 
     state = PostgresPartitionedModelState.from_model(model)
+    assert state.partitions == {}
     assert (
         state.partitioning_options["method"] == model._partitioning_meta.method
     )
@@ -67,8 +71,14 @@ def test_partitioned_model_clone(model):
     """
 
     state = PostgresPartitionedModelState.from_model(model)
-    state_copy = state.clone()
+    state.partitions = {
+        "pt1": PostgresPartitionState(
+            app_label="tests", model_name="tests", name="pt1"
+        )
+    }
 
+    state_copy = state.clone()
+    assert state.partitions is not state_copy.partitions
     assert state.partitioning_options is not state_copy.partitioning_options
 
 
