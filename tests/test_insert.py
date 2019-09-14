@@ -2,7 +2,7 @@ from django.db import models
 
 from psqlextra.query import ConflictAction
 
-from .util import get_fake_model
+from .fake_model import get_fake_model
 
 
 def test_insert():

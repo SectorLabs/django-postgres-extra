@@ -2,7 +2,7 @@ from django.db import models
 
 from psqlextra.fields import HStoreField
 
-from .util import get_fake_model
+from .fake_model import get_fake_model
 
 
 def test_upsert():

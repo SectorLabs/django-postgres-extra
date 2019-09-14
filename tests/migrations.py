@@ -8,7 +8,7 @@ from django.db.migrations.executor import MigrationExecutor
 
 from psqlextra.backend.schema import PostgresSchemaEditor
 
-from .util import define_fake_model
+from .fake_model import define_fake_model
 
 
 @contextmanager

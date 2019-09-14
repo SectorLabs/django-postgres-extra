@@ -7,7 +7,7 @@ from psqlextra.fields import HStoreField
 from psqlextra.models import PostgresModel
 from psqlextra.query import ConflictAction
 
-from .util import get_fake_model
+from .fake_model import get_fake_model
 
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())

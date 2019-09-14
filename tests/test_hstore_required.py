@@ -5,7 +5,7 @@ from django.db.utils import IntegrityError
 from psqlextra.fields import HStoreField
 
 from . import migrations
-from .util import get_fake_model
+from .fake_model import get_fake_model
 
 
 def test_hstore_required_migration_create_drop_model():

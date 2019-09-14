@@ -6,7 +6,7 @@ from django.db import connection, models
 from psqlextra.backend.schema import PostgresSchemaEditor
 from psqlextra.types import PostgresPartitioningMethod
 
-from .util import define_fake_partitioning_model
+from .fake_model import define_fake_partitioning_model
 
 
 def test_schema_editor_create_delete_partitioned_model_range():

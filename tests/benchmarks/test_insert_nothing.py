@@ -7,7 +7,7 @@ from django.db.utils import IntegrityError
 
 from psqlextra.query import ConflictAction
 
-from ..util import get_fake_model
+from ..fake_model import get_fake_model
 
 
 @pytest.mark.benchmark()

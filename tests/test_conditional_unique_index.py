@@ -5,8 +5,8 @@ from django.db.migrations import AddIndex, CreateModel
 
 from psqlextra.indexes import ConditionalUniqueIndex
 
+from .fake_model import get_fake_model
 from .migrations import apply_migration, filtered_schema_editor
-from .util import get_fake_model
 
 
 def test_deconstruct():
