@@ -60,8 +60,13 @@ Major features
    * Null constraints
    * Select individual keys using ``.values()`` or ``.values_list()``
 
+3. **Support for PostgreSQL 11.x declarative table partitioning**
+
+   * Supports both range and list partitioning
+
 4. **Extra expressions**
 
+   * Select indivual hstore keys
    * ``MIN`` and ``MAX`` for multiple value fields such as hstore and array.
 
 5. **Indexes**
