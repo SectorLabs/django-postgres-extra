@@ -91,17 +91,51 @@ class Migration(migrations.Migration):
     ]
 ```
 
-#### Deleting a partition
-Use the `psqlextra.migrations.operations.DeletePartition` operation to delete an existing partition.
+#### Deleting a default partition
+Use the `psqlextra.migrations.operations.PostgresDeleteDefaultPartition` operation to delete an existing default partition.
 
 ```python
 from django.db import migrations, models
 
-from psqlextra.migrations.operations import DeletePartition
+from psqlextra.migrations.operations import PostgresDeleteDefaultPartition
 
 class Migration(migrations.Migration):
     operations = [
-        DeletePartition(
+        PostgresDeleteDefaultPartition(
+           model_name="mypartitionedmodel",
+           name="pt1",
+        ),
+    ]
+```
+
+#### Deleting a range partition
+Use the `psqlextra.migrations.operations.PostgresDeleteRangePartition` operation to delete an existing range partition.
+
+```python
+from django.db import migrations, models
+
+from psqlextra.migrations.operations import PostgresDeleteRangePartition
+
+class Migration(migrations.Migration):
+    operations = [
+        PostgresDeleteRangePartition(
+           model_name="mypartitionedmodel",
+           name="pt1",
+        ),
+    ]
+```
+
+#### Deleting a list partition
+Use the `psqlextra.migrations.operations.PostgresDeleteListPartition` operation to delete an existing list partition.
+
+```python
+from django.db import migrations, models
+
+from psqlextra.migrations.operations import PostgresDeleteListPartition
+
+class Migration(migrations.Migration):
+    operations = [
+        PostgresDeleteListPartition(
            model_name="mypartitionedmodel",
            name="pt1",
         ),
