@@ -29,9 +29,14 @@
 
 With seamless we mean that any features we add will work truly seamlessly. You should not have to manually modify your migrations to work with fields and objects provided by this package.
 
+Upgrade
+-------
+Upgrading from v1? Read the change log with new features and breaking changes.
+
+* `v2 change log <http://django-postgres-extra.readthedocs.io/major-releases#2x>`_
+
 Documentation
 -------------
-
 
 * **ReadTheDocs HTML**
 
@@ -49,7 +54,7 @@ Compatibility
 Major features
 --------------
 
-[See the full list of features and docs on how to use them.](https://django-postgres-extra.readthedocs.io/#features)
+* `See the full list of features with documentation <http://django-postgres-extra.readthedocs.io/#features>`_
 
 1. **Native upserts**
 
@@ -88,7 +93,7 @@ Installation
 
 Following the Installation guide in the documention.
 
-    * [Installation Guide](http://django-postgres-extra.readthedocs.io/#installation)
+* `Installation Guide <http://django-postgres-extra.readthedocs.io/#installation>`_
 
 
 Working with the code
