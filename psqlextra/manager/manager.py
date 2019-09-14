@@ -77,16 +77,6 @@ class PostgresQuerySet(models.QuerySet):
         self.query.rename_annotations(annotations)
         return self
 
-    def join(self, **conditions):
-        """Adds extra conditions to existing joins.
-
-        WARNING: This is an extremely experimental feature.
-                 DO NOT USE unless you know what you're doing.
-        """
-
-        self.query.add_join_conditions(conditions)
-        return self
-
     def update(self, **fields):
         """Updates all rows that match the filter."""
 

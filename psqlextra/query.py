@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import django
 
@@ -9,7 +9,6 @@ from django.db import models
 from django.db.models import sql
 from django.db.models.constants import LOOKUP_SEP
 
-from .datastructures import ConditionalJoin
 from .expressions import HStoreColumn
 from .fields import HStoreField
 
@@ -63,46 +62,6 @@ class PostgresQuery(sql.Query):
                         for v in (self.annotation_select_mask or [])
                     )
                 )
-
-    def add_join_conditions(self, conditions: Dict[str, Any]) -> None:
-        """Adds an extra condition to an existing JOIN.
-
-        This allows you to for example do:
-
-            INNER JOIN othertable ON (mytable.id = othertable.other_id AND [extra conditions])
-
-        This does not work if nothing else in your query doesn't already generate the
-        initial join in the first place.
-        """
-
-        alias = self.get_initial_alias()
-        opts = self.get_meta()
-
-        for name, value in conditions.items():
-            parts = name.split(LOOKUP_SEP)
-            join_info = self.setup_joins(parts, opts, alias, allow_many=True)
-            self.trim_joins(join_info[1], join_info[3], join_info[4])
-
-            target_table = join_info[3][-1]
-            field = join_info[1][-1]
-            join = self.alias_map.get(target_table)
-
-            if not join:
-                raise SuspiciousOperation(
-                    (
-                        'Cannot add an extra join condition for "%s", there\'s no'
-                        " existing join to add it to."
-                    )
-                    % target_table
-                )
-
-            # convert the Join object into a ConditionalJoin object, which
-            # allows us to add the extra condition
-            if not isinstance(join, ConditionalJoin):
-                self.alias_map[target_table] = ConditionalJoin.from_join(join)
-                join = self.alias_map[target_table]
-
-            join.add_condition(field, value)
 
     def add_fields(
         self, field_names: List[str], allow_m2m: bool = True
