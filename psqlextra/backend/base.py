@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.db import ProgrammingError
 
 from . import base_impl
@@ -31,7 +32,7 @@ class DatabaseWrapper(base_impl.backend()):
         super().prepare_database()
 
         setup_ext = getattr(
-            setings, "POSTGRES_EXTRA_AUTO_EXTENSION_SET_UP", True
+            settings, "POSTGRES_EXTRA_AUTO_EXTENSION_SET_UP", True
         )
         if not setup_ext:
             return False

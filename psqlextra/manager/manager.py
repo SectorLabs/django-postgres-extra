@@ -1,15 +1,17 @@
 from itertools import chain
-from typing import Dict, Iterable, List, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import django
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
-from django.db import models
+from django.db import models, router
 from django.db.models.fields import NOT_PROVIDED
 
 from psqlextra.compiler import PostgresInsertCompiler
 from psqlextra.query import ConflictAction, PostgresInsertQuery, PostgresQuery
+
+ConflictTarget = List[Union[str, Tuple[str]]]
 
 
 class PostgresQuerySet(models.QuerySet):
@@ -74,9 +76,9 @@ class PostgresQuerySet(models.QuerySet):
 
     def on_conflict(
         self,
-        fields: List[Union[str, Tuple[str]]],
-        action,
-        index_predicate: str = None,
+        fields: ConflictTarget,
+        action: ConflictAction,
+        index_predicate: Optional[str] = None,
     ):
         """Sets the action to take when conflicts arise when attempting to
         insert/create a new row.
@@ -99,7 +101,12 @@ class PostgresQuerySet(models.QuerySet):
 
         return self
 
-    def bulk_insert(self, rows, return_model=False):
+    def bulk_insert(
+        self,
+        rows: List[dict],
+        return_model: bool = False,
+        using: Optional[str] = None,
+    ):
         """Creates multiple new records in the database.
 
         This allows specifying custom conflict behavior using .on_conflict().
@@ -114,47 +121,51 @@ class PostgresQuerySet(models.QuerySet):
                 If model instances should be returned rather than
                 just dicts.
 
+            using:
+                Name of the database connection to use for
+                this query.
+
         Returns:
             A list of either the dicts of the rows inserted, including the pk or
             the models of the rows inserted with defaults for any fields not specified
         """
 
-        if self.conflict_target or self.conflict_action:
-            deduped_rows = rows
+        if not self.conflict_target and not self.conflict_action:
+            # no special action required, use the standard Django bulk_create(..)
+            return super().bulk_create(
+                [self.model(**fields) for fields in rows]
+            )
 
-            # when we do a ConflictAction.NOTHING, we are actually
-            # doing a ON CONFLICT DO UPDATE with a trick to avoid
-            # touching conflicting rows... however, ON CONFLICT UPDATE
-            # barfs when you specify the exact same row twice:
-            #
-            # > "cannot affect row a second time"
-            #
-            # we filter out the duplicates here to make sure we maintain
-            # the same behaviour as the real ON CONFLICT DO NOTHING
-            if self.conflict_action == ConflictAction.NOTHING:
-                deduped_rows = []
-                for row in rows:
-                    if row in deduped_rows:
-                        continue
+        deduped_rows = rows
 
-                    deduped_rows.append(row)
+        # when we do a ConflictAction.NOTHING, we are actually
+        # doing a ON CONFLICT DO UPDATE with a trick to avoid
+        # touching conflicting rows... however, ON CONFLICT UPDATE
+        # barfs when you specify the exact same row twice:
+        #
+        # > "cannot affect row a second time"
+        #
+        # we filter out the duplicates here to make sure we maintain
+        # the same behaviour as the real ON CONFLICT DO NOTHING
+        if self.conflict_action == ConflictAction.NOTHING:
+            deduped_rows = []
+            for row in rows:
+                if row in deduped_rows:
+                    continue
 
-            compiler = self._build_insert_compiler(deduped_rows)
-            objs = compiler.execute_sql(return_id=True)
-            if return_model:
-                return [
-                    self.model(**dict(row, **obj))
-                    for row, obj in zip(deduped_rows, objs)
-                ]
-            else:
-                return [
-                    dict(row, **obj) for row, obj in zip(deduped_rows, objs)
-                ]
+                deduped_rows.append(row)
 
-        # no special action required, use the standard Django bulk_create(..)
-        return super().bulk_create([self.model(**fields) for fields in rows])
+        compiler = self._build_insert_compiler(deduped_rows, using=using)
+        objs = compiler.execute_sql(return_id=True)
+        if return_model:
+            return [
+                self.model(**dict(row, **obj))
+                for row, obj in zip(deduped_rows, objs)
+            ]
+        else:
+            return [dict(row, **obj) for row, obj in zip(deduped_rows, objs)]
 
-    def insert(self, **fields):
+    def insert(self, using: Optional[str] = None, **fields):
         """Creates a new record in the database.
 
         This allows specifying custom conflict behavior using .on_conflict().
@@ -164,12 +175,16 @@ class PostgresQuerySet(models.QuerySet):
             fields:
                 The fields of the row to create.
 
+            using:
+                The name of the database connection
+                to use for this query.
+
         Returns:
             The primary key of the record that was created.
         """
 
         if self.conflict_target or self.conflict_action:
-            compiler = self._build_insert_compiler([fields])
+            compiler = self._build_insert_compiler([fields], using=using)
             rows = compiler.execute_sql(return_id=True)
 
             pk_field_name = self.model._meta.pk.name
@@ -178,7 +193,7 @@ class PostgresQuerySet(models.QuerySet):
         # no special action required, use the standard Django create(..)
         return super().create(**fields).pk
 
-    def insert_and_get(self, **fields):
+    def insert_and_get(self, using: Optional[str] = None, **fields):
         """Creates a new record in the database and then gets the entire row.
 
         This allows specifying custom conflict behavior using .on_conflict().
@@ -188,6 +203,10 @@ class PostgresQuerySet(models.QuerySet):
             fields:
                 The fields of the row to create.
 
+            using:
+                The name of the database connection
+                to use for this query.
+
         Returns:
             The model instance representing the row that was created.
         """
@@ -196,7 +215,7 @@ class PostgresQuerySet(models.QuerySet):
             # no special action required, use the standard Django create(..)
             return super().create(**fields)
 
-        compiler = self._build_insert_compiler([fields])
+        compiler = self._build_insert_compiler([fields], using=using)
         rows = compiler.execute_sql(return_id=False)
 
         if not rows:
@@ -223,7 +242,11 @@ class PostgresQuerySet(models.QuerySet):
         return self.model(**model_init_fields)
 
     def upsert(
-        self, conflict_target: List, fields: Dict, index_predicate: str = None
+        self,
+        conflict_target: ConflictTarget,
+        fields: dict,
+        index_predicate: Optional[str] = None,
+        using: Optional[str] = None,
     ) -> int:
         """Creates a new record or updates the existing one with the specified
         data.
@@ -239,6 +262,10 @@ class PostgresQuerySet(models.QuerySet):
                 The index predicate to satisfy an arbiter partial index (i.e. what partial index to use for checking
                 conflicts)
 
+            using:
+                The name of the database connection to
+                use for this query.
+
         Returns:
             The primary key of the row that was created/updated.
         """
@@ -246,10 +273,14 @@ class PostgresQuerySet(models.QuerySet):
         self.on_conflict(
             conflict_target, ConflictAction.UPDATE, index_predicate
         )
-        return self.insert(**fields)
+        return self.insert(**fields, using=using)
 
     def upsert_and_get(
-        self, conflict_target: List, fields: Dict, index_predicate: str = None
+        self,
+        conflict_target: ConflictTarget,
+        fields: dict,
+        index_predicate: Optional[str] = None,
+        using: Optional[str] = None,
     ):
         """Creates a new record or updates the existing one with the specified
         data and then gets the row.
@@ -265,6 +296,10 @@ class PostgresQuerySet(models.QuerySet):
                 The index predicate to satisfy an arbiter partial index (i.e. what partial index to use for checking
                 conflicts)
 
+            using:
+                The name of the database connection to
+                use for this query.
+
         Returns:
             The model instance representing the row
             that was created/updated.
@@ -273,14 +308,15 @@ class PostgresQuerySet(models.QuerySet):
         self.on_conflict(
             conflict_target, ConflictAction.UPDATE, index_predicate
         )
-        return self.insert_and_get(**fields)
+        return self.insert_and_get(**fields, using=using)
 
     def bulk_upsert(
         self,
-        conflict_target: List,
+        conflict_target: ConflictTarget,
         rows: Iterable[Dict],
         index_predicate: str = None,
         return_model: bool = False,
+        using: Optional[str] = None,
     ):
         """Creates a set of new records or updates the existing ones with the
         specified data.
@@ -300,6 +336,10 @@ class PostgresQuerySet(models.QuerySet):
                 If model instances should be returned rather than
                 just dicts.
 
+            using:
+                The name of the database connection to use
+                for this query.
+
         Returns:
             A list of either the dicts of the rows upserted, including the pk or
             the models of the rows upserted
@@ -314,15 +354,21 @@ class PostgresQuerySet(models.QuerySet):
         self.on_conflict(
             conflict_target, ConflictAction.UPDATE, index_predicate
         )
-        return self.bulk_insert(rows, return_model)
+        return self.bulk_insert(rows, return_model, using=using)
 
-    def _build_insert_compiler(self, rows: Iterable[Dict]):
+    def _build_insert_compiler(
+        self, rows: Iterable[Dict], using: Optional[str] = None
+    ):
         """Builds the SQL compiler for a insert query.
 
         Arguments:
             rows:
                 An iterable of dictionaries, where each entry
                 describes a record to insert.
+
+            using:
+                The name of the database connection to use
+                for this query.
 
         Returns:
             The SQL compiler for the insert.
@@ -349,9 +395,6 @@ class PostgresQuerySet(models.QuerySet):
 
             objs.append(self.model(**row))
 
-        # indicate this query is going to perform write
-        self._for_write = True
-
         # get the fields to be used during update/insert
         insert_fields, update_fields = self._get_upsert_fields(first_row)
 
@@ -362,10 +405,16 @@ class PostgresQuerySet(models.QuerySet):
         query.index_predicate = self.index_predicate
         query.values(objs, insert_fields, update_fields)
 
+        # ask the db router which connection to use
+        using = (
+            using or self._db or router.db_for_write(self.model, **self._hints)
+        )
+
         # use the postgresql insert query compiler to transform the insert
         # into an special postgresql insert
-        connection = django.db.connections[self.db]
-        compiler = PostgresInsertCompiler(query, connection, self.db)
+        compiler = PostgresInsertCompiler(
+            query, django.db.connections[using], using
+        )
 
         return compiler
 
@@ -484,7 +533,7 @@ class PostgresManager(models.Manager):
     def get_queryset(self):
         """Gets the query set to be used on this manager."""
 
-        return PostgresQuerySet(self.model, using=self._db)
+        return PostgresQuerySet(self.model, using=self._db, hints=self._hints)
 
     def on_conflict(
         self,
