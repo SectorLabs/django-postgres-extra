@@ -32,6 +32,7 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 Documentation
 -------------
 
+
 * **ReadTheDocs HTML**
 
   http://django-postgres-extra.readthedocs.io
@@ -47,6 +48,8 @@ Compatibility
 
 Major features
 --------------
+
+[See the full list of features and docs on how to use them.](https://django-postgres-extra.readthedocs.io/#features)
 
 1. **Native upserts**
 
@@ -73,6 +76,7 @@ Major features
 
    * Custom indexes with conditions.
 
+
 Desired/future features
 -----------------------
 
@@ -82,55 +86,9 @@ Desired/future features
 Installation
 ------------
 
-1. Install the package from PyPi:
+Following the Installation guide in the documention.
 
-   .. code-block:: bash
-
-        λ pip install django-postgres-extra
-
-2. Add ``psqlextra`` and ``django.contrib.postgres`` to your ``INSTALLED_APPS``:
-
-   .. code-block:: python
-
-        INSTALLED_APPS = [
-            ....
-
-            'django.contrib.postgres',
-            'psqlextra'
-        ]
-
-3. Set the database engine to ``psqlextra.backend``:
-
-   .. code-block:: python
-
-        DATABASES = {
-            'default': {
-                ...
-                'ENGINE': 'psqlextra.backend'
-            }
-        }
-
-4. Make sure all models that inherit from ``psqlextra.models.PostgresModel`` or use the ``psqlextra.manager.PostgresManager``. Without this, most features **do not work**.
-
-
-FAQ - Frequently asked questions
---------------------------------
-
-1. **Why do I need to change the database back-end/engine?**
-
-   We utilize PostgreSQL's `hstore` data type, which allows you to store key-value pairs in a column.  In order to create `UNIQUE` constraints on specific key, we need to create a special type of index. We could do this without a custom database back-end, but it would require everyone to manually write their migrations. By using a custom database back-end, we added support for this. When changing the `uniqueness` constraint on a `HStoreField`, our custom database back-end takes care of creating, updating and deleting these constraints/indexes in the database.
-
-2. **I am already using a custom database back-end, can I still use yours?**
-
-   Yes. You can set the ``POSTGRES_EXTRA_DB_BACKEND_BASE`` setting to your current back-end. This will instruct our custom database back-end to inherit from the database back-end you specified. **Warning**: this will only work if the base you specified indirectly inherits from the standard PostgreSQL database back-end.
-
-3. **Does this package work with Python 2?**
-
-   No. Only Python 3.7 or newer is supported. We're using type hints. These do not work well under older versions of Python.
-
-4. **Which Django versions does this package work with?**
-
-   Django 2.0 or newer.
+    * [Installation Guide](http://django-postgres-extra.readthedocs.io/#installation)
 
 
 Working with the code

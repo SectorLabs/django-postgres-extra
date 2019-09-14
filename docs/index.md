@@ -84,7 +84,10 @@ Explore the documentation to learn about all features:
 
 5. Read the documentation about the custom database engine to avoid common pitfalls.
 
+    Already using a custom database engine or you do not have super user permission on your database? Read the docs below for work-arounds.
+
     * [Database engine](/db-engine)
+
 
 ## Requirements
 In order to use this package, your project must be using:
