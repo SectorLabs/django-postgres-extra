@@ -29,6 +29,8 @@
 
 With seamless we mean that any features we add will work truly seamlessly. You should not have to manually modify your migrations to work with fields and objects provided by this package.
 
+NOTICE: This README is for the upcoming v2 release. See the `v1.x` branch for v1.x.
+
 Upgrade
 -------
 Upgrading from v1? Read the change log with new features and breaking changes.
@@ -45,11 +47,6 @@ Documentation
 * **Plain MarkDown**
 
   https://github.com/SectorLabs/django-postgres-extra/tree/master/docs
-
-Compatibility
--------------
-
-`django-postgres-extra` is test on Python 3.7 - 3.8 with Django 2.0 - 2.2. It is likely that `django-postgres-extra` works with newer Python and Django versions, but this is not explicitely tested and therefor not guarenteed. If you encounter problems on newer versions, please _do_ open an issue or pull request.
 
 Major features
 --------------
@@ -81,13 +78,6 @@ Major features
 
    * Custom indexes with conditions.
 
-
-Desired/future features
------------------------
-
-* `Desired enhancements <https://github.com/SectorLabs/django-postgres-extra/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement>`_
-
-
 Installation
 ------------
 
@@ -95,6 +85,15 @@ Following the Installation guide in the documention.
 
 * `Installation Guide <http://django-postgres-extra.readthedocs.io/#installation>`_
 
+Compatibility
+-------------
+
+``django-postgres-extra`` is tested on Python 3.7 - 3.8 with Django 2.0 - 2.2. It is likely that `django-postgres-extra` works with newer Python and Django versions, but this is not explicitely tested and therefor not guarenteed. If you encounter problems on newer versions, please _do_ open an issue or pull request.
+
+Desired/future features
+-----------------------
+
+* `Desired enhancements <https://github.com/SectorLabs/django-postgres-extra/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement>`_
 
 Working with the code
 ---------------------
