@@ -183,7 +183,7 @@ obj = (
 
 An exception is thrown if `django-postgres-extra` detects this behavior.
 
-### Shorthand
+### Shorthands
 The `on_conflict`, `insert` and `insert_or_create` methods were only added in `django-postgres-extra` 1.6. Before that, only `ConflictAction.UPDATE` was supported in the following form:
 
 ```python

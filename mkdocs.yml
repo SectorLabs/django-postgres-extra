@@ -9,6 +9,7 @@ pages:
 - Indexes: indexes.md
 - Database engine: db-engine.md
 - Major Releases: major-releases.md
+extra_css: [extra.css]
 plugins:
     - redirects:
         redirect_maps:
