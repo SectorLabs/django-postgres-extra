@@ -1,13 +1,11 @@
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
-import django
 
 from django.core.exceptions import SuspiciousOperation
 from django.db import models, router
 from django.db.models.fields import NOT_PROVIDED
 
-from .compiler import PostgresInsertCompiler
 from .sql import PostgresInsertQuery, PostgresQuery
 from .types import ConflictAction
 
@@ -410,12 +408,7 @@ class PostgresQuerySet(models.QuerySet):
             using or self._db or router.db_for_write(self.model, **self._hints)
         )
 
-        # use the postgresql insert query compiler to transform the insert
-        # into an special postgresql insert
-        compiler = PostgresInsertCompiler(
-            query, django.db.connections[using], using
-        )
-
+        compiler = query.get_compiler(using)
         return compiler
 
     def _is_magical_field(self, model_instance, field, is_insert: bool):
