@@ -36,7 +36,7 @@ class AddOperationHandler:
             self.app_label,
             operation,
             *self.args,
-            *self.kwargs,
+            **self.kwargs,
         )
 
     def add_create_model(self, operation: CreateModel):
