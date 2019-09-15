@@ -41,17 +41,24 @@ class HStoreValue(expressions.Expression):
             hstore(hstore('key1', 'val1'), hstore('key2', 'val2'))
         """
 
-        result = []
+        sql = []
+        params = []
+
         for key, value in self.value.items():
             if hasattr(value, "as_sql"):
-                sql, params = value.as_sql(compiler, connection)
-                result.append("hstore('%s', %s)" % (key, sql % params))
+                inner_sql, inner_params = value.as_sql(compiler, connection)
+                sql.append(f"hstore(%s, {inner_sql})")
+                params.append(key)
+                params.extend(inner_params)
             elif value is not None:
-                result.append("hstore('%s', '%s')" % ((key, value)))
+                sql.append("hstore(%s, %s::text)")
+                params.append(key)
+                params.append(value)
             else:
-                result.append("hstore('%s', NULL)" % key)
+                sql.append("hstore(%s, NULL)")
+                params.append(key)
 
-        return "%s" % " || ".join(result), []
+        return " || ".join(sql), params
 
 
 class HStoreColumn(expressions.Col):
@@ -222,5 +229,5 @@ def IsNotNone(*fields, default=None):
     return expressions.Case(
         *when_clauses,
         default=expressions.Value(default),
-        output_field=CharField()
+        output_field=CharField(),
     )
