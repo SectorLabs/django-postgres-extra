@@ -52,7 +52,13 @@ class AddOperationHandler:
         partitioning_options = model._partitioning_meta.original_attrs
         _, args, kwargs = operation.deconstruct()
 
-        return self.add(
+        self.add(
+            operations.PostgresAddDefaultPartition(
+                model_name=model.__name__, name="default"
+            )
+        )
+
+        self.add(
             operations.PostgresCreatePartitionedModel(
                 *args, **kwargs, partitioning_options=partitioning_options
             )

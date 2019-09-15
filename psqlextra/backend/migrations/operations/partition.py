@@ -14,6 +14,7 @@ class PostgresPartitionOperation(Operation):
         """
 
         self.model_name = model_name
+        self.model_name_lower = model_name.lower()
         self.name = name
 
     def deconstruct(self):

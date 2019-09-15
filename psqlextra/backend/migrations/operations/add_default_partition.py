@@ -7,8 +7,8 @@ class PostgresAddDefaultPartition(PostgresPartitionOperation):
     """Adds a new default partition to a :see:PartitionedPostgresModel."""
 
     def state_forwards(self, app_label, state):
-        model = state.models[(app_label, self.model_name)]
-        model.add_partition(
+        model_state = state.models[(app_label, self.model_name_lower)]
+        model_state.add_partition(
             PostgresPartitionState(
                 app_label=app_label, model_name=self.model_name, name=self.name
             )
@@ -29,7 +29,7 @@ class PostgresAddDefaultPartition(PostgresPartitionOperation):
             schema_editor.delete_partition(model, self.name)
 
     def describe(self) -> str:
-        return "Creates default partition %s on %s" % (
+        return "Creates default partition '%s' on %s" % (
             self.name,
             self.model_name,
         )

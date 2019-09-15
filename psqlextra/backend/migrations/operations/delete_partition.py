@@ -5,7 +5,7 @@ class PostgresDeletePartition(PostgresPartitionOperation):
     """Deletes a partition that's part of a :see:PartitionedPostgresModel."""
 
     def state_forwards(self, app_label, state):
-        model = state.models[(app_label, self.model_name)]
+        model = state.models[(app_label, self.model_name_lower)]
         model.delete_partition(self.name)
 
         state.reload_model(app_label, self.model_name)

@@ -26,7 +26,7 @@ class PostgresAddListPartition(PostgresPartitionOperation):
         self.values = values
 
     def state_forwards(self, app_label, state):
-        model = state.models[(app_label, self.model_name)]
+        model = state.models[(app_label, self.model_name_lower)]
         model.add_partition(
             PostgresListPartitionState(
                 app_label=app_label,

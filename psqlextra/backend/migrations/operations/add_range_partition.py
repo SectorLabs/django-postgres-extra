@@ -33,7 +33,7 @@ class PostgresAddRangePartition(PostgresPartitionOperation):
         self.to_values = to_values
 
     def state_forwards(self, app_label, state):
-        model = state.models[(app_label, self.model_name)]
+        model = state.models[(app_label, self.model_name_lower)]
         model.add_partition(
             PostgresRangePartitionState(
                 app_label=app_label,
