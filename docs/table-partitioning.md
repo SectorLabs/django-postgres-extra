@@ -27,6 +27,12 @@ class MyModel(PostgresPartitionedModel):
     timestamp = models.DateTimeField() 
 ```
 
+Run the following command to automatically generate a migration:
+
+```shell
+python manage.py pgmakemigrations
+```
+
 ## Adding/removing partitions
 Postgres does not have support for automatically creating new partitions as needed. Therefor, one must manually add new partitions. Depending on the partitioning method you have chosen, the partition has to be created differently.
 
@@ -35,6 +41,12 @@ Partitions are tables. Each partition must be given a unique name. `django-postg
 `django-postgres-extra` allows partitions to be managed in various ways. The most common way is to manage partitions from migrations.
 
 ### Using migrations
+Migrations for the creation and deletion of partitioned models can be handled automatically using the special `pgmakemigrations` command:
+
+```shell
+python manage.py pgmakemigrations
+```
+
 #### Adding a range partition
 Use the `psqlextra.migrations.operations.PostgresAddRangePartition` operation to add a new range partition. Only use this operation when your partitioned model uses the `PostgresPartitioningMethod.RANGE`.
 
