@@ -9,8 +9,13 @@ from .types import ConflictAction
 
 
 class PostgresUpdateCompiler(SQLUpdateCompiler):
-    """Compiler for SQL UPDATE statements that return the primary keys of the
-    affected rows."""
+    """Compiler for SQL UPDATE statements that allows us to use expressions
+    inside HStore values.
+
+    Like:
+
+        .update(name=dict(en=F('test')))
+    """
 
     def as_sql(self):
         self._prepare_query_values()
