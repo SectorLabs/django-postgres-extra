@@ -23,4 +23,7 @@ class PostgresDeleteRangePartition(PostgresDeletePartition):
             )
 
     def describe(self) -> str:
-        return "Deletes range partition %s on %s" % (self.name, self.model_name)
+        return "Deletes range partition '%s' on %s" % (
+            self.name,
+            self.model_name,
+        )

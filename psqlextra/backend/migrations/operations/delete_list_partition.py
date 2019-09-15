@@ -20,4 +20,7 @@ class PostgresDeleteListPartition(PostgresDeletePartition):
             )
 
     def describe(self) -> str:
-        return "Deletes list partition %s on %s" % (self.name, self.model_name)
+        return "Deletes list partition '%s' on %s" % (
+            self.name,
+            self.model_name,
+        )

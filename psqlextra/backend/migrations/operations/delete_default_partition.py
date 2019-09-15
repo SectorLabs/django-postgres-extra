@@ -18,7 +18,7 @@ class PostgresDeleteDefaultPartition(PostgresDeletePartition):
             schema_editor.add_default_partition(model, partition_state.name)
 
     def describe(self) -> str:
-        return "Deletes default partition %s on %s" % (
+        return "Deletes default partition '%s' on %s" % (
             self.name,
             self.model_name,
         )

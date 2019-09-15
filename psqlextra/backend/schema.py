@@ -268,9 +268,10 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             raise ImproperlyConfigured(
                 (
                     "Model '%s' is not properly configured to be partitioned."
-                    " Set the `partitioning_method` and `partitioning_key` attributes."
+                    " Set the `method` and `key` attributes on the "
+                    "`PartitioningMeta` class as a child of '%s'"
                 )
-                % model.__name__
+                % (model.__name__, model.__name__)
             )
 
         if meta.method not in PostgresPartitioningMethod:
@@ -299,10 +300,10 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             raise ImproperlyConfigured(
                 (
                     "Model '%s' is not properly configured to be partitioned."
-                    " Field in partitioning key '%s' is not a valid field on"
-                    " the model."
+                    " Field '%s' in partitioning key %s is not a valid field on"
+                    " '%s'."
                 )
-                % (model.__name__, meta.key)
+                % (model.__name__, field_name, meta.key, model.__name__)
             )
 
         return meta
