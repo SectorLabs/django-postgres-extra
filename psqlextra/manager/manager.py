@@ -2,7 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Manager
 
-from .query import PostgresQuerySet
+from psqlextra.query import PostgresQuerySet
 
 
 class PostgresManager(Manager.from_queryset(PostgresQuerySet)):
