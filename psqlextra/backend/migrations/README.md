@@ -1,9 +1,9 @@
 ## What's up with the shady patch functions?
-Django currently does not provide a way to extend certain classes that are used when auto-generating migrations using `makemigrations`. The patch functions using Python's standard mocking framework to direct certain functions to a custom implementation.
+Django currently does not provide a way to extend certain classes that are used when auto-generating migrations using `makemigrations`. The patch functions use Python's standard mocking framework to direct certain functions to a custom implementation.
 
-These patches allow `django-postgres-extra` to let Django auto-generate migrations for `PostgrsPartitionedModel`.
+These patches allow `django-postgres-extra` to let Django auto-generate migrations for `PostgresPartitionedModel`.
 
-None of the patches fundamentally change how Django work. They let Django do most of the work and only customize for Postgres specific models. All other models are left untouched.
+None of the patches fundamentally change how Django work. They let Django do most of the work and only customize for Postgres specific models. All of the patches call the original implementation and then patch the results instead of copying the entire implementation.
 
 ### Using the patches
 The patches are all context managers. The top level `postgres_patched_migrations` context manager applies all patches for the duration of the context.

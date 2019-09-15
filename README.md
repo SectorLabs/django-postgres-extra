@@ -34,7 +34,7 @@ With seamless we mean that any features we add will work truly seamlessly. You s
    * Single query
    * Concurrency safe
    * With bulk support (single query)
-   * Expressions to select individiual keys
+   * Expressions to select individual keys
 
 * **Extended support for HStoreField**
 
