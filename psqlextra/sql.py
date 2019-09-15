@@ -2,10 +2,11 @@ from collections import OrderedDict
 from typing import List, Optional, Tuple
 
 from django.core.exceptions import SuspiciousOperation
-from django.db import models
+from django.db import connections, models
 from django.db.models import sql
 from django.db.models.constants import LOOKUP_SEP
 
+from .compiler import PostgresInsertCompiler, PostgresUpdateCompiler
 from .expressions import HStoreColumn
 from .fields import HStoreField
 from .types import ConflictAction
@@ -129,8 +130,6 @@ class PostgresQuery(sql.Query):
 class PostgresInsertQuery(sql.InsertQuery):
     """Insert query using PostgreSQL."""
 
-    compiler = "PostgresInsertCompiler"
-
     def __init__(self, *args, **kwargs):
         """Initializes a new instance :see:PostgresInsertQuery."""
 
@@ -167,8 +166,16 @@ class PostgresInsertQuery(sql.InsertQuery):
         self.insert_values(insert_fields, objs, raw=False)
         self.update_fields = update_fields
 
+    def get_compiler(self, using=None, connection=None):
+        if using:
+            connection = connections[using]
+        return PostgresInsertCompiler(self, connection, using)
+
 
 class PostgresUpdateQuery(sql.UpdateQuery):
     """Update query using PostgreSQL."""
 
-    compiler = "PostgresUpdateCompiler"
+    def get_compiler(self, using=None, connection=None):
+        if using:
+            connection = connections[using]
+        return PostgresUpdateCompiler(self, connection, using)
