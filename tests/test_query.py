@@ -43,7 +43,7 @@ def test_query_annotate_rename():
     assert obj.title == "swen"
 
 
-def test_query_hstore_f_ref():
+def test_query_hstore_value_update_f_ref():
     """Tests whether F(..) expressions can be used in hstore values when
     performing update queries."""
 
@@ -52,8 +52,33 @@ def test_query_hstore_f_ref():
     )
 
     model.objects.create(name="waqas", name_new=dict(en="swen"))
-
     model.objects.update(name_new=dict(en=models.F("name")))
 
     inst = model.objects.all().first()
     assert inst.name_new.get("en") == "waqas"
+
+
+def test_query_hstore_value_update_cast():
+    """Tests whether values in a HStore field are automatically cast to strings
+    when doing updates."""
+
+    model = get_fake_model({"title": HStoreField()})
+
+    model.objects.create(title=dict(en="test"))
+    model.objects.update(title=dict(en=2))
+
+    inst = model.objects.all().first()
+    assert inst.title.get("en") == "2"
+
+
+def test_query_hstore_value_update_escape():
+    """Tests whether values in a HStore field are properly escaped using
+    prepared statement values."""
+
+    model = get_fake_model({"title": HStoreField()})
+
+    model.objects.create(title=dict(en="test"))
+    model.objects.update(title=dict(en="console.log('test')"))
+
+    inst = model.objects.all().first()
+    assert inst.title.get("en") == "console.log('test')"
