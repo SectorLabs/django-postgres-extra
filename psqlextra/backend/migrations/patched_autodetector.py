@@ -4,11 +4,13 @@ from unittest import mock
 from django.db.migrations import CreateModel, DeleteModel
 from django.db.migrations.autodetector import MigrationAutodetector
 
-from psqlextra.backend.migrations import operations
 from psqlextra.models import PostgresPartitionedModel
 
-# original `add_operation` function, saved here
-# so the patched version can call the original
+from . import operations
+
+# original `MigrationAutodetector.add_operation`
+# function, saved here so the patched version can
+# call the original
 add_operation = MigrationAutodetector.add_operation
 
 
@@ -49,7 +51,6 @@ class AddOperationHandler:
 
         partitioning_options = model._partitioning_meta.original_attrs
         _, args, kwargs = operation.deconstruct()
-        kwargs["bases"] = (PostgresPartitionedModel,)
 
         return self.add(
             operations.PostgresCreatePartitionedModel(

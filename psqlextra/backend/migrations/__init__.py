@@ -1,3 +1,3 @@
-from .patched_autodetector import patched_autodetector
+from .patched_migrations import postgres_migrations
 
-__all__ = ["patched_autodetector"]
+__all__ = ["postgres_migrations"]

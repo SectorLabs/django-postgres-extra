@@ -1,6 +1,7 @@
 from typing import Dict, List
 
 from django.db.migrations.state import ModelState
+from django.db.models import Model
 
 from psqlextra.models import PostgresPartitionedModel
 
@@ -100,6 +101,18 @@ class PostgresPartitionedModelState(ModelState):
             model._partitioning_meta.original_attrs
         )
 
+        # django does not add abstract bases as a base in migrations
+        # because it assumes the base does not add anything important
+        # in a migration.. but it does, so we replace the Model
+        # base with the actual base: PostgresPartitionedModel
+        bases = tuple()
+        for base in model_state.bases:
+            if issubclass(base, Model):
+                bases += (PostgresPartitionedModel,)
+            else:
+                bases += (base,)
+
+        model_state.bases = bases
         return model_state
 
     def clone(self) -> "PostgresPartitionedModelState":
