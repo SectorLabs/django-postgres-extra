@@ -42,7 +42,7 @@ setup(
     license="MIT License",
     description="Bringing all of PostgreSQL's awesomeness to Django.",
     long_description=README,
-    long_description_content_type="text/x-rst",
+    long_description_content_type="text/markdown",
     url="https://github.com/SectorLabs/django-postgres-extra",
     author="Sector Labs",
     author_email="open-source@sectorlabs.ro",
