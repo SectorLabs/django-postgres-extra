@@ -102,25 +102,24 @@ def expectation_judge(
     with_transaction_wrapper=False,
     **kwargs,
 ):
-    """
-    Set exceptions expectations for a test
+    """Set exceptions expectations for a test.
 
-        expect_exception: Tell the judge if
-        an exception is expected or not
+    expect_exception: Tell the judge if
+    an exception is expected or not
 
-        func: The function to be judged
+    func: The function to be judged
 
-        args: The non-named arguments of
-        the function
+    args: The non-named arguments of
+    the function
 
-        exception_expected: If an exception
-        is expected, pytest expects this class
+    exception_expected: If an exception
+    is expected, pytest expects this class
 
-        with_transaction_wrapper: Some insert
-        operations to be wrapped inside a transaction
+    with_transaction_wrapper: Some insert
+    operations to be wrapped inside a transaction
 
-        kwargs: Named arguments for the
-        function to be judged
+    kwargs: Named arguments for the
+    function to be judged
     """
     try:
         if expect_exception:
@@ -229,7 +228,11 @@ def test_migration_timeout_force_close_sql_connection(
         expect_interruption,
         apply_patched_migration_with_timeout,
         [migrations.RunSQL(f"select pg_sleep({stalling_time});")],
-        exception_expected=(OperationalError, Psycopg2InterfaceError, DjangoInterfaceError),
+        exception_expected=(
+            OperationalError,
+            Psycopg2InterfaceError,
+            DjangoInterfaceError,
+        ),
         timeout=timeout,
         cancel_method=MigrationWithTimeout.CancellationMethod.SQL,
         safe_interrupt=False,
