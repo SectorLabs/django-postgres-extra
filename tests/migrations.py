@@ -7,11 +7,7 @@ from django.db import connection, migrations
 from django.db.migrations.autodetector import MigrationAutodetector
 from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.loader import MigrationLoader
-from django.db.migrations.questioner import (
-    InteractiveMigrationQuestioner,
-    MigrationQuestioner,
-    NonInteractiveMigrationQuestioner,
-)
+from django.db.migrations.questioner import NonInteractiveMigrationQuestioner
 from django.db.migrations.state import ProjectState
 
 from psqlextra.backend.migrations import postgres_patched_migrations
