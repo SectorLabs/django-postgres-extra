@@ -89,19 +89,39 @@ def apply_patched_migration_with_timeout(
 
 def expectation_judge(
     expect_exception: bool,
-    exception_expected: typing.Union[
-        typing.Type[Exception],
-        typing.Tuple[
-            typing.Type[Exception],
-            typing.Type[Exception],
-            typing.Type[Exception],
-        ],
-    ],
     func: callable,
-    *args,
+    *args: typing.List[object],
+    exception_expected: typing.Union[
+        typing.Type[BaseException],
+        typing.Tuple[
+            typing.Type[BaseException],
+            typing.Type[BaseException],
+            typing.Type[BaseException],
+        ],
+    ] = None,
     with_transaction_wrapper=False,
     **kwargs,
 ):
+    """
+    Set exceptions expectations for a test
+
+        expect_exception: Tell the judge if
+        an exception is expected or not
+
+        func: The function to be judged
+
+        args: The non-named arguments of
+        the function
+
+        exception_expected: If an exception
+        is expected, pytest expects this class
+
+        with_transaction_wrapper: Some insert
+        operations to be wrapped inside a transaction
+
+        kwargs: Named arguments for the
+        function to be judged
+    """
     try:
         if expect_exception:
             with pytest.raises(exception_expected):
@@ -129,14 +149,14 @@ def test_migration_timeout_python_code(
 ):
     """Test migration timeout if running python code."""
 
-    def stall(app_name, schema_editor):
+    def stall(*unused):
         time.sleep(stalling_time)
 
     expectation_judge(
         expect_interruption,
-        KeyboardInterrupt,
         apply_patched_migration_with_timeout,
         [migrations.RunPython(stall)],
+        exception_expected=KeyboardInterrupt,
         timeout=timeout,
         cancel_method=MigrationWithTimeout.CancellationMethod.PYTHON,
     )
@@ -180,16 +200,16 @@ def test_migration_timeout_add_index(
 
     expectation_judge(
         expect_interruption,
-        OperationalError,
         apply_patched_migration_with_timeout,
         operations,
+        exception_expected=OperationalError,
         timeout=timeout,
     )
     expectation_judge(
         not expect_interruption,
-        IntegrityError,
         model.objects.bulk_create,
         [model(**{field_name: 0})],
+        exception_expected=IntegrityError,
         with_transaction_wrapper=True,
     )
 
@@ -207,9 +227,9 @@ def test_migration_timeout_force_close_sql_connection(
 
     expectation_judge(
         expect_interruption,
-        (OperationalError, Psycopg2InterfaceError, DjangoInterfaceError),
         apply_patched_migration_with_timeout,
         [migrations.RunSQL(f"select pg_sleep({stalling_time});")],
+        exception_expected=(OperationalError, Psycopg2InterfaceError, DjangoInterfaceError),
         timeout=timeout,
         cancel_method=MigrationWithTimeout.CancellationMethod.SQL,
         safe_interrupt=False,
@@ -219,9 +239,9 @@ def test_migration_timeout_force_close_sql_connection(
 
     expectation_judge(
         expect_interruption,
-        DjangoInterfaceError,
         apply_patched_migration_with_timeout,
         [migrations.RunSQL(f"select pg_sleep({stalling_time});")],
+        exception_expected=DjangoInterfaceError,
         timeout=timeout,
         cancel_method=MigrationWithTimeout.CancellationMethod.SQL,
     )
@@ -236,17 +256,17 @@ def test_migration_timeout_both_cancelling_methods_active(
 ):
     """Test migration timeout if running python code."""
 
-    def stall(app_name, schema_editor):
+    def stall(*unused):
         time.sleep(stalling_time)
 
     expectation_judge(
         expect_interruption,
-        KeyboardInterrupt,
         apply_patched_migration_with_timeout,
         [
             migrations.RunSQL(f"select pg_sleep({stalling_time});"),
             migrations.RunPython(stall),
         ],
+        exception_expected=KeyboardInterrupt,
         timeout=timeout,
         cancel_method=MigrationWithTimeout.CancellationMethod.BOTH,
     )
