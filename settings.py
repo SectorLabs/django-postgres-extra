@@ -24,3 +24,5 @@ INSTALLED_APPS = (
     'psqlextra',
     'tests',
 )
+
+MIGRATION_DEFAULT_TIMEOUT = None
