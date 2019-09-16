@@ -7,6 +7,7 @@ from django.apps import apps
 from django.db import (
     IntegrityError,
     connection,
+    connections,
     migrations,
     models,
     transaction,
@@ -14,8 +15,9 @@ from django.db import (
 from django.db.migrations import CreateModel
 from django.db.migrations.executor import MigrationExecutor
 from django.db.utils import InterfaceError as DjangoInterfaceError
-from django.db.utils import OperationalError
+from django.db.utils import OperationalError as DjangoOperationalError
 from psycopg2 import InterfaceError as Psycopg2InterfaceError
+from psycopg2 import OperationalError as Psycopg2OperationalError
 
 import psqlextra.indexes.conditional_unique_index
 
@@ -31,6 +33,13 @@ def establish_connection():
     connection.ensure_connection()
 
 
+@pytest.fixture()
+def repair_credentials():
+    """Fixture used to change the role used for the connection."""
+    yield
+    connections["pw_test"].settings_dict["USER"] = "tester_role"
+
+
 def apply_patched_migration_with_timeout(
     operations,
     state=None,
@@ -38,6 +47,7 @@ def apply_patched_migration_with_timeout(
     safe_interrupt: bool = True,
     timeout: float = None,
     cancel_method: MigrationWithTimeout.CancellationMethod = MigrationWithTimeout.CancellationMethod.SQL,
+    connection_name: str = "default",
 ):
     """Executes the specified migration operations using the specified schema
     editor.
@@ -65,19 +75,26 @@ def apply_patched_migration_with_timeout(
         cancel_method:
             Tells the migration class how to
             abort the currently running operation
+
+        connection_name:
+            Tell the migration executor on which
+            database to perform the migration
     """
 
     state = state or migrations.state.ProjectState.from_apps(apps)
 
-    MigrationWithTimeout.operations = operations
-
     migration = MigrationWithTimeout(
         "migration", "tests", safe_interrupt=safe_interrupt
     )
+    migration.operations = operations
     migration.timeout = timeout
     migration.cancellation_method = cancel_method
 
-    executor = MigrationExecutor(connection)
+    executor = MigrationExecutor(
+        connection
+        if connection_name == "default"
+        else connections[connection_name]
+    )
 
     if not backwards:
         executor.apply_migration(state, migration)
@@ -201,7 +218,7 @@ def test_migration_timeout_add_index(
         expect_interruption,
         apply_patched_migration_with_timeout,
         operations,
-        exception_expected=OperationalError,
+        exception_expected=DjangoOperationalError,
         timeout=timeout,
     )
     expectation_judge(
@@ -229,7 +246,7 @@ def test_migration_timeout_force_close_sql_connection(
         apply_patched_migration_with_timeout,
         [migrations.RunSQL(f"select pg_sleep({stalling_time});")],
         exception_expected=(
-            OperationalError,
+            DjangoOperationalError,
             Psycopg2InterfaceError,
             DjangoInterfaceError,
         ),
@@ -272,4 +289,42 @@ def test_migration_timeout_both_cancelling_methods_active(
         exception_expected=KeyboardInterrupt,
         timeout=timeout,
         cancel_method=MigrationWithTimeout.CancellationMethod.BOTH,
+    )
+
+
+@pytest.mark.parametrize(
+    "timeout, stalling_time, expect_interruption",
+    [(0.25, 0.5, True), (None, 0.2, False), (0.5, 0.1, False)],
+)
+def test_migration_timeout_on_database_with_username_and_password(
+    timeout, stalling_time, expect_interruption
+):
+    """Test migration timeout with different database, one with username and
+    password."""
+
+    expectation_judge(
+        expect_interruption,
+        apply_patched_migration_with_timeout,
+        [migrations.RunSQL(f"select pg_sleep({stalling_time});")],
+        exception_expected=DjangoOperationalError,
+        timeout=timeout,
+        connection_name="pw_test",
+    )
+
+
+@pytest.mark.parametrize("timeout, stalling_time", [(0.25, 0.5), (None, 0.2)])
+def test_migration_timeout_on_database_with_invalid_role(
+    timeout, stalling_time, repair_credentials
+):
+    """Test migration timeout with different database, with inexisting role."""
+
+    connections["pw_test"].settings_dict["USER"] = "obviously_wrong_role"
+
+    expectation_judge(
+        False,
+        apply_patched_migration_with_timeout,
+        [migrations.RunSQL(f"select pg_sleep({stalling_time});")],
+        exception_expected=Psycopg2OperationalError,
+        timeout=timeout,
+        connection_name="pw_test",
     )

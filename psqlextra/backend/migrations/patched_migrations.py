@@ -47,20 +47,29 @@ class MigrationWithTimeout(Migration):
 
     @staticmethod
     def _close_python_operation():
+        """Cancel the currently running python operation."""
         _thread.interrupt_main()
 
     @staticmethod
     def _force_close_sql_operation(schema_editor):
+        """Force close the connection to the postgres database."""
         if schema_editor.connection.is_usable():
             schema_editor.connection.inc_thread_sharing()
             schema_editor.connection.close()
         # TODO: Raise some exception if connection is not usable?
 
     @staticmethod
-    def _close_sql_operation(connection_pid, database_name):
+    def _close_sql_operation(connection_pid, credentials):
+        """Cancel the currently running sql operation on a pid on the database
+        by using a separate connection to the database."""
         if connection_pid is not None:
             with psycopg2.connect(
-                dbname=settings.DATABASES["default"]["NAME"]
+                dbname=credentials["database"],
+                **{
+                    key: value
+                    for key, value in credentials.items()
+                    if key in ["user", "password"]
+                },
             ) as cancelling_connection:
                 with cancelling_connection.cursor() as cursor:
                     cursor.execute(
@@ -126,14 +135,12 @@ class MigrationWithTimeout(Migration):
 
         if self.safe_interrupt:
             connection_pid = self.get_connection_pid(schema_editor)
-            database_name = schema_editor.connection.get_connection_params()[
-                "database"
-            ]
-            # TODO: get credentials of databases with user and password
+            credentials = schema_editor.connection.get_connection_params()
+
             migration_timer = threading.Timer(
                 self.timeout,
                 self._graceful_close_operation,
-                args=(connection_pid, database_name),
+                args=(connection_pid, credentials),
             )
         else:
             migration_timer = threading.Timer(
