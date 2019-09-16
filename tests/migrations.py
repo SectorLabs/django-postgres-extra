@@ -82,6 +82,8 @@ def apply_migration(operations, state=None, backwards: bool = False):
 
 @postgres_patched_migrations()
 def make_migration(app_label="tests"):
+    """Generates migrations based on the specified app's state."""
+
     app_labels = [app_label]
 
     loader = MigrationLoader(None, ignore_no_migrations=True)

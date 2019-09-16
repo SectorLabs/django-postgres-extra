@@ -17,7 +17,7 @@ def define_fake_model(
     name = str(uuid.uuid4()).replace("-", "")[:8]
 
     attributes = {
-        "app_label": "tests",
+        "app_label": meta_options.get("app_label") or "tests",
         "__module__": __name__,
         "__name__": name,
         "Meta": type("Meta", (object,), meta_options),
@@ -29,9 +29,7 @@ def define_fake_model(
 
     model = type(name, (model_base,), attributes)
 
-    app_config = apps.get_app_config(attributes["app_label"])
-    app_config.models[name] = model
-
+    apps.app_configs[attributes["app_label"]].models[name] = model
     return model
 
 
