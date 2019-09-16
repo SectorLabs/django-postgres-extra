@@ -57,7 +57,7 @@ class MigrationWithTimeout(Migration):
         # TODO: Raise some exception if connection is not usable?
 
     @staticmethod
-    def _close_sql_operation(connection_pid):
+    def _close_sql_operation(connection_pid, database_name):
         if connection_pid is not None:
             with psycopg2.connect(
                 dbname=settings.DATABASES["default"]["NAME"]
@@ -84,7 +84,9 @@ class MigrationWithTimeout(Migration):
         ]:
             self._force_close_sql_operation(schema_editor)
 
-    def _graceful_close_operation(self, connection_pid: int):
+    def _graceful_close_operation(
+        self, connection_pid: int, database_name: str
+    ):
         """Close the current sql operation running without closing the
         connection, django will prompt an error."""
         if self.cancellation_method in [
@@ -96,18 +98,20 @@ class MigrationWithTimeout(Migration):
             self.CancellationMethod.SQL,
             self.CancellationMethod.BOTH,
         ]:
-            self._close_sql_operation(connection_pid)
+            self._close_sql_operation(connection_pid, database_name)
 
     @staticmethod
     def get_connection_pid(schema_editor):
         """Returns the pid from the postgresql database which runs the current
         transaction."""
-        connection_pid = None
         if schema_editor.connection.is_usable():
             with schema_editor.connection.cursor() as cursor:
                 cursor.execute("select pg_backend_pid();")
-                connection_pid = cursor.fetchone()[0]
-        return connection_pid
+                row = cursor.fetchone()
+                if row:
+                    return row[0]
+                return None
+        return None
 
     def time_function(
         self,
@@ -122,10 +126,14 @@ class MigrationWithTimeout(Migration):
 
         if self.safe_interrupt:
             connection_pid = self.get_connection_pid(schema_editor)
+            database_name = schema_editor.connection.get_connection_params()[
+                "database"
+            ]
+            # TODO: get credentials of databases with user and password
             migration_timer = threading.Timer(
                 self.timeout,
                 self._graceful_close_operation,
-                args=(connection_pid,),
+                args=(connection_pid, database_name),
             )
         else:
             migration_timer = threading.Timer(
