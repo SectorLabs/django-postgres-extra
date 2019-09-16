@@ -1,6 +1,12 @@
+import os
+import sys
 import uuid
 
+from typing import List
+
+from django.apps import AppConfig, apps
 from django.db import connection
+from django.db.models import Model
 
 from psqlextra.models import PostgresModel, PostgresPartitionedModel
 
@@ -22,18 +28,26 @@ def define_fake_model(
         attributes.update(fields)
 
     model = type(name, (model_base,), attributes)
+
+    app_config = apps.get_app_config(attributes["app_label"])
+    app_config.models[name] = model
+
     return model
 
 
-def define_fake_partitioning_model(fields=None, partitioning_options={}):
-    return define_fake_model(
+def define_fake_partitioning_model(
+    fields=None, partitioning_options={}, meta_options={}
+):
+    model = define_fake_model(
         fields=fields,
         model_base=PostgresPartitionedModel,
-        meta_options={},
+        meta_options=meta_options,
         PartitioningMeta=type(
             "PartitioningMeta", (object,), partitioning_options
         ),
     )
+
+    return model
 
 
 def get_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
@@ -45,3 +59,23 @@ def get_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
         schema_editor.create_model(model)
 
     return model
+
+
+def define_fake_app(models: List[Model] = []):
+    name = str(uuid.uuid4()).replace("-", "")[:8] + "-app"
+
+    app_config_cls = type(
+        name + "Config",
+        (AppConfig,),
+        {"name": name, "path": os.path.dirname(__file__)},
+    )
+
+    app_config = app_config_cls(name, "")
+    app_config.apps = apps
+
+    app_config.models = {model.__name__: model for model in models}
+
+    apps.app_configs[name] = app_config
+    sys.modules[name] = {}
+
+    return app_config

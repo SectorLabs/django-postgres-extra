@@ -4,8 +4,17 @@ from unittest import mock
 
 from django.apps import apps
 from django.db import connection, migrations
+from django.db.migrations.autodetector import MigrationAutodetector
 from django.db.migrations.executor import MigrationExecutor
+from django.db.migrations.loader import MigrationLoader
+from django.db.migrations.questioner import (
+    InteractiveMigrationQuestioner,
+    MigrationQuestioner,
+    NonInteractiveMigrationQuestioner,
+)
+from django.db.migrations.state import ProjectState
 
+from psqlextra.backend.migrations import postgres_patched_migrations
 from psqlextra.backend.schema import PostgresSchemaEditor
 
 from .fake_model import define_fake_model
@@ -69,6 +78,31 @@ def apply_migration(operations, state=None, backwards: bool = False):
         executor.unapply_migration(state, migration)
 
     return migration
+
+
+@postgres_patched_migrations()
+def make_migration(app_label="tests"):
+    app_labels = [app_label]
+
+    loader = MigrationLoader(None, ignore_no_migrations=True)
+    loader.check_consistent_history(connection)
+
+    questioner = NonInteractiveMigrationQuestioner(
+        specified_apps=app_labels, dry_run=False
+    )
+
+    autodetector = MigrationAutodetector(
+        loader.project_state(), ProjectState.from_apps(apps), questioner
+    )
+
+    changes = autodetector.changes(
+        graph=loader.graph,
+        trim_to_apps=app_labels or None,
+        convert_apps=app_labels or None,
+        migration_name="test",
+    )
+
+    return changes[app_label][0]
 
 
 @contextmanager
