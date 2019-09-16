@@ -3,7 +3,7 @@ import structlog
 from django.apps import apps
 from django.core.management.base import BaseCommand
 
-from psqlextra.autopartition import postgres_auto_partition
+from psqlextra.auto_partition import postgres_auto_partition
 from psqlextra.models import PostgresPartitionedModel
 
 LOGGER = structlog.get_logger(__name__)
