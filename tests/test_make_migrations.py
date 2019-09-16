@@ -1,3 +1,5 @@
+import pytest
+
 from django.db import models
 
 from psqlextra.backend.migrations import operations
@@ -8,21 +10,31 @@ from .fake_model import define_fake_app, define_fake_partitioning_model
 from .migrations import make_migration
 
 
-def test_make_migration_create_partitioned_model():
+@pytest.mark.parametrize(
+    "model_config",
+    [
+        dict(
+            fields={"category": models.TextField()},
+            partitioning_options=dict(
+                method=PostgresPartitioningMethod.LIST, key="category"
+            ),
+        ),
+        dict(
+            fields={"timestamp": models.DateTimeField()},
+            partitioning_options=dict(
+                method=PostgresPartitioningMethod.RANGE, key="timestamp"
+            ),
+        ),
+    ],
+)
+def test_make_migration_create_partitioned_model(model_config):
     """Tests whether the right operations are generated when creating a new
     partitioned model."""
-
-    part_options = {
-        "method": PostgresPartitioningMethod.LIST,
-        "key": ["category"],
-    }
 
     app_config = define_fake_app()
 
     model = define_fake_partitioning_model(
-        fields={"category": models.TextField()},
-        partitioning_options=part_options,
-        meta_options=dict(app_label=app_config.name),
+        **model_config, meta_options=dict(app_label=app_config.name)
     )
 
     migration = make_migration(model._meta.app_label)
@@ -39,7 +51,7 @@ def test_make_migration_create_partitioned_model():
     assert issubclass(ops[0].bases[0], PostgresPartitionedModel)
 
     # make sure the partitioning options got copied correctly
-    assert ops[0].partitioning_options == part_options
+    assert ops[0].partitioning_options == model_config["partitioning_options"]
 
     # make sure the default partition is named "default"
     assert ops[1].model_name == model.__name__
