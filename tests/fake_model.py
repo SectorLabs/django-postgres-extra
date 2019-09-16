@@ -14,7 +14,7 @@ from psqlextra.models import PostgresModel, PostgresPartitionedModel
 def define_fake_model(
     fields=None, model_base=PostgresModel, meta_options={}, **attributes
 ):
-    name = str(uuid.uuid4()).replace("-", "")[:8]
+    name = str(uuid.uuid4()).replace("-", "")[:8].title()
 
     attributes = {
         "app_label": meta_options.get("app_label") or "tests",
