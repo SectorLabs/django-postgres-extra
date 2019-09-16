@@ -1,4 +1,5 @@
 import time
+import typing
 
 import pytest
 
@@ -12,13 +13,22 @@ from django.db import (
 )
 from django.db.migrations import CreateModel
 from django.db.migrations.executor import MigrationExecutor
+from django.db.utils import InterfaceError as DjangoInterfaceError
 from django.db.utils import OperationalError
+from psycopg2 import InterfaceError as Psycopg2InterfaceError
 
 import psqlextra.indexes.conditional_unique_index
 
 from psqlextra.backend.migrations.patched_migrations import MigrationWithTimeout
 from tests.fake_model import define_fake_model
 from tests.migrations import apply_migration
+
+
+@pytest.fixture(autouse=True)
+def establish_connection():
+    """Fixture used for tests which mess up the connection to the database."""
+    yield
+    connection.ensure_connection()
 
 
 def apply_patched_migration_with_timeout(
@@ -79,7 +89,14 @@ def apply_patched_migration_with_timeout(
 
 def expectation_judge(
     expect_exception: bool,
-    exception_expected: type,
+    exception_expected: typing.Union[
+        typing.Type[Exception],
+        typing.Tuple[
+            typing.Type[Exception],
+            typing.Type[Exception],
+            typing.Type[Exception],
+        ],
+    ],
     func: callable,
     *args,
     with_transaction_wrapper=False,
@@ -177,3 +194,59 @@ def test_migration_timeout_add_index(
     )
 
     assert model.objects.all().count() == objects_added + expect_interruption
+
+
+@pytest.mark.parametrize(
+    "timeout, stalling_time, expect_interruption",
+    [(0.25, 0.5, True), (0.2, 0.1, False)],
+)
+def test_migration_timeout_force_close_sql_connection(
+    timeout, stalling_time, expect_interruption, establish_connection
+):
+    assert connection.is_usable()
+
+    expectation_judge(
+        expect_interruption,
+        (OperationalError, Psycopg2InterfaceError, DjangoInterfaceError),
+        apply_patched_migration_with_timeout,
+        [migrations.RunSQL(f"select pg_sleep({stalling_time});")],
+        timeout=timeout,
+        cancel_method=MigrationWithTimeout.CancellationMethod.SQL,
+        safe_interrupt=False,
+    )
+
+    assert connection.is_usable() != expect_interruption
+
+    expectation_judge(
+        expect_interruption,
+        DjangoInterfaceError,
+        apply_patched_migration_with_timeout,
+        [migrations.RunSQL(f"select pg_sleep({stalling_time});")],
+        timeout=timeout,
+        cancel_method=MigrationWithTimeout.CancellationMethod.SQL,
+    )
+
+
+@pytest.mark.parametrize(
+    "timeout, stalling_time, expect_interruption",
+    [(0.25, 0.5, True), (None, 0.2, False), (0.5, 0.1, False)],
+)
+def test_migration_timeout_both_cancelling_methods_active(
+    timeout, stalling_time, expect_interruption
+):
+    """Test migration timeout if running python code."""
+
+    def stall(app_name, schema_editor):
+        time.sleep(stalling_time)
+
+    expectation_judge(
+        expect_interruption,
+        KeyboardInterrupt,
+        apply_patched_migration_with_timeout,
+        [
+            migrations.RunSQL(f"select pg_sleep({stalling_time});"),
+            migrations.RunPython(stall),
+        ],
+        timeout=timeout,
+        cancel_method=MigrationWithTimeout.CancellationMethod.BOTH,
+    )

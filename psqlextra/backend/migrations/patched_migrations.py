@@ -36,7 +36,9 @@ class MigrationWithTimeout(Migration):
         PYTHON = 1
         BOTH = 2
 
-    timeout = settings.MIGRATION_DEFAULT_TIMEOUT
+    timeout = getattr(
+        settings, "POSTGRES_EXTRA_MIGRATION_DEFAULT_TIMEOUT", None
+    )
     cancellation_method = CancellationMethod.SQL
 
     def __init__(self, name: str, app_label: str, safe_interrupt: bool = True):
