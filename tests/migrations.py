@@ -1,9 +1,13 @@
+import typing
+
 from contextlib import contextmanager
 from typing import List
 from unittest import mock
 
+import pytest
+
 from django.apps import apps
-from django.db import connection, migrations
+from django.db import connection, migrations, transaction
 from django.db.migrations.autodetector import MigrationAutodetector
 from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.loader import MigrationLoader
@@ -18,6 +22,58 @@ from psqlextra.backend.migrations import postgres_patched_migrations
 from psqlextra.backend.schema import PostgresSchemaEditor
 
 from .fake_model import define_fake_model
+
+
+def expectation_judge(
+    expect_exception: bool,
+    func: callable,
+    *args,
+    exception_expected: typing.Union[
+        typing.Type[BaseException],
+        typing.Tuple[
+            typing.Type[BaseException],
+            typing.Type[BaseException],
+            typing.Type[BaseException],
+        ],
+    ] = None,
+    with_transaction_wrapper=False,
+    **kwargs,
+):
+    """Set exceptions expectations for a test.
+
+    expect_exception: Tell the judge if
+    an exception is expected or not
+
+    func: The function to be judged
+
+    args: The non-named arguments of
+    the function
+
+    exception_expected: If an exception
+    is expected, pytest expects this class
+
+    with_transaction_wrapper: Some insert
+    operations to be wrapped inside a transaction
+
+    kwargs: Named arguments for the
+    function to be judged
+    """
+    try:
+        if expect_exception:
+            with pytest.raises(exception_expected):
+                if with_transaction_wrapper:
+                    with transaction.atomic():
+                        func(*args, **kwargs)
+                else:
+                    func(*args, **kwargs)
+        else:
+            if with_transaction_wrapper:
+                with transaction.atomic():
+                    func(*args, **kwargs)
+            else:
+                func(*args, **kwargs)
+    except KeyboardInterrupt:
+        assert False
 
 
 @contextmanager

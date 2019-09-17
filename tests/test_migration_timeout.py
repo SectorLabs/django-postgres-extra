@@ -1,5 +1,4 @@
 import time
-import typing
 
 import pytest
 
@@ -10,7 +9,6 @@ from django.db import (
     connections,
     migrations,
     models,
-    transaction,
 )
 from django.db.migrations import CreateModel
 from django.db.migrations.executor import MigrationExecutor
@@ -23,7 +21,7 @@ import psqlextra.indexes.conditional_unique_index
 
 from psqlextra.backend.migrations.patched_migrations import MigrationWithTimeout
 from tests.fake_model import define_fake_model
-from tests.migrations import apply_migration
+from tests.migrations import apply_migration, expectation_judge
 
 
 @pytest.fixture(autouse=True)
@@ -46,7 +44,7 @@ def apply_patched_migration_with_timeout(
     backwards: bool = False,
     safe_interrupt: bool = True,
     timeout: float = None,
-    cancel_method: MigrationWithTimeout.CancellationMethod = MigrationWithTimeout.CancellationMethod.SQL,
+    cancel_method: MigrationWithTimeout.CancellationMethods = MigrationWithTimeout.CancellationMethods.SQL,
     connection_name: str = "default",
 ):
     """Executes the specified migration operations using the specified schema
@@ -83,9 +81,8 @@ def apply_patched_migration_with_timeout(
 
     state = state or migrations.state.ProjectState.from_apps(apps)
 
-    migration = MigrationWithTimeout(
-        "migration", "tests", safe_interrupt=safe_interrupt
-    )
+    migration = MigrationWithTimeout("migration", "tests")
+    migration.safe_sql_interrupt = safe_interrupt
     migration.operations = operations
     migration.timeout = timeout
     migration.cancellation_method = cancel_method
@@ -102,58 +99,6 @@ def apply_patched_migration_with_timeout(
         executor.unapply_migration(state, migration)
 
     return migration
-
-
-def expectation_judge(
-    expect_exception: bool,
-    func: callable,
-    *args: typing.List[object],
-    exception_expected: typing.Union[
-        typing.Type[BaseException],
-        typing.Tuple[
-            typing.Type[BaseException],
-            typing.Type[BaseException],
-            typing.Type[BaseException],
-        ],
-    ] = None,
-    with_transaction_wrapper=False,
-    **kwargs,
-):
-    """Set exceptions expectations for a test.
-
-    expect_exception: Tell the judge if
-    an exception is expected or not
-
-    func: The function to be judged
-
-    args: The non-named arguments of
-    the function
-
-    exception_expected: If an exception
-    is expected, pytest expects this class
-
-    with_transaction_wrapper: Some insert
-    operations to be wrapped inside a transaction
-
-    kwargs: Named arguments for the
-    function to be judged
-    """
-    try:
-        if expect_exception:
-            with pytest.raises(exception_expected):
-                if with_transaction_wrapper:
-                    with transaction.atomic():
-                        func(*args, **kwargs)
-                else:
-                    func(*args, **kwargs)
-        else:
-            if with_transaction_wrapper:
-                with transaction.atomic():
-                    func(*args, **kwargs)
-            else:
-                func(*args, **kwargs)
-    except KeyboardInterrupt:
-        assert False
 
 
 @pytest.mark.parametrize(
@@ -174,7 +119,7 @@ def test_migration_timeout_python_code(
         [migrations.RunPython(stall)],
         exception_expected=KeyboardInterrupt,
         timeout=timeout,
-        cancel_method=MigrationWithTimeout.CancellationMethod.PYTHON,
+        cancel_method=MigrationWithTimeout.CancellationMethods.PYTHON,
     )
 
 
@@ -251,7 +196,7 @@ def test_migration_timeout_force_close_sql_connection(
             DjangoInterfaceError,
         ),
         timeout=timeout,
-        cancel_method=MigrationWithTimeout.CancellationMethod.SQL,
+        cancel_method=MigrationWithTimeout.CancellationMethods.SQL,
         safe_interrupt=False,
     )
 
@@ -263,7 +208,7 @@ def test_migration_timeout_force_close_sql_connection(
         [migrations.RunSQL(f"select pg_sleep({stalling_time});")],
         exception_expected=DjangoInterfaceError,
         timeout=timeout,
-        cancel_method=MigrationWithTimeout.CancellationMethod.SQL,
+        cancel_method=MigrationWithTimeout.CancellationMethods.SQL,
     )
 
 
@@ -288,7 +233,7 @@ def test_migration_timeout_both_cancelling_methods_active(
         ],
         exception_expected=KeyboardInterrupt,
         timeout=timeout,
-        cancel_method=MigrationWithTimeout.CancellationMethod.BOTH,
+        cancel_method=MigrationWithTimeout.CancellationMethods.BOTH,
     )
 
 
