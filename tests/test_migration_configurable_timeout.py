@@ -3,7 +3,7 @@ import time
 import pytest
 
 from django.apps import apps
-from django.db import connection, connections, migrations
+from django.db import connection, connections, migrations, OperationalError, transaction, InterfaceError
 from django.db.migrations.executor import MigrationExecutor
 
 from psqlextra.backend.migrations.patched_migrations import (
@@ -11,6 +11,12 @@ from psqlextra.backend.migrations.patched_migrations import (
     MigrationWithConfigurableTimeout,
 )
 from tests.migrations import expectation_judge
+
+
+@pytest.fixture()
+def fix_connection():
+    yield
+    connection.ensure_connection()
 
 
 def apply_patched_migration_with_timeout(
@@ -275,7 +281,7 @@ def test_improper_configuration(on_start, config, config_ok):
     [
         (0.25, 0.5, KeyboardInterrupt, True),
         (0.5, 0.25, None, True),
-        (0.25, 0.5, None, False),
+        (0.25, 0.5, ImproperConfigurationException, False),
     ],
 )
 def test_stop_python(timeout, stalling_time, expected_exception, is_on_start):
@@ -300,38 +306,127 @@ def test_stop_python(timeout, stalling_time, expected_exception, is_on_start):
 
 
 @pytest.mark.parametrize(
-    "layers, expected_exception",
-    [(1, KeyboardInterrupt), (2, KeyboardInterrupt), (3, None)],
+    "operation",
+    [MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON, MigrationWithConfigurableTimeout.Operations.CANCEL_SQL]
 )
-def test_stop_python_twice(layers, expected_exception):
-    def stall(*args):
+@pytest.mark.parametrize(
+    "layers, actions",
+    [(1, 2), (2, 2), (3, 2), (1, 0), (3, 3), (1, 3)]
+)
+def test_chain_stop(layers, actions, operation):
+    no_exception = layers > actions
+
+    def python_stall(*args):
         nonlocal layers
         if layers > 1:
             layers -= 1
             try:
-                stall(*args)
+                python_stall(*args)
             except KeyboardInterrupt:
                 pass
         time.sleep(0.4)
 
-    python_action_id1 = "stop_first_python"
-    python_action_id2 = "stop_second_python"
+    def sql_stall(app_name, schema_editor):
+        nonlocal layers
+        if layers > 1:
+            layers -= 1
+            try:
+                sql_stall(app_name, schema_editor)
+            except OperationalError:
+                pass
+        with schema_editor.connection.cursor() as cursor:
+            with transaction.atomic():
+                cursor.execute('select pg_sleep(1);')
+
+    action_id_template = "action{}"
+
+    config = {
+        action_id_template.format(x + 1): {
+            "timeout": 0.1 if x == 0 else 0.4,
+            "operation": operation,
+            "triggers": action_id_template.format(x + 2)
+        } for x in range(actions)
+    }
+    if actions > 0:
+        del config[action_id_template.format(actions)]["triggers"]
+
+    expectation_judge(
+        not no_exception,
+        apply_patched_migration_with_timeout,
+        [migrations.RunPython(python_stall) if operation == MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON else migrations.RunPython(sql_stall)],
+        config,
+        [action_id_template.format(1)] if actions > 0 else [],
+        exception_expected=KeyboardInterrupt if operation == MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON else OperationalError,
+    )
+
+
+@pytest.mark.parametrize(
+    "layers, expected_exception",
+    [(0, None), (1, OperationalError), (2, InterfaceError), (3, InterfaceError)]
+)
+def test_chain_force_close_sql(layers, expected_exception, fix_connection):
+    def sql_stall(app_name, schema_editor):
+        nonlocal layers
+        if layers == 0:
+            return
+        if layers > 1:
+            layers -= 1
+            try:
+                sql_stall(app_name, schema_editor)
+            except (OperationalError, InterfaceError):
+                pass
+        with schema_editor.connection.cursor() as cursor:
+            with transaction.atomic():
+                cursor.execute('select pg_sleep(1);')
+
+    action = "action"
+
+    config = {
+        action: {
+            "timeout": 0.1,
+            "operation": MigrationWithConfigurableTimeout.Operations.CLOSE_SQL,
+        }
+    }
 
     expectation_judge(
         expected_exception is not None,
         apply_patched_migration_with_timeout,
-        [migrations.RunPython(stall)],
-        {
-            python_action_id1: {
-                "timeout": 0.1,
-                "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
-                "triggers": python_action_id2,
-            },
-            python_action_id2: {
-                "timeout": 0.3,  # if this is a small value, two KeyboardInterrupts will be sent to the same 'except'
-                "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
-            },
-        },
-        [python_action_id1],
+        [migrations.RunPython(sql_stall)],
+        config,
+        [action],
         exception_expected=expected_exception,
     )
+
+
+@pytest.mark.parametrize(
+    "timeout, stalling_time, expected_result",
+    [(0.25, 0.5, True), (0.5, 0.25, None)]
+)
+def test_callback(timeout, stalling_time, expected_result):
+    result = None
+
+    def change_result(*args):
+        nonlocal result
+        result = True
+
+    def stall(*args):
+        time.sleep(stalling_time)
+
+    python_action_id = "stop_python"
+
+    expectation_judge(
+        False,
+        apply_patched_migration_with_timeout,
+        [migrations.RunPython(stall)],
+        {
+            python_action_id: {
+                "timeout": timeout,
+                "operation": MigrationWithConfigurableTimeout.Operations.ACTIVATE_CALLBACK,
+                "args": [change_result]
+            }
+        },
+        [python_action_id],
+        exception_expected=None,
+    )
+
+    assert result == expected_result
