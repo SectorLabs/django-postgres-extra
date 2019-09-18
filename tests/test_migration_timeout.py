@@ -19,7 +19,10 @@ from psycopg2 import OperationalError as Psycopg2OperationalError
 
 import psqlextra.indexes.conditional_unique_index
 
-from psqlextra.backend.migrations.patched_migrations import MigrationWithTimeout
+from psqlextra.backend.migrations.patched_migrations import (
+    CancellationActions,
+    MigrationTimeout,
+)
 from tests.fake_model import define_fake_model
 from tests.migrations import apply_migration, expectation_judge
 
@@ -42,9 +45,8 @@ def apply_patched_migration_with_timeout(
     operations,
     state=None,
     backwards: bool = False,
-    safe_interrupt: bool = True,
     timeout: float = None,
-    cancel_method: MigrationWithTimeout.CancellationMethods = MigrationWithTimeout.CancellationMethods.SQL,
+    cancel_method: CancellationActions = CancellationActions.CANCEL_SQL,
     connection_name: str = "default",
 ):
     """Executes the specified migration operations using the specified schema
@@ -66,10 +68,6 @@ def apply_patched_migration_with_timeout(
             Cancel the operation if it takes
             more than x seconds
 
-        safe_interrupt:
-            Cancel safely or kill the connection
-            entirely
-
         cancel_method:
             Tells the migration class how to
             abort the currently running operation
@@ -81,11 +79,10 @@ def apply_patched_migration_with_timeout(
 
     state = state or migrations.state.ProjectState.from_apps(apps)
 
-    migration = MigrationWithTimeout("migration", "tests")
-    migration.safe_sql_interrupt = safe_interrupt
+    migration = MigrationTimeout("migration", "tests")
     migration.operations = operations
     migration.timeout = timeout
-    migration.cancellation_method = cancel_method
+    migration.cancellation_action = cancel_method
 
     executor = MigrationExecutor(
         connection
@@ -119,7 +116,7 @@ def test_migration_timeout_python_code(
         [migrations.RunPython(stall)],
         exception_expected=KeyboardInterrupt,
         timeout=timeout,
-        cancel_method=MigrationWithTimeout.CancellationMethods.PYTHON,
+        cancel_method=CancellationActions.CANCEL_PYTHON,
     )
 
 
@@ -196,8 +193,7 @@ def test_migration_timeout_force_close_sql_connection(
             DjangoInterfaceError,
         ),
         timeout=timeout,
-        cancel_method=MigrationWithTimeout.CancellationMethods.SQL,
-        safe_interrupt=False,
+        cancel_method=CancellationActions.CLOSE_SQL,
     )
 
     assert connection.is_usable() != expect_interruption
@@ -208,32 +204,7 @@ def test_migration_timeout_force_close_sql_connection(
         [migrations.RunSQL(f"select pg_sleep({stalling_time});")],
         exception_expected=DjangoInterfaceError,
         timeout=timeout,
-        cancel_method=MigrationWithTimeout.CancellationMethods.SQL,
-    )
-
-
-@pytest.mark.parametrize(
-    "timeout, stalling_time, expect_interruption",
-    [(0.25, 0.5, True), (None, 0.2, False), (0.5, 0.1, False)],
-)
-def test_migration_timeout_both_cancelling_methods_active(
-    timeout, stalling_time, expect_interruption
-):
-    """Test migration timeout if running python code."""
-
-    def stall(*unused):
-        time.sleep(stalling_time)
-
-    expectation_judge(
-        expect_interruption,
-        apply_patched_migration_with_timeout,
-        [
-            migrations.RunSQL(f"select pg_sleep({stalling_time});"),
-            migrations.RunPython(stall),
-        ],
-        exception_expected=KeyboardInterrupt,
-        timeout=timeout,
-        cancel_method=MigrationWithTimeout.CancellationMethods.BOTH,
+        cancel_method=CancellationActions.CLOSE_SQL,
     )
 
 

@@ -3,12 +3,20 @@ import time
 import pytest
 
 from django.apps import apps
-from django.db import connection, connections, migrations, OperationalError, transaction, InterfaceError
+from django.db import (
+    InterfaceError,
+    OperationalError,
+    connection,
+    connections,
+    migrations,
+    transaction,
+)
 from django.db.migrations.executor import MigrationExecutor
 
 from psqlextra.backend.migrations.patched_migrations import (
+    CancellationActions,
     ImproperConfigurationException,
-    MigrationWithConfigurableTimeout,
+    MigrationTimeoutWithConfigurableActions,
 )
 from tests.migrations import expectation_judge
 
@@ -56,7 +64,7 @@ def apply_patched_migration_with_timeout(
 
     state = state or migrations.state.ProjectState.from_apps(apps)
 
-    migration = MigrationWithConfigurableTimeout("migration", "tests")
+    migration = MigrationTimeoutWithConfigurableActions("migration", "tests")
 
     migration.operations = operations
     migration.config = config
@@ -84,65 +92,37 @@ def apply_patched_migration_with_timeout(
         (["a"], {"a": {}}, False),  # no timeout and no operation
         (
             ["a"],
-            {
-                "a": {
-                    "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON
-                }
-            },
+            {"a": {"action": CancellationActions.CANCEL_PYTHON}},
             False,
         ),  # missing timeout
         (
             ["a"],
-            {
-                "a": {
-                    "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
-                    "timeout": None,
-                }
-            },
+            {"a": {"action": CancellationActions.CANCEL_PYTHON, "wait": None}},
             False,
         ),  # no timeout
         (
             ["a"],
-            {
-                "a": {
-                    "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
-                    "timeout": "1",
-                }
-            },
+            {"a": {"action": CancellationActions.CANCEL_PYTHON, "wait": "1"}},
             False,
         ),  # timeout not float or int
         (
             ["a"],
-            {
-                "a": {
-                    "timeout": 0,
-                    "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
-                }
-            },
+            {"a": {"wait": 0, "action": CancellationActions.CANCEL_PYTHON}},
             False,
         ),  # timeout <= 0
-        (["a"], {"a": {"timeout": 1}}, False),  # missing operation
+        (["a"], {"a": {"wait": 1}}, False),  # missing operation
+        (["a"], {"a": {"wait": 1, "action": 0}}, False),  # invalid operation
         (
             ["a"],
-            {"a": {"timeout": 1, "operation": 0}},
-            False,
-        ),  # invalid operation
-        (
-            ["a"],
-            {
-                "a": {
-                    "timeout": 1,
-                    "operation": MigrationWithConfigurableTimeout.Operations.ACTIVATE_CALLBACK,
-                }
-            },
+            {"a": {"wait": 1, "action": CancellationActions.ACTIVATE_CALLBACK}},
             False,
         ),  # no args for callback
         (
             ["a"],
             {
                 "a": {
-                    "timeout": 1,
-                    "operation": MigrationWithConfigurableTimeout.Operations.ACTIVATE_CALLBACK,
+                    "wait": 1,
+                    "action": CancellationActions.ACTIVATE_CALLBACK,
                     "args": {},
                 }
             },
@@ -152,8 +132,8 @@ def apply_patched_migration_with_timeout(
             ["a"],
             {
                 "a": {
-                    "timeout": 1,
-                    "operation": MigrationWithConfigurableTimeout.Operations.ACTIVATE_CALLBACK,
+                    "wait": 1,
+                    "action": CancellationActions.ACTIVATE_CALLBACK,
                     "args": [],
                 }
             },
@@ -163,8 +143,8 @@ def apply_patched_migration_with_timeout(
             ["a"],
             {
                 "a": {
-                    "timeout": 1,
-                    "operation": MigrationWithConfigurableTimeout.Operations.ACTIVATE_CALLBACK,
+                    "wait": 1,
+                    "action": CancellationActions.ACTIVATE_CALLBACK,
                     "args": [1],
                 }
             },
@@ -174,8 +154,8 @@ def apply_patched_migration_with_timeout(
             ["a"],
             {
                 "a": {
-                    "timeout": 1,
-                    "operation": MigrationWithConfigurableTimeout.Operations.ACTIVATE_CALLBACK,
+                    "wait": 1,
+                    "action": CancellationActions.ACTIVATE_CALLBACK,
                     "args": [apply_patched_migration_with_timeout],
                 }
             },
@@ -185,8 +165,8 @@ def apply_patched_migration_with_timeout(
             ["a"],
             {
                 "a": {
-                    "timeout": 1,
-                    "operation": MigrationWithConfigurableTimeout.Operations.ACTIVATE_CALLBACK,
+                    "wait": 1,
+                    "action": CancellationActions.ACTIVATE_CALLBACK,
                     "args": (apply_patched_migration_with_timeout,),
                 }
             },
@@ -196,48 +176,52 @@ def apply_patched_migration_with_timeout(
             ["a"],
             {
                 "a": {
-                    "timeout": 1,
-                    "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
+                    "wait": 1,
+                    "action": CancellationActions.ACTIVATE_CALLBACK,
+                    "args": (apply_patched_migration_with_timeout,),
+                    "kwargs": [],
+                }
+            },
+            False,
+        ),  # kwargs invalid type
+        (
+            ["a"],
+            {
+                "a": {
+                    "wait": 1,
+                    "action": CancellationActions.ACTIVATE_CALLBACK,
+                    "args": (apply_patched_migration_with_timeout,),
+                    "kwargs": {},
                 }
             },
             True,
         ),
         (
             ["a"],
-            {
-                "a": {
-                    "timeout": 1.0,
-                    "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
-                }
-            },
+            {"a": {"wait": 1, "action": CancellationActions.CANCEL_PYTHON}},
+            True,
+        ),
+        (
+            ["a"],
+            {"a": {"wait": 1.0, "action": CancellationActions.CANCEL_PYTHON}},
             True,
         ),
         (
             [],
-            {
-                "a": {
-                    "timeout": 1,
-                    "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
-                }
-            },
+            {"a": {"wait": 1, "action": CancellationActions.CANCEL_PYTHON}},
             False,
         ),  # nothing to start
         (
             ["b"],
-            {
-                "a": {
-                    "timeout": 1,
-                    "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
-                }
-            },
+            {"a": {"wait": 1, "action": CancellationActions.CANCEL_PYTHON}},
             False,
         ),  # invalid on_start action_id
         (
             ["a"],
             {
                 "a": {
-                    "timeout": 1,
-                    "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
+                    "wait": 1,
+                    "action": CancellationActions.CANCEL_PYTHON,
                     "triggers": "b",
                 }
             },
@@ -247,14 +231,11 @@ def apply_patched_migration_with_timeout(
             ["a"],
             {
                 "a": {
-                    "timeout": 1,
-                    "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
+                    "wait": 1,
+                    "action": CancellationActions.CANCEL_PYTHON,
                     "triggers": "b",
                 },
-                "b": {
-                    "timeout": 1,
-                    "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
-                },
+                "b": {"wait": 1, "action": CancellationActions.CANCEL_PYTHON},
             },
             True,
         ),
@@ -296,8 +277,8 @@ def test_stop_python(timeout, stalling_time, expected_exception, is_on_start):
         [migrations.RunPython(stall)],
         {
             python_action_id: {
-                "timeout": timeout,
-                "operation": MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON,
+                "wait": timeout,
+                "action": CancellationActions.CANCEL_PYTHON,
             }
         },
         [python_action_id] if is_on_start else [],
@@ -306,14 +287,13 @@ def test_stop_python(timeout, stalling_time, expected_exception, is_on_start):
 
 
 @pytest.mark.parametrize(
-    "operation",
-    [MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON, MigrationWithConfigurableTimeout.Operations.CANCEL_SQL]
+    "action",
+    [CancellationActions.CANCEL_PYTHON, CancellationActions.CANCEL_SQL],
 )
 @pytest.mark.parametrize(
-    "layers, actions",
-    [(1, 2), (2, 2), (3, 2), (1, 0), (3, 3), (1, 3)]
+    "layers, actions", [(1, 2), (2, 2), (3, 2), (1, 0), (3, 3), (1, 3)]
 )
-def test_chain_stop(layers, actions, operation):
+def test_chain_stop(layers, actions, action):
     no_exception = layers > actions
 
     def python_stall(*args):
@@ -336,16 +316,17 @@ def test_chain_stop(layers, actions, operation):
                 pass
         with schema_editor.connection.cursor() as cursor:
             with transaction.atomic():
-                cursor.execute('select pg_sleep(1);')
+                cursor.execute("select pg_sleep(1);")
 
     action_id_template = "action{}"
 
     config = {
         action_id_template.format(x + 1): {
-            "timeout": 0.1 if x == 0 else 0.4,
-            "operation": operation,
-            "triggers": action_id_template.format(x + 2)
-        } for x in range(actions)
+            "wait": 0.1 if x == 0 else 0.2,
+            "action": action,
+            "triggers": action_id_template.format(x + 2),
+        }
+        for x in range(actions)
     }
     if actions > 0:
         del config[action_id_template.format(actions)]["triggers"]
@@ -353,16 +334,27 @@ def test_chain_stop(layers, actions, operation):
     expectation_judge(
         not no_exception,
         apply_patched_migration_with_timeout,
-        [migrations.RunPython(python_stall) if operation == MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON else migrations.RunPython(sql_stall)],
+        [
+            migrations.RunPython(python_stall)
+            if action == CancellationActions.CANCEL_PYTHON
+            else migrations.RunPython(sql_stall)
+        ],
         config,
         [action_id_template.format(1)] if actions > 0 else [],
-        exception_expected=KeyboardInterrupt if operation == MigrationWithConfigurableTimeout.Operations.CANCEL_PYTHON else OperationalError,
+        exception_expected=KeyboardInterrupt
+        if action == CancellationActions.CANCEL_PYTHON
+        else OperationalError,
     )
 
 
 @pytest.mark.parametrize(
     "layers, expected_exception",
-    [(0, None), (1, OperationalError), (2, InterfaceError), (3, InterfaceError)]
+    [
+        (0, None),
+        (1, OperationalError),
+        (2, InterfaceError),
+        (3, InterfaceError),
+    ],
 )
 def test_chain_force_close_sql(layers, expected_exception, fix_connection):
     def sql_stall(app_name, schema_editor):
@@ -377,16 +369,11 @@ def test_chain_force_close_sql(layers, expected_exception, fix_connection):
                 pass
         with schema_editor.connection.cursor() as cursor:
             with transaction.atomic():
-                cursor.execute('select pg_sleep(1);')
+                cursor.execute("select pg_sleep(1);")
 
     action = "action"
 
-    config = {
-        action: {
-            "timeout": 0.1,
-            "operation": MigrationWithConfigurableTimeout.Operations.CLOSE_SQL,
-        }
-    }
+    config = {action: {"wait": 0.1, "action": CancellationActions.CLOSE_SQL}}
 
     expectation_judge(
         expected_exception is not None,
@@ -400,7 +387,7 @@ def test_chain_force_close_sql(layers, expected_exception, fix_connection):
 
 @pytest.mark.parametrize(
     "timeout, stalling_time, expected_result",
-    [(0.25, 0.5, True), (0.5, 0.25, None)]
+    [(0.25, 0.5, True), (0.5, 0.25, None)],
 )
 def test_callback(timeout, stalling_time, expected_result):
     result = None
@@ -420,9 +407,9 @@ def test_callback(timeout, stalling_time, expected_result):
         [migrations.RunPython(stall)],
         {
             python_action_id: {
-                "timeout": timeout,
-                "operation": MigrationWithConfigurableTimeout.Operations.ACTIVATE_CALLBACK,
-                "args": [change_result]
+                "wait": timeout,
+                "action": CancellationActions.ACTIVATE_CALLBACK,
+                "args": [change_result],
             }
         },
         [python_action_id],

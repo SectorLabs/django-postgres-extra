@@ -19,11 +19,7 @@ def test_get_connection_pid():
     pid = None
     assert connection.is_usable()
     with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT pg_backend_pid()
-        """
-        )
+        cursor.execute("SELECT pg_backend_pid()")
         pid = cursor.fetchone()[0]
 
     assert MonitoredMigration.get_connection_pid(connection) == pid
@@ -31,7 +27,11 @@ def test_get_connection_pid():
 
 def test_stop_python():
     with pytest.raises(KeyboardInterrupt):
-        threading.Timer(0.1, MonitoredMigration._cancel_python).start()
+        threading.Timer(
+            0.1,
+            MonitoredMigration._cancel_python_thread,
+            args=(threading.get_ident(),),
+        ).start()
         time.sleep(0.5)
 
 
@@ -47,7 +47,7 @@ def test_stop_python():
 def test_stop_sql(force, pid, expected_exception, expected_result):
     result = None
     credentials = connection.get_connection_params()
-    if pid is None:
+    if not pid:
         pid = MonitoredMigration.get_connection_pid(connection)
 
     def do_stop():
@@ -71,6 +71,6 @@ def test_stop_sql(force, pid, expected_exception, expected_result):
     )
 
     assert connection.is_usable() == (not (force and expected_result))
-    if result is None:
+    if not result:
         time.sleep(0.1)
     assert result is expected_result
