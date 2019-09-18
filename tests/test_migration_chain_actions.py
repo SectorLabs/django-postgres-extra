@@ -15,8 +15,9 @@ from django.db.migrations.executor import MigrationExecutor
 
 from psqlextra.backend.migrations.patched_migrations import (
     CancellationActions,
+    ImproperConfigurationException,
     MigrationTimeoutWithChainActions,
-    ImproperConfigurationException)
+)
 from tests.migrations import expectation_judge
 
 

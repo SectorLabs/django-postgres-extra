@@ -458,7 +458,9 @@ class MigrationTimeoutWithChainActions(MigrationTimeoutWithConfigurableActions):
             self.config[f"action{index}"]["action"] = action
             if action == CancellationActions.ACTIVATE_CALLBACK:
                 if not self.callback:
-                    raise ImproperConfigurationException("Callback was specified as an action but no class was provided")
+                    raise ImproperConfigurationException(
+                        "Callback was specified as an action but no class was provided"
+                    )
                 self.config[f"action{index}"]["args"] = (
                     self.callback.func,
                 ) + tuple(self.callback.args)
