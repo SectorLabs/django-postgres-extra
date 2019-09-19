@@ -20,6 +20,7 @@ class PostgresAutoPartitioningIntervalUnit(StrEnum):
     """Interval units that can auto partitioned with."""
 
     MONTH = "month"
+    WEEK = "week"
 
 
 def postgres_auto_partition(
@@ -54,10 +55,22 @@ def postgres_auto_partition(
 
     schema_editor = connection.schema_editor()
 
-    start_datetime = datetime.now().replace(day=1)
+    start_datetime = datetime.now()
+    if interval_unit == PostgresAutoPartitioningIntervalUnit.MONTH:
+        start_datetime = start_datetime.replace(day=1)
+    elif interval_unit == PostgresAutoPartitioningIntervalUnit.WEEK:
+        start_datetime = start_datetime - relativedelta(
+            days=start_datetime.weekday()
+        )
+
     for _ in range(count):
-        end_datetime = start_datetime + relativedelta(months=+interval)
-        partition_name = start_datetime.strftime("%Y_%b").lower()
+        if interval_unit == PostgresAutoPartitioningIntervalUnit.MONTH:
+            end_datetime = start_datetime + relativedelta(months=+interval)
+            partition_name = start_datetime.strftime("%Y_%b").lower()
+        elif interval_unit == PostgresAutoPartitioningIntervalUnit.WEEK:
+            end_datetime = start_datetime + relativedelta(weeks=+interval)
+            partition_name = start_datetime.strftime("%Y_week_%W").lower()
+
         partition_table_name = schema_editor.create_partition_table_name(
             model, partition_name
         )

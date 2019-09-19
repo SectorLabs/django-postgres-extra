@@ -10,9 +10,16 @@ from psqlextra.auto_partition import (
 from .fake_model import define_fake_partitioning_model
 
 
-def test_auto_partition():
-    """Tests whether automatically creating new partitions ahead works as
-    expected."""
+def _get_partitioned_table(model):
+    with connection.cursor() as cursor:
+        return connection.introspection.get_partitioned_table(
+            cursor, model._meta.db_table
+        )
+
+
+def test_auto_partition_monthly():
+    """Tests whether automatically creating new partitions ahead monthly works
+    as expected."""
 
     model = define_fake_partitioning_model(
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
@@ -30,11 +37,7 @@ def test_auto_partition():
             interval=1,
         )
 
-    with connection.cursor() as cursor:
-        table = connection.introspection.get_partitioned_table(
-            cursor, model._meta.db_table
-        )
-
+    table = _get_partitioned_table(model)
     assert len(table.partitions) == 12
     assert table.partitions[0].name == f"{model._meta.db_table}_1337_jan"
     assert table.partitions[1].name == f"{model._meta.db_table}_1337_feb"
@@ -58,11 +61,7 @@ def test_auto_partition():
             interval=1,
         )
 
-    with connection.cursor() as cursor:
-        table = connection.introspection.get_partitioned_table(
-            cursor, model._meta.db_table
-        )
-
+    table = _get_partitioned_table(model)
     assert len(table.partitions) == 13
     assert table.partitions[12].name == f"{model._meta.db_table}_1338_jan"
 
@@ -76,10 +75,61 @@ def test_auto_partition():
             interval=1,
         )
 
-    with connection.cursor() as cursor:
-        table = connection.introspection.get_partitioned_table(
-            cursor, model._meta.db_table
-        )
-
+    table = _get_partitioned_table(model)
     assert len(table.partitions) == 14
     assert table.partitions[13].name == f"{model._meta.db_table}_1338_feb"
+
+
+def test_auto_partition_weekly():
+    """Tests whether automatically creating new partitions ahead weekly works
+    as expected."""
+
+    model = define_fake_partitioning_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    # create partitions for the next 4 weeks (including the current)
+    with freezegun.freeze_time("1337-01-23"):
+        postgres_auto_partition(
+            model,
+            count=4,
+            interval_unit=PostgresAutoPartitioningIntervalUnit.WEEK,
+            interval=1,
+        )
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 4
+    assert table.partitions[0].name == f"{model._meta.db_table}_1337_week_03"
+    assert table.partitions[1].name == f"{model._meta.db_table}_1337_week_04"
+    assert table.partitions[2].name == f"{model._meta.db_table}_1337_week_05"
+    assert table.partitions[3].name == f"{model._meta.db_table}_1337_week_06"
+
+    # re-running it with 5, should just create one additional partition
+    with freezegun.freeze_time("1337-01-23"):
+        postgres_auto_partition(
+            model,
+            count=5,
+            interval_unit=PostgresAutoPartitioningIntervalUnit.WEEK,
+            interval=1,
+        )
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 5
+    assert table.partitions[4].name == f"{model._meta.db_table}_1337_week_07"
+
+    # it's june now, we want to partition two weeks ahead
+    with freezegun.freeze_time("1337-06-03"):
+        postgres_auto_partition(
+            model,
+            count=2,
+            interval_unit=PostgresAutoPartitioningIntervalUnit.WEEK,
+            interval=1,
+        )
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 7
+    assert table.partitions[5].name == f"{model._meta.db_table}_1337_week_22"
+    assert table.partitions[6].name == f"{model._meta.db_table}_1337_week_23"
