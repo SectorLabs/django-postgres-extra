@@ -31,7 +31,35 @@ def postgres_auto_partition(
     using="default",
 ):
     """Pre-create N partitions ahead of time according to the specified
-    interval unit and interval."""
+    interval unit and interval.
+
+    Arguments:
+        model:
+            The model to auto partition for.
+
+        count:
+            The amount of partitions for the specified interval
+            to create ahead (from the current date).
+
+        interval_unit:
+            Date/time unit to partition by.
+
+        interval:
+            Amount of specified units to partition by.
+
+        using:
+            Database connection name to use.
+
+    Example:
+        Partition by month, 2 months ahead:
+            count=2, interval_unit=MONTH, interval=1
+
+        Partition by week, 3 weeks ahead:
+            count=3, interval_unit=WEEK, interval=1
+
+        Partion by 2 weeks, 4 weeks ahead
+            count=2, interval_unit=WEEK, interval=2
+    """
 
     connection = connections[using]
 
