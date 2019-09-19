@@ -244,3 +244,21 @@ def test_migration_timeout_on_database_with_invalid_role(
         timeout=timeout,
         connection_name="pw_test",
     )
+
+
+def test_sql_cancel_when_python_code_executes():
+    """Test sql cancel does not affect anything when python code is running."""
+
+    def stall(*args):
+        time.sleep(0.2)
+
+    expectation_judge(
+        False,
+        apply_patched_migration_with_timeout,
+        [
+            migrations.RunPython(stall),
+            migrations.RunSQL("select pg_sleep(0.2);"),
+        ],
+        exception_expected=None,
+        timeout=0.05,
+    )
