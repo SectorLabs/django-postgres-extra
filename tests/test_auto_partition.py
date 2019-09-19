@@ -1,6 +1,10 @@
-import freezegun
+import datetime
 
-from django.db import connection, models
+import freezegun
+import pytest
+
+from django.db import connection, models, transaction
+from django.db.utils import IntegrityError
 
 from psqlextra.auto_partition import (
     PostgresAutoPartitioningIntervalUnit,
@@ -80,6 +84,24 @@ def test_auto_partition_monthly():
     assert table.partitions[13].name == f"{model._meta.db_table}_1338_feb"
 
 
+def test_auto_partition_switch_monthly_weekly():
+    model = define_fake_partitioning_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    # create partitions for the next 2 months (including the current)
+    with freezegun.freeze_time("1337-01-23"):
+        postgres_auto_partition(
+            model,
+            count=2,
+            interval_unit=PostgresAutoPartitioningIntervalUnit.MONTH,
+            interval=1,
+        )
+
+
 def test_auto_partition_weekly():
     """Tests whether automatically creating new partitions ahead weekly works
     as expected."""
@@ -133,3 +155,87 @@ def test_auto_partition_weekly():
     assert len(table.partitions) == 7
     assert table.partitions[5].name == f"{model._meta.db_table}_1337_week_22"
     assert table.partitions[6].name == f"{model._meta.db_table}_1337_week_23"
+
+
+def test_auto_partition_monthly_insert():
+    """Tests whether automatically created monthly partitions line up
+    perfectly."""
+
+    model = define_fake_partitioning_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    with freezegun.freeze_time("1337-01-01"):
+        postgres_auto_partition(
+            model,
+            count=2,
+            interval_unit=PostgresAutoPartitioningIntervalUnit.MONTH,
+            interval=1,
+        )
+
+    model.objects.create(timestamp=datetime.date(1337, 1, 1))
+    model.objects.create(timestamp=datetime.date(1337, 1, 31))
+    model.objects.create(timestamp=datetime.date(1337, 2, 28))
+
+    with transaction.atomic():
+        with pytest.raises(IntegrityError):
+            model.objects.create(timestamp=datetime.date(1337, 3, 1))
+            model.objects.create(timestamp=datetime.date(1337, 3, 2))
+
+    with freezegun.freeze_time("1337-01-01"):
+        postgres_auto_partition(
+            model,
+            count=3,
+            interval_unit=PostgresAutoPartitioningIntervalUnit.MONTH,
+            interval=1,
+        )
+
+    model.objects.create(timestamp=datetime.date(1337, 3, 1))
+    model.objects.create(timestamp=datetime.date(1337, 3, 2))
+
+
+def test_auto_partition_weekly_insert():
+    """Tests whether automatically created weekly partitions line up
+    perfectly."""
+
+    model = define_fake_partitioning_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    # that's a monday
+    with freezegun.freeze_time("1337-01-07"):
+        postgres_auto_partition(
+            model,
+            count=2,
+            interval_unit=PostgresAutoPartitioningIntervalUnit.WEEK,
+            interval=1,
+        )
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 2
+
+    model.objects.create(timestamp=datetime.date(1337, 1, 7))
+    model.objects.create(timestamp=datetime.date(1337, 1, 14))
+    model.objects.create(timestamp=datetime.date(1337, 1, 20))
+
+    with transaction.atomic():
+        with pytest.raises(IntegrityError):
+            model.objects.create(timestamp=datetime.date(1337, 1, 21))
+            model.objects.create(timestamp=datetime.date(1337, 1, 22))
+
+    with freezegun.freeze_time("1337-01-07"):
+        postgres_auto_partition(
+            model,
+            count=3,
+            interval_unit=PostgresAutoPartitioningIntervalUnit.WEEK,
+            interval=1,
+        )
+
+    model.objects.create(timestamp=datetime.date(1337, 1, 21))
+    model.objects.create(timestamp=datetime.date(1337, 1, 22))
