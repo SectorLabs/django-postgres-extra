@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import date, datetime
+from typing import Optional
 
 import structlog
 
@@ -28,6 +29,7 @@ def postgres_auto_partition(
     count: int,
     interval_unit: PostgresAutoPartitioningIntervalUnit,
     interval: int,
+    start_from: Optional[date] = None,
     using="default",
 ):
     """Pre-create N partitions ahead of time according to the specified
@@ -46,6 +48,20 @@ def postgres_auto_partition(
 
         interval:
             Amount of specified units to partition by.
+
+        start_from:
+            Skip creating any partitions that would
+            contain data _before_ this date.
+
+            Use this when switching partitioning
+            interval. Useful when you've already partitioned
+            ahead using the original interval and want
+            to avoid creating overlapping partitioninig.
+            Set this to the _end date_ for the
+            last partition that was created.
+
+            If the specified start date is in the past,
+            it is ignored.
 
         using:
             Database connection name to use.
@@ -99,6 +115,24 @@ def postgres_auto_partition(
             end_datetime = start_datetime + relativedelta(weeks=+interval)
             partition_name = start_datetime.strftime("%Y_week_%W").lower()
 
+        from_values = start_datetime.strftime("%Y-%m-%d")
+        to_values = end_datetime.strftime("%Y-%m-%d")
+
+        logger = LOGGER.bind(
+            model_name=model.__name__,
+            name=partition_name,
+            from_values=from_values,
+            to_values=to_values,
+        )
+
+        if start_from and start_datetime.date() < start_from:
+            start_datetime = end_datetime
+            logger.info(
+                "Skipping creation of partition, before specified start date",
+                start_from=start_from,
+            )
+            continue
+
         partition_table_name = schema_editor.create_partition_table_name(
             model, partition_name
         )
@@ -114,22 +148,8 @@ def postgres_auto_partition(
 
         if existing_partition:
             start_datetime = end_datetime
-            LOGGER.info(
-                "Skipping creation of partition, already exists",
-                model_name=model.__name__,
-                name=partition_name,
-            )
+            logger.info("Skipping creation of partition, already exists")
             continue
-
-        from_values = start_datetime.strftime("%Y-%m-%d")
-        to_values = end_datetime.strftime("%Y-%m-%d")
-
-        LOGGER.info(
-            "Creating partition",
-            name=partition_name,
-            from_values=from_values,
-            to_values=to_values,
-        )
 
         schema_editor.add_range_partition(
             model=model,
@@ -137,5 +157,7 @@ def postgres_auto_partition(
             from_values=from_values,
             to_values=to_values,
         )
+
+        logger.info("Created partition")
 
         start_datetime = end_datetime

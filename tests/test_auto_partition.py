@@ -4,7 +4,7 @@ import freezegun
 import pytest
 
 from django.db import connection, models, transaction
-from django.db.utils import IntegrityError
+from django.db.utils import IntegrityError, ProgrammingError
 
 from psqlextra.auto_partition import (
     PostgresAutoPartitioningIntervalUnit,
@@ -239,3 +239,52 @@ def test_auto_partition_weekly_insert():
 
     model.objects.create(timestamp=datetime.date(1337, 1, 21))
     model.objects.create(timestamp=datetime.date(1337, 1, 22))
+
+
+def test_auto_partition_switch_interval():
+    model = define_fake_partitioning_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    # create partition for january
+    with freezegun.freeze_time("1337-01-01"):
+        postgres_auto_partition(
+            model,
+            count=1,
+            interval_unit=PostgresAutoPartitioningIntervalUnit.MONTH,
+            interval=1,
+        )
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 1
+
+    # three weeks later, oh damn! many data, maybe weekly partitioning?
+    # suprise! won't work... now we overlapping partitions
+    with freezegun.freeze_time("1337-01-21"):
+        with pytest.raises(ProgrammingError):
+            with transaction.atomic():
+                postgres_auto_partition(
+                    model,
+                    count=1,
+                    interval_unit=PostgresAutoPartitioningIntervalUnit.WEEK,
+                    interval=1,
+                )
+
+        # try again, but specify a date to start from, end
+        # of january... it'll skip creating any partitions
+        # till that date..
+        postgres_auto_partition(
+            model,
+            count=3,
+            interval_unit=PostgresAutoPartitioningIntervalUnit.WEEK,
+            interval=1,
+            start_from=datetime.date(1337, 1, 31),
+        )
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 2
+    assert table.partitions[0].name == f"{model._meta.db_table}_1337_jan"
+    assert table.partitions[1].name == f"{model._meta.db_table}_1337_week_05"
