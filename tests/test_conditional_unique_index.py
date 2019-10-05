@@ -9,9 +9,9 @@ from .fake_model import get_fake_model
 from .migrations import apply_migration, filtered_schema_editor
 
 
-def test_deconstruct():
-    """Tests whether the :see:HStoreField's deconstruct() method works
-    properly."""
+def test_cui_deconstruct():
+    """Tests whether the :see:ConditionalUniqueIndex's deconstruct() method
+    works properly."""
 
     original_kwargs = dict(
         condition="field IS NULL", name="great_index", fields=["field", "build"]

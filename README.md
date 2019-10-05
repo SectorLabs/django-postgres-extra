@@ -48,7 +48,8 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 
 * **Indexes**
 
-   * Custom indexes with conditions.
+   * Conditional unique index.
+   * Case sensitive unique index.
 
 ## Working with the code
 ### Prerequisites

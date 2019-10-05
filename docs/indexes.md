@@ -43,3 +43,24 @@ b = B()
 Model.objects.create(a=None, b=b)
 Model.objects.create(a=None, b=b)
 ```
+
+## Case Sensitive Unique Index
+The `CaseSensitiveUniqueIndex` lets you create an index that ignores the casing for the specified field(s).
+
+This makes the field(s) behave more like a text field in MySQL.
+
+```python
+from django.db import models
+from psqlextra.indexes import CaseSensitiveUniqueIndex
+
+class Model(models.Model):
+    class Meta:
+        indexes = [
+            CaseSensitiveUniqueIndex(fields=['name']),
+        ]
+
+    name = models.CharField(max_length=255)
+
+Model.objects.create(name='henk')
+Model.objects.create(name='Henk') # raises IntegrityError
+```

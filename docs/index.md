@@ -37,6 +37,7 @@ Explore the documentation to learn about all features:
 
 
     * [ConditionalUniqueIndex](/indexes/#conditional-unique-index)
+    * [CaseSensitiveUniqueIndex](/indexes/#case-sensitive-unique-index)
 
     <br>
 
