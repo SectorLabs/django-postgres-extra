@@ -1,5 +1,8 @@
+from typing import Optional
+
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.db import connections
 from django.db.models import Manager
 
 from psqlextra.query import PostgresQuerySet
@@ -27,3 +30,30 @@ class PostgresManager(Manager.from_queryset(PostgresQuerySet)):
                 )
                 % db_backend
             )
+
+    def truncate(
+        self, cascade: bool = False, using: Optional[str] = None
+    ) -> None:
+        """Truncates this model/table using the TRUNCATE statement.
+
+        This DELETES ALL ROWS.
+
+        See: https://www.postgresql.org/docs/9.1/sql-truncate.html
+
+        Arguments:
+            cascade:
+                Whether to delete dependent rows. If set to
+                False, an error will be raised if there
+                are rows in other tables referencing
+                the rows you're trying to delete.
+        """
+
+        connection = connections[using or "default"]
+        table_name = connection.ops.quote_name(self.model._meta.db_table)
+
+        with connection.cursor() as cursor:
+            sql = "TRUNCATE TABLE %s" % table_name
+            if cascade:
+                sql += " CASCADE"
+
+            cursor.execute(sql)
