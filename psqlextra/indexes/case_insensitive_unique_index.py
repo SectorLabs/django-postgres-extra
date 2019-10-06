@@ -31,10 +31,8 @@ class CaseInsensitiveUniqueIndex(Index):
 
     @staticmethod
     def _quote_column(column_collection, column, idx):
+        quoted_name = column_collection.quote_name(column)
         try:
-            return (
-                column_collection.quote_name(column)
-                + column_collection.col_suffixes[idx]
-            )
+            return quoted_name + column_collection.col_suffixes[idx]
         except IndexError:
             return column_collection.quote_name(column)

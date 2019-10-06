@@ -32,11 +32,9 @@ def test_ciui_migrations():
     with filtered_schema_editor("CREATE UNIQUE INDEX") as calls:
         apply_migration(ops)
 
-    sql_1 = str([call[0] for _, call, _ in calls["CREATE UNIQUE INDEX"]][0])
-    assert (
-        sql_1
-        == 'CREATE UNIQUE INDEX "index1" ON "tests_mymodel" (LOWER("name"), LOWER("other_name"))'
-    )
+    sql = str([call[0] for _, call, _ in calls["CREATE UNIQUE INDEX"]][0])
+    expected_sql = 'CREATE UNIQUE INDEX "index1" ON "tests_mymodel" (LOWER("name"), LOWER("other_name"))'
+    assert sql == expected_sql
 
 
 def test_ciui():
