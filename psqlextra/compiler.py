@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 from django.core.exceptions import SuspiciousOperation
 from django.db.models import Model
 from django.db.models.fields.related import RelatedField
@@ -153,9 +155,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
     def _build_conflict_target(self):
         """Builds the `conflict_target` for the ON CONFLICT clause."""
 
-        conflict_target = []
-
-        if not isinstance(self.query.conflict_target, list):
+        if not isinstance(self.query.conflict_target, Iterable):
             raise SuspiciousOperation(
                 (
                     "%s is not a valid conflict target, specify "
@@ -165,22 +165,25 @@ class PostgresInsertCompiler(SQLInsertCompiler):
                 % str(self.query.conflict_target)
             )
 
-        def _assert_valid_field(field_name):
-            field_name = self._normalize_field_name(field_name)
-            if self._get_model_field(field_name):
-                return
+        conflict_target = self._build_conflict_target_by_index()
+        if conflict_target:
+            return conflict_target
 
-            raise SuspiciousOperation(
-                (
-                    "%s is not a valid conflict target, specify "
-                    "a list of column names, or tuples with column "
-                    "names and hstore key."
-                )
-                % str(field_name)
-            )
+        return self._build_conflict_target_by_fields()
+
+    def _build_conflict_target_by_fields(self):
+        """Builds the `conflict_target` for the ON CONFLICT clauses by matching
+        the fields specified in the specified conflict target against the
+        model's fields.
+
+        This requires some special handling because the fields names
+        might not be same as the column names.
+        """
+
+        conflict_target = []
 
         for field_name in self.query.conflict_target:
-            _assert_valid_field(field_name)
+            self._assert_valid_field(field_name)
 
             # special handling for hstore keys
             if isinstance(field_name, tuple):
@@ -192,6 +195,30 @@ class PostgresInsertCompiler(SQLInsertCompiler):
                 conflict_target.append(self._format_field_name(field_name))
 
         return "(%s)" % ",".join(conflict_target)
+
+    def _build_conflict_target_by_index(self):
+        """Builds the `conflict_target` for the ON CONFLICT clause by trying to
+        find an index that matches the specified conflict target on the query.
+
+        Conflict targets must match some unique constraint, usually this
+        is a `UNIQUE INDEX`.
+        """
+
+        matching_index = next(
+            (
+                index
+                for index in self.query.model._meta.indexes
+                if list(index.fields) == list(self.query.conflict_target)
+            ),
+            None,
+        )
+
+        if not matching_index:
+            return None
+
+        with self.connection.schema_editor() as schema_editor:
+            stmt = matching_index.create_sql(self.query.model, schema_editor)
+            return "(%s)" % stmt.parts["columns"]
 
     def _get_model_field(self, name: str):
         """Gets the field on a model with the specified name.
@@ -268,7 +295,25 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             value,
         )
 
-    def _normalize_field_name(self, field_name) -> str:
+    def _assert_valid_field(self, field_name: str):
+        """Asserts that a field with the specified name exists on the model and
+        raises :see:SuspiciousOperation if it does not."""
+
+        field_name = self._normalize_field_name(field_name)
+        if self._get_model_field(field_name):
+            return
+
+        raise SuspiciousOperation(
+            (
+                "%s is not a valid conflict target, specify "
+                "a list of column names, or tuples with column "
+                "names and hstore key."
+            )
+            % str(field_name)
+        )
+
+    @staticmethod
+    def _normalize_field_name(field_name: str) -> str:
         """Normalizes a field name into a string by extracting the field name
         if it was specified as a reference to a HStore key (as a tuple).
 

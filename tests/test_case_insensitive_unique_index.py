@@ -53,3 +53,18 @@ def test_ciui():
 
     with pytest.raises(IntegrityError):
         model.objects.create(name="Henk")
+
+
+def test_ciui_on_conflict():
+    """Tests wether fields with a :see:CaseInsensitiveUniqueIndex can be used
+    as a conflict target."""
+
+    index_1 = CaseInsensitiveUniqueIndex(fields=["name"], name="index1")
+
+    model = get_fake_model(
+        {"name": models.CharField(max_length=255)},
+        PostgresModel,
+        {"indexes": [index_1]},
+    )
+
+    model.objects.upsert(conflict_target=["name"], fields=dict(name="henk"))
