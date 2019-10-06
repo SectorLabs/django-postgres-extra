@@ -33,14 +33,38 @@ class PostgresUpdateCompiler(SQLUpdateCompiler):
         inside the dictionary.
         """
 
+        if not self.query.values:
+            return
+
         new_query_values = []
         for field, model, val in self.query.values:
-            if isinstance(val, dict):
-                val = HStoreValue(val)
+            if not isinstance(val, dict):
+                new_query_values.append((field, model, val))
+                continue
 
-            new_query_values.append((field, model, val))
+            if not self._does_dict_contain_expression(val):
+                print("no expressions")
+                new_query_values.append((field, model, val))
+                continue
+
+            expression = HStoreValue(dict(val))
+            new_query_values.append((field, model, expression))
 
         self.query.values = new_query_values
+
+    @staticmethod
+    def _does_dict_contain_expression(data: dict) -> bool:
+        """Gets whether the specified dictionary contains any expressions that
+        need to be resolved."""
+
+        for value in data.values():
+            if hasattr(value, "resolve_expression"):
+                return True
+
+            if hasattr(value, "as_sql"):
+                return True
+
+        return False
 
 
 class PostgresInsertCompiler(SQLInsertCompiler):
