@@ -51,9 +51,9 @@ class HStoreValue(expressions.Expression):
                 params.append(key)
                 params.extend(inner_params)
             elif value is not None:
-                sql.append("hstore(%s, %s::text)")
+                sql.append("hstore(%s, %s)")
                 params.append(key)
-                params.append(value)
+                params.append(str(value))
             else:
                 sql.append("hstore(%s, NULL)")
                 params.append(key)
