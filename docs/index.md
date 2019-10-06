@@ -51,6 +51,10 @@ Explore the documentation to learn about all features:
 
     <br>
 
+* [Deletion](/deletion)
+
+    * [TRUNCATE TABLE](/deletion#truncate)
+
 * [Database engine](/db-engine)
 
 ## Installation

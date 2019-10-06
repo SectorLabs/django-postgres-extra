@@ -36,7 +36,7 @@ class PostgresManager(Manager.from_queryset(PostgresQuerySet)):
     ) -> None:
         """Truncates this model/table using the TRUNCATE statement.
 
-        This DELETES ALL ROWS.
+        This DELETES ALL ROWS. No signals will be fired.
 
         See: https://www.postgresql.org/docs/9.1/sql-truncate.html
 

@@ -4,6 +4,8 @@
 ## 2.x
 ### New features
 * Support for PostgreSQL 11.x declarative table partitioning.
+* Support for `TRUNCATE TABLE`
+* Case insensitive index
 
 ### Other changes
 * Uses Django 2.x's mechanism for overriding queries and compilers. `django-postgres-extra` is extensible in the same way that Django is extensible now.

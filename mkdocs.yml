@@ -7,6 +7,7 @@ pages:
 - HStore: hstore.md
 - Table Partitioning: table-partitioning.md
 - Indexes: indexes.md
+- Deletion: deletion.md
 - Database engine: db-engine.md
 - Major Releases: major-releases.md
 extra_css: [extra.css]

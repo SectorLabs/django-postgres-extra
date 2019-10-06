@@ -31,25 +31,29 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 
 * **Native upserts**
 
-   * Single query
-   * Concurrency safe
-   * With bulk support (single query)
-   * Expressions to select individual keys
+    * Single query
+    * Concurrency safe
+    * With bulk support (single query)
+    * Expressions to select individual keys
 
 * **Extended support for HStoreField**
 
-   * Unique constraints
-   * Null constraints
-   * Select individual keys using ``.values()`` or ``.values_list()``
+    * Unique constraints
+    * Null constraints
+    * Select individual keys using ``.values()`` or ``.values_list()``
 
 * **PostgreSQL 11.x declarative table partitioning**
 
-   * Supports both range and list partitioning
+    * Supports both range and list partitioning
+
+* **Faster deletes**
+
+    * Truncate tables (with cascade)
 
 * **Indexes**
 
-   * Conditional unique index.
-   * Case sensitive unique index.
+    * Conditional unique index.
+    * Case sensitive unique index.
 
 ## Working with the code
 ### Prerequisites
