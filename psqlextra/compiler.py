@@ -43,7 +43,6 @@ class PostgresUpdateCompiler(SQLUpdateCompiler):
                 continue
 
             if not self._does_dict_contain_expression(val):
-                print("no expressions")
                 new_query_values.append((field, model, val))
                 continue
 
