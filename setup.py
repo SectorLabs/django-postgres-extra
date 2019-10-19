@@ -58,6 +58,12 @@ setup(
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     ],
+    python_requires=">=3.7",
+    install_requires=[
+        "enforce==0.3.4",
+        "python-dateutil==2.8.0",
+        "structlog==19.1.0",
+    ],
     cmdclass={
         "lint": create_command(
             "Lints the code", [["flake8", "setup.py", "psqlextra", "tests"]]
