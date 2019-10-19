@@ -63,7 +63,6 @@ setup(
             "Lints the code",
             [
                 ["flake8", "setup.py", "psqlextra", "tests"],
-                ["pycodestyle", "setup.py", "psqlextra", "tests"],
             ],
         ),
         "lint_fix": create_command(
