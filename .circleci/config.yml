@@ -13,14 +13,19 @@ jobs:
             - run:
                 name: Install packages
                 command: apk add postgresql-libs gcc musl-dev postgresql-dev git
+
             - run:
                 name: Install Python packages
                 command: pip install -r requirements/test.txt
+
             - run:
                 name: Run tests
                 command: tox -e 'py37-dj{20,21,22}'
                 environment:
                     DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
+
+            - store_test_results:
+                path: reports
 
     test-python38:
         docker:
@@ -35,9 +40,11 @@ jobs:
             - run:
                 name: Install packages
                 command: apk add postgresql-libs gcc musl-dev postgresql-dev git
+
             - run:
                 name: Install Python packages
                 command: pip install -r requirements/test.txt
+
             - run:
                 name: Run tests
                 command: tox -e 'py38-dj{20,21,22}'
@@ -52,12 +59,15 @@ jobs:
             - run:
                 name: Install packages
                 command: apk add postgresql-libs gcc musl-dev postgresql-dev git
+
             - run:
                 name: Install Python packages
                 command: pip install -r requirements/analysis.txt
+
             - run:
                 name: Verify formatting
                 command: python setup.py format_verify
+
             - run:
                 name: Lint code
                 command: python setup.py lint

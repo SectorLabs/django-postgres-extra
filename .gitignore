@@ -9,7 +9,7 @@ __pycache__
 
 # Ignore coverage reports
 .coverage
-htmlcov
+reports/
 
 # Ignore build results
 *.egg-info/

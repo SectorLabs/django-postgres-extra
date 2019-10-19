@@ -60,10 +60,7 @@ setup(
     ],
     cmdclass={
         "lint": create_command(
-            "Lints the code",
-            [
-                ["flake8", "setup.py", "psqlextra", "tests"],
-            ],
+            "Lints the code", [["flake8", "setup.py", "psqlextra", "tests"]]
         ),
         "lint_fix": create_command(
             "Lints the code",
@@ -127,6 +124,20 @@ setup(
                     ["python", "setup.py", "format_docstrings_verify"],
                     ["python", "setup.py", "sort_imports_verify"],
                     ["python", "setup.py", "lint"],
+                ]
+            ],
+        ),
+        "test": create_command(
+            "Runs all the tests",
+            [
+                [
+                    "pytest",
+                    "--cov=psqlextra",
+                    "--cov-report=term",
+                    "--cov-report=xml:reports/xml",
+                    "--cov-report=html:reports/html",
+                    "--junitxml=reports/junit/tests.xml",
+                    "--reuse-db",
                 ]
             ],
         ),
