@@ -51,6 +51,9 @@ jobs:
                 environment:
                     DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
 
+            - store_test_results:
+                path: reports
+
     analysis:
         docker:
             - image: python:3.7-alpine
