@@ -11,14 +11,12 @@ from psqlextra.auto_partition import (
     postgres_auto_partition,
 )
 
+from . import db_introspection
 from .fake_model import define_fake_partitioning_model
 
 
 def _get_partitioned_table(model):
-    with connection.cursor() as cursor:
-        return connection.introspection.get_partitioned_table(
-            cursor, model._meta.db_table
-        )
+    return db_introspection.get_partitioned_table(model._meta.db_table)
 
 
 def test_auto_partition_monthly():

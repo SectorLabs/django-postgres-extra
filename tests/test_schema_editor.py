@@ -6,6 +6,7 @@ from django.db import connection, models
 from psqlextra.backend.schema import PostgresSchemaEditor
 from psqlextra.types import PostgresPartitioningMethod
 
+from . import db_introspection
 from .fake_model import define_fake_partitioning_model
 
 
@@ -29,29 +30,19 @@ def test_schema_editor_create_delete_partitioned_model_range():
 
     schema_editor.add_range_partition(model, "pt1", "2019-01-01", "2019-02-01")
 
-    with connection.cursor() as cursor:
-        introspection = connection.introspection
-
-        table = introspection.get_partitioned_table(
-            cursor, model._meta.db_table
-        )
-        assert table.name == model._meta.db_table
-        assert table.method == method
-        assert table.key == key
-        assert table.partitions[0].name == model._meta.db_table + "_pt1"
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert table.name == model._meta.db_table
+    assert table.method == method
+    assert table.key == key
+    assert table.partitions[0].name == model._meta.db_table + "_pt1"
 
     schema_editor.delete_partitioned_model(model)
 
-    with connection.cursor() as cursor:
-        introspection = connection.introspection
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert not table
 
-        table = introspection.get_partitioned_table(
-            cursor, model._meta.db_table
-        )
-        assert not table
-
-        partitions = introspection.get_partitions(cursor, model._meta.db_table)
-        assert len(partitions) == 0
+    partitions = db_introspection.get_partitions(model._meta.db_table)
+    assert len(partitions) == 0
 
 
 def test_schema_editor_create_delete_partitioned_model_list():
@@ -74,29 +65,19 @@ def test_schema_editor_create_delete_partitioned_model_list():
 
     schema_editor.add_list_partition(model, "pt1", ["car", "boat"])
 
-    with connection.cursor() as cursor:
-        introspection = connection.introspection
-
-        table = introspection.get_partitioned_table(
-            cursor, model._meta.db_table
-        )
-        assert table.name == model._meta.db_table
-        assert table.method == method
-        assert table.key == key
-        assert table.partitions[0].name == model._meta.db_table + "_pt1"
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert table.name == model._meta.db_table
+    assert table.method == method
+    assert table.key == key
+    assert table.partitions[0].name == model._meta.db_table + "_pt1"
 
     schema_editor.delete_partitioned_model(model)
 
-    with connection.cursor() as cursor:
-        introspection = connection.introspection
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert not table
 
-        table = introspection.get_partitioned_table(
-            cursor, model._meta.db_table
-        )
-        assert not table
-
-        partitions = introspection.get_partitions(cursor, model._meta.db_table)
-        assert len(partitions) == 0
+    partitions = db_introspection.get_partitions(model._meta.db_table)
+    assert len(partitions) == 0
 
 
 def test_schema_editor_create_delete_partitioned_model_default():
@@ -119,29 +100,19 @@ def test_schema_editor_create_delete_partitioned_model_default():
 
     schema_editor.add_default_partition(model, "default")
 
-    with connection.cursor() as cursor:
-        introspection = connection.introspection
-
-        table = introspection.get_partitioned_table(
-            cursor, model._meta.db_table
-        )
-        assert table.name == model._meta.db_table
-        assert table.method == method
-        assert table.key == key
-        assert table.partitions[0].name == model._meta.db_table + "_default"
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert table.name == model._meta.db_table
+    assert table.method == method
+    assert table.key == key
+    assert table.partitions[0].name == model._meta.db_table + "_default"
 
     schema_editor.delete_partitioned_model(model)
 
-    with connection.cursor() as cursor:
-        introspection = connection.introspection
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert not table
 
-        table = introspection.get_partitioned_table(
-            cursor, model._meta.db_table
-        )
-        assert not table
-
-        partitions = introspection.get_partitions(cursor, model._meta.db_table)
-        assert len(partitions) == 0
+    partitions = db_introspection.get_partitions(model._meta.db_table)
+    assert len(partitions) == 0
 
 
 def test_schema_editor_create_partitioned_model_no_method():
@@ -160,12 +131,9 @@ def test_schema_editor_create_partitioned_model_no_method():
     schema_editor = PostgresSchemaEditor(connection)
     schema_editor.create_partitioned_model(model)
 
-    with connection.cursor() as cursor:
-        introspection = connection.introspection
-
-        pt = introspection.get_partitioned_table(cursor, model._meta.db_table)
-        assert pt.method == PostgresPartitioningMethod.RANGE
-        assert len(pt.partitions) == 0
+    pt = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert pt.method == PostgresPartitioningMethod.RANGE
+    assert len(pt.partitions) == 0
 
 
 def test_schema_editor_create_partitioned_model_no_key():

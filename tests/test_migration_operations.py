@@ -8,6 +8,7 @@ from psqlextra.manager import PostgresManager
 from psqlextra.models import PostgresPartitionedModel
 from psqlextra.types import PostgresPartitioningMethod
 
+from . import db_introspection
 from .migrations import apply_migration
 
 
@@ -17,23 +18,15 @@ def _partitioned_table_exists(op: operations.PostgresCreatePartitionedModel):
 
     model_table_name = f"tests_{op.name}"
 
-    with connection.cursor() as cursor:
-        table = connection.introspection.get_partitioned_table(
-            cursor, model_table_name
-        )
+    table = db_introspection.get_partitioned_table(model_table_name)
+    if not table:
+        return False
 
-        if not table:
-            return False
-
-        part_options = op.partitioning_options
-
-        if table.method != part_options["method"]:
-            return False
-
-        if table.key != part_options["key"]:
-            return False
-
-    return True
+    part_options = op.partitioning_options
+    return (
+        table.method == part_options["method"]
+        and table.key == part_options["key"]
+    )
 
 
 def _partition_exists(model_op, op):
@@ -42,27 +35,20 @@ def _partition_exists(model_op, op):
 
     model_table_name = f"tests_{model_op.name}"
 
-    with connection.cursor() as cursor:
-        table = connection.introspection.get_partitioned_table(
-            cursor, model_table_name
-        )
+    table = db_introspection.get_partitioned_table(model_table_name)
+    if not table:
+        return False
 
-        if not table:
-            return False
+    partition = next(
+        (
+            partition
+            for partition in table.partitions
+            if partition.name == f"{model_table_name}_{op.name}"
+        ),
+        None,
+    )
 
-        partition = next(
-            (
-                partition
-                for partition in table.partitions
-                if partition.name == f"{model_table_name}_{op.name}"
-            ),
-            None,
-        )
-
-        if not partition:
-            return False
-
-    return True
+    return bool(partition)
 
 
 @pytest.fixture
