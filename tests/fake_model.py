@@ -8,7 +8,12 @@ from django.apps import AppConfig, apps
 from django.db import connection
 from django.db.models import Model
 
-from psqlextra.models import PostgresModel, PostgresPartitionedModel
+from psqlextra.models import (
+    PostgresMaterializedViewModel,
+    PostgresModel,
+    PostgresPartitionedModel,
+    PostgresViewModel,
+)
 
 
 def define_fake_model(
@@ -30,6 +35,35 @@ def define_fake_model(
     model = type(name, (model_base,), attributes)
 
     apps.app_configs[attributes["app_label"]].models[name] = model
+    return model
+
+
+def define_fake_view_model(
+    fields=None, view_options={}, meta_options={}, model_base=PostgresViewModel
+):
+    model = define_fake_model(
+        fields=fields,
+        model_base=model_base,
+        meta_options=meta_options,
+        ViewMeta=type("ViewMeta", (object,), view_options),
+    )
+
+    return model
+
+
+def define_fake_materialized_view_model(
+    fields=None,
+    view_options={},
+    meta_options={},
+    model_base=PostgresMaterializedViewModel,
+):
+    model = define_fake_model(
+        fields=fields,
+        model_base=model_base,
+        meta_options=meta_options,
+        ViewMeta=type("ViewMeta", (object,), view_options),
+    )
+
     return model
 
 

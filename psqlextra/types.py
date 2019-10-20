@@ -1,5 +1,8 @@
 from enum import Enum
-from typing import List
+from typing import Any, Dict, List, Tuple, Union
+
+SQL = str
+SQLWithParams = Tuple[str, Union[Tuple[Any, ...], Dict[str, Any]]]
 
 
 class StrEnum(str, Enum):

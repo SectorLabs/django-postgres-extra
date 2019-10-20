@@ -1,10 +1,10 @@
 from .base import PostgresModel
 from .partitioned import PostgresPartitionedModel
-from .view import PostgresMaterializedView, PostgresView
+from .view import PostgresMaterializedViewModel, PostgresViewModel
 
 __all__ = [
     "PostgresModel",
-    "PostgresView",
-    "PostgresMaterializedView",
+    "PostgresViewModel",
+    "PostgresMaterializedViewModel",
     "PostgresPartitionedModel",
 ]

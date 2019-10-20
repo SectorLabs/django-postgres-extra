@@ -4,6 +4,7 @@ from unittest import mock
 from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django.db.models import Field, Model
 
+from psqlextra.type_assertions import is_sql_with_params
 from psqlextra.types import PostgresPartitioningMethod
 
 from . import base_impl
@@ -18,6 +19,12 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     and hooks into existing implementations to add side effects specific to
     PostgreSQL."""
 
+    sql_create_view = "CREATE VIEW %s AS (%s)"
+    sql_drop_view = "DROP VIEW IF EXISTS %s"
+    sql_create_materialized_view = (
+        "CREATE MATERIALIZED VIEW %s AS (%s) WITH DATA"
+    )
+    sql_drop_materialized_view = "DROP MATERIALIZED VIEW %s"
     sql_partition_by = " PARTITION BY %s (%s)"
     sql_add_default_partition = "CREATE TABLE %s PARTITION OF %s DEFAULT"
     sql_add_range_partition = (
@@ -49,6 +56,30 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         for side_effect in self.side_effects:
             side_effect.create_model(model)
+
+    def create_view_model(self, model: Model) -> None:
+        """Creates a new view model."""
+
+        self._create_view_model(self.sql_create_view, model)
+
+    def delete_view_model(self, model: Model) -> None:
+        """Deletes a view model."""
+
+        sql = self.sql_drop_view % self.quote_name(model._meta.db_table)
+        self.execute(sql)
+
+    def create_materialized_view_model(self, model: Model) -> None:
+        """Creates a new materialized view model."""
+
+        self._create_view_model(self.sql_create_materialized_view, model)
+
+    def delete_materialized_view_model(self, model: Model) -> None:
+        """Deletes a materialized view model."""
+
+        sql = self.sql_drop_materialized_view % self.quote_name(
+            model._meta.db_table
+        )
+        self.execute(sql)
 
     def create_partitioned_model(self, model: Model) -> None:
         """Creates a new partitioned model."""
@@ -230,6 +261,16 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         for side_effect in self.side_effects:
             side_effect.alter_field(model, old_field, new_field, strict)
 
+    def _create_view_model(self, sql: str, model: Model) -> None:
+        """Creates a new view model using the specified SQL query."""
+
+        meta = self._view_properties_for_model(model)
+
+        with self.connection.cursor() as cursor:
+            view_sql = cursor.mogrify(*meta.query).decode("utf-8")
+
+        self.execute(sql % (self.quote_name(model._meta.db_table), view_sql))
+
     def _extract_sql(self, method, *args):
         """Calls the specified method with the specified arguments and
         intercepts the SQL statement it WOULD execute.
@@ -243,6 +284,38 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             method(*args)
 
             return tuple(execute.mock_calls[0])[1]
+
+    @staticmethod
+    def _view_properties_for_model(model: Model):
+        """Gets the view options for the specified model.
+
+        Raises:
+            ImproperlyConfigured:
+                When the specified model is not set up
+                as a view.
+        """
+
+        meta = getattr(model, "_view_meta", None)
+        if not meta:
+            raise ImproperlyConfigured(
+                (
+                    "Model '%s' is not properly configured to be a view."
+                    " Create the `ViewMeta` class as a child of '%s'."
+                )
+                % (model.__name__, model.__name__)
+            )
+
+        if not is_sql_with_params(meta.query):
+            raise ImproperlyConfigured(
+                (
+                    "Model '%s' is not properly configured to be a view."
+                    " Set the `query` and `key` attribute on the"
+                    " `ViewMeta` class as a child of '%s'"
+                )
+                % (model.__name__, model.__name__)
+            )
+
+        return meta
 
     @staticmethod
     def _partitioning_properties_for_model(model: Model):
@@ -268,8 +341,8 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             raise ImproperlyConfigured(
                 (
                     "Model '%s' is not properly configured to be partitioned."
-                    " Set the `method` and `key` attributes on the "
-                    "`PartitioningMeta` class as a child of '%s'"
+                    " Set the `method` and `key` attributes on the"
+                    " `PartitioningMeta` class as a child of '%s'"
                 )
                 % (model.__name__, model.__name__)
             )

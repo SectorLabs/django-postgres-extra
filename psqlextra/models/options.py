@@ -1,8 +1,6 @@
 from typing import Dict, List, Optional, Union
 
-from django.db.models.query import QuerySet
-
-from psqlextra.types import PostgresPartitioningMethod
+from psqlextra.types import PostgresPartitioningMethod, SQLWithParams
 
 
 class PostgresPartitionedModelOptions:
@@ -28,8 +26,8 @@ class PostgresViewOptions:
     held.
     """
 
-    def __init__(self, query: Optional[QuerySet]):
+    def __init__(self, query: Optional[SQLWithParams]):
         self.query = query
-        self.original_attrs: Dict[str, Optional[QuerySet]] = dict(
+        self.original_attrs: Dict[str, Optional[SQLWithParams]] = dict(
             query=self.query
         )

@@ -12,10 +12,7 @@ from .fake_model import define_fake_partitioned_model
 
 def test_schema_editor_create_delete_partitioned_model_range():
     """Tests whether creating a partitioned model and adding a list partition
-    to it using the.
-
-    :see:PostgresSchemaEditor works.
-    """
+    to it using the :see:PostgresSchemaEditor works."""
 
     method = PostgresPartitioningMethod.RANGE
     key = ["timestamp"]
@@ -47,10 +44,7 @@ def test_schema_editor_create_delete_partitioned_model_range():
 
 def test_schema_editor_create_delete_partitioned_model_list():
     """Tests whether creating a partitioned model and adding a range partition
-    to it using the.
-
-    :see:PostgresSchemaEditor works.
-    """
+    to it using the :see:PostgresSchemaEditor works."""
 
     method = PostgresPartitioningMethod.LIST
     key = ["category"]
@@ -82,10 +76,7 @@ def test_schema_editor_create_delete_partitioned_model_list():
 
 def test_schema_editor_create_delete_partitioned_model_default():
     """Tests whether creating a partitioned model and adding a default
-    partition to it using the.
-
-    :see:PostgresSchemaEditor works.
-    """
+    partition to it using the :see:PostgresSchemaEditor works."""
 
     method = PostgresPartitioningMethod.LIST
     key = ["category"]
@@ -138,12 +129,9 @@ def test_schema_editor_create_partitioned_model_no_method():
 
 def test_schema_editor_create_partitioned_model_no_key():
     """Tests whether trying to create a partitioned model without a
-    partitioning key raises.
-
-    :see:ImproperlyConfigured as its not possible to create
-    a partitioned model without one and we cannot
-    have a sane default.
-    """
+    partitioning key raises :see:ImproperlyConfigured as its not possible to
+    create a partitioned model without one and we cannot have a sane
+    default."""
 
     model = define_fake_partitioned_model(
         {"name": models.TextField(), "timestamp": models.DateTimeField()},
