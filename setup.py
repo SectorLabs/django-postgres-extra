@@ -60,6 +60,7 @@ setup(
     ],
     python_requires=">=3.7",
     install_requires=[
+        "Django>=2.0",
         "enforce==0.3.4",
         "python-dateutil==2.8.0",
         "structlog==19.1.0",
