@@ -68,12 +68,8 @@ jobs:
                 command: pip install -r requirements/analysis.txt
 
             - run:
-                name: Verify formatting
-                command: python setup.py format_verify
-
-            - run:
-                name: Lint code
-                command: python setup.py lint
+                name: Verify
+                command: python setup.py verify
 
 
 workflows:

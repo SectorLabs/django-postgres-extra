@@ -126,12 +126,10 @@ setup(
         "verify": create_command(
             "Verifies whether the code is auto-formatted and has no linting errors",
             [
-                [
-                    ["python", "setup.py", "format_verify"],
-                    ["python", "setup.py", "format_docstrings_verify"],
-                    ["python", "setup.py", "sort_imports_verify"],
-                    ["python", "setup.py", "lint"],
-                ]
+                ["python", "setup.py", "format_verify"],
+                ["python", "setup.py", "format_docstrings_verify"],
+                ["python", "setup.py", "sort_imports_verify"],
+                ["python", "setup.py", "lint"],
             ],
         ),
         "test": create_command(
