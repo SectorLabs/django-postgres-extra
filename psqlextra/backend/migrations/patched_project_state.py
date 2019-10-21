@@ -3,9 +3,17 @@ from unittest import mock
 
 from django.db.migrations.state import ProjectState
 
-from psqlextra.models import PostgresPartitionedModel
+from psqlextra.models import (
+    PostgresMaterializedViewModel,
+    PostgresPartitionedModel,
+    PostgresViewModel,
+)
 
-from .state import PostgresPartitionedModelState
+from .state import (
+    PostgresMaterializedViewModelState,
+    PostgresPartitionedModelState,
+    PostgresViewModelState,
+)
 
 # original `ProjectState.from_apps` function,
 # saved here so the patched version can call
@@ -18,12 +26,18 @@ def project_state_from_apps(apps):
 
     project_state = original_from_apps(apps)
     for model in apps.get_models(include_swapped=True):
-        # for partitioned models, use the more specific model
-        # state.. for everything else, business as usual
-        if not issubclass(model, PostgresPartitionedModel):
-            continue
+        model_state = None
 
-        model_state = PostgresPartitionedModelState.from_model(model)
+        # for some of our custom models, use the more specific model
+        # state.. for everything else, business as usual
+        if issubclass(model, PostgresPartitionedModel):
+            model_state = PostgresPartitionedModelState.from_model(model)
+        elif issubclass(model, PostgresViewModel):
+            model_state = PostgresViewModelState.from_model(model)
+        elif issubclass(model, PostgresMaterializedViewModel):
+            model_state = PostgresMaterializedViewModelState.from_model(model)
+        else:
+            continue
 
         model_state_key = (model_state.app_label, model_state.name_lower)
         project_state.models[model_state_key] = model_state

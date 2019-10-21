@@ -3,8 +3,13 @@ from unittest import mock
 
 from django.db.migrations import CreateModel, DeleteModel
 from django.db.migrations.autodetector import MigrationAutodetector
+from django.db.models import Model
 
-from psqlextra.models import PostgresPartitionedModel
+from psqlextra.models import (
+    PostgresMaterializedViewModel,
+    PostgresPartitionedModel,
+    PostgresViewModel,
+)
 
 from . import operations
 
@@ -46,8 +51,38 @@ class AddOperationHandler:
         model = self.autodetector.new_apps.get_model(
             self.app_label, operation.name
         )
-        if not issubclass(model, PostgresPartitionedModel):
-            return self.add(operation)
+
+        if issubclass(model, PostgresPartitionedModel):
+            return self.add_create_partitioned_model(model, operation)
+        elif issubclass(model, PostgresViewModel):
+            return self.add_create_view_model(model, operation)
+        elif issubclass(model, PostgresMaterializedViewModel):
+            return self.add_create_materialized_view_model(model, operation)
+
+        return self.add(operation)
+
+    def add_delete_model(self, operation: DeleteModel):
+        """Adds the specified :see:Deletemodel operation to the list of
+        operations to execute in the migration."""
+
+        model = self.autodetector.old_apps.get_model(
+            self.app_label, operation.name
+        )
+
+        if issubclass(model, PostgresPartitionedModel):
+            return self.add_delete_partitioned_model(model, operation)
+        elif issubclass(model, PostgresViewModel):
+            return self.add_delete_view_model(model, operation)
+        elif issubclass(model, PostgresMaterializedViewModel):
+            return self.add_delete_materialized_view_model(model, operation)
+
+        return self.add(operation)
+
+    def add_create_partitioned_model(
+        self, model: Model, operation: CreateModel
+    ):
+        """Adds a :see:PostgresCreatePartitionedModel operation to the list of
+        operations to execute in the migration."""
 
         partitioning_options = model._partitioning_meta.original_attrs
         _, args, kwargs = operation.deconstruct()
@@ -64,20 +99,61 @@ class AddOperationHandler:
             )
         )
 
-    def add_delete_model(self, operation: CreateModel):
-        """Adds the specified :see:Deletemodel operation to the list of
+    def add_delete_partitioned_model(
+        self, model: Model, operation: DeleteModel
+    ):
+        """Adds a :see:PostgresDeletePartitionedModel operation to the list of
         operations to execute in the migration."""
 
-        model = self.autodetector.old_apps.get_model(
-            self.app_label, operation.name
-        )
-        if not issubclass(model, PostgresPartitionedModel):
-            return self.add(operation)
-
         _, args, kwargs = operation.deconstruct()
-
         return self.add(
             operations.PostgresDeletePartitionedModel(*args, **kwargs)
+        )
+
+    def add_create_view_model(self, model: Model, operation: CreateModel):
+        """Adds a :see:PostgresCreateViewModel operation to the list of
+        operations to execute in the migration."""
+
+        view_options = model._view_meta.original_attrs
+        _, args, kwargs = operation.deconstruct()
+
+        self.add(
+            operations.PostgresCreateViewModel(
+                *args, **kwargs, view_options=view_options
+            )
+        )
+
+    def add_delete_view_model(self, model: Model, operation: DeleteModel):
+        """Adds a :see:PostgresDeleteViewModel operation to the list of
+        operations to execute in the migration."""
+
+        _, args, kwargs = operation.deconstruct()
+        return self.add(operations.PostgresDeleteViewModel(*args, **kwargs))
+
+    def add_create_materialized_view_model(
+        self, model: Model, operation: CreateModel
+    ):
+        """Adds a :see:PostgresCreateMaterializedViewModel operation to the
+        list of operations to execute in the migration."""
+
+        view_options = model._view_meta.original_attrs
+        _, args, kwargs = operation.deconstruct()
+
+        self.add(
+            operations.PostgresCreateMaterializedViewModel(
+                *args, **kwargs, view_options=view_options
+            )
+        )
+
+    def add_delete_materialized_view_model(
+        self, model: Model, operation: DeleteModel
+    ):
+        """Adds a :see:PostgresDeleteMaterializedViewModel operation to the
+        list of operations to execute in the migration."""
+
+        _, args, kwargs = operation.deconstruct()
+        return self.add(
+            operations.PostgresDeleteMaterializedViewModel(*args, **kwargs)
         )
 
 
