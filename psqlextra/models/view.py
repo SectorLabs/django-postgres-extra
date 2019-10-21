@@ -1,6 +1,7 @@
 from typing import Callable, Optional, Union
 
 from django.core.exceptions import ImproperlyConfigured
+from django.db import connections
 from django.db.models import Model
 from django.db.models.base import ModelBase
 from django.db.models.query import QuerySet
@@ -106,3 +107,24 @@ class PostgresMaterializedViewModel(
     class Meta:
         abstract = True
         base_manager_name = "objects"
+
+    @classmethod
+    def refresh(
+        cls, concurrently: bool = False, using: Optional[str] = None
+    ) -> None:
+        """Refreshes this materialized view.
+
+        Arguments:
+            concurrently:
+                Whether to tell PostgreSQL to refresh this
+                materialized view concurrently.
+
+            using:
+                Optionally, the name of the database connection
+                to use for refreshing the materialized view.
+        """
+
+        conn_name = using or "default"
+
+        with connections[conn_name].schema_editor() as schema_editor:
+            schema_editor.refresh_materialized_view(cls, concurrently)

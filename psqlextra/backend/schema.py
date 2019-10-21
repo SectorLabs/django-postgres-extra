@@ -25,6 +25,10 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         "CREATE MATERIALIZED VIEW %s AS (%s) WITH DATA"
     )
     sql_drop_materialized_view = "DROP MATERIALIZED VIEW %s"
+    sql_refresh_materialized_view = "REFRESH MATERIALIZED VIEW %s"
+    sql_refresh_materialized_view_concurrently = (
+        "REFRESH MATERIALIZED VIEW CONCURRENTLY %s"
+    )
     sql_partition_by = " PARTITION BY %s (%s)"
     sql_add_default_partition = "CREATE TABLE %s PARTITION OF %s DEFAULT"
     sql_add_range_partition = (
@@ -56,6 +60,28 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         for side_effect in self.side_effects:
             side_effect.create_model(model)
+
+    def delete_model(self, model: Model) -> None:
+        """Drops/deletes an existing model."""
+
+        for side_effect in self.side_effects:
+            side_effect.delete_model(model)
+
+        super().delete_model(model)
+
+    def refresh_materialized_view(
+        self, model: Model, concurrently: bool = False
+    ) -> None:
+        """Refreshes a materialized view."""
+
+        sql_template = (
+            self.sql_refresh_materialized_view_concurrently
+            if concurrently
+            else self.sql_refresh_materialized_view
+        )
+
+        sql = sql_template % self.quote_name(model._meta.db_table)
+        self.execute(sql)
 
     def create_view_model(self, model: Model) -> None:
         """Creates a new view model."""
@@ -212,14 +238,6 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             self.create_partition_table_name(model, name)
         )
         self.execute(sql)
-
-    def delete_model(self, model: Model) -> None:
-        """Drops/deletes an existing model."""
-
-        for side_effect in self.side_effects:
-            side_effect.delete_model(model)
-
-        super().delete_model(model)
 
     def alter_db_table(
         self, model: Model, old_db_table: str, new_db_table: str
