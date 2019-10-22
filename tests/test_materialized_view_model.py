@@ -2,11 +2,7 @@ from django.db import connection, models
 
 from psqlextra.backend.schema import PostgresSchemaEditor
 
-from .fake_model import (
-    define_fake_materialized_view_model,
-    define_fake_view_model,
-    get_fake_model,
-)
+from .fake_model import define_fake_materialized_view_model, get_fake_model
 
 
 def test_materialized_view_model_refresh():

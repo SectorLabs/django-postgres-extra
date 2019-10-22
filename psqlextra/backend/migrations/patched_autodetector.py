@@ -1,8 +1,17 @@
 from contextlib import contextmanager
 from unittest import mock
 
-from django.db.migrations import CreateModel, DeleteModel
+from django.db.migrations import (
+    AddField,
+    AlterField,
+    CreateModel,
+    DeleteModel,
+    RemoveField,
+    RenameField,
+    RunSQL,
+)
 from django.db.migrations.autodetector import MigrationAutodetector
+from django.db.migrations.operations.base import Operation
 from django.db.models import Model
 
 from psqlextra.models import (
@@ -43,6 +52,52 @@ class AddOperationHandler:
             *self.args,
             **self.kwargs,
         )
+
+    def add_field(self, operation: AddField):
+        """Adds the specified :see:AddField operation to the list of operations
+        to execute in the migration."""
+
+        return self._transform_view_field_operations(operation)
+
+    def remove_field(self, operation: RemoveField):
+        """Adds the specified :see:RemoveField operation to the list of
+        operations to execute in the migration."""
+
+        return self._transform_view_field_operations(operation)
+
+    def alter_field(self, operation: AlterField):
+        """Adds the specified :see:AlterField operation to the list of
+        operations to execute in the migration."""
+
+        return self._transform_view_field_operations(operation)
+
+    def rename_field(self, operation: RenameField):
+        """Adds the specified :see:RenameField operation to the list of
+        operations to execute in the migration."""
+
+        return self._transform_view_field_operations(operation)
+
+    def _transform_view_field_operations(self, operation: Operation):
+        """Transforms operations on fields on a (materialized) view into state
+        only operations.
+
+        One cannot add/remove/delete fields on a (materialized) view,
+        however, we do want Django's migration system to keep track of
+        these kind of changes to the model. The :see:ApplyState
+        operation just tells Django the operation was applied without
+        actually applying it.
+        """
+
+        model = self.autodetector.new_apps.get_model(
+            self.app_label, operation.model_name
+        )
+
+        if issubclass(model, PostgresViewModel) or issubclass(
+            model, PostgresMaterializedViewModel
+        ):
+            return self.add(operations.ApplyState(state_operation=operation))
+
+        return self.add(operation)
 
     def add_create_model(self, operation: CreateModel):
         """Adds the specified :see:CreateModel operation to the list of
@@ -183,6 +238,18 @@ def patched_autodetector():
 
         if isinstance(operation, DeleteModel):
             return handler.add_delete_model(operation)
+
+        if isinstance(operation, AddField):
+            return handler.add_field(operation)
+
+        if isinstance(operation, RemoveField):
+            return handler.remove_field(operation)
+
+        if isinstance(operation, AlterField):
+            return handler.alter_field(operation)
+
+        if isinstance(operation, RenameField):
+            return handler.rename_field(operation)
 
         return handler.add(operation)
 

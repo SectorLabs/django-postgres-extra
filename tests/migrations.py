@@ -10,7 +10,6 @@ from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.questioner import NonInteractiveMigrationQuestioner
 from django.db.migrations.state import ProjectState
 
-from psqlextra.backend.migrations import postgres_patched_migrations
 from psqlextra.backend.schema import PostgresSchemaEditor
 
 from .fake_model import define_fake_model
@@ -76,8 +75,7 @@ def apply_migration(operations, state=None, backwards: bool = False):
     return migration
 
 
-@postgres_patched_migrations()
-def make_migration(app_label="tests"):
+def make_migration(app_label="tests", from_state=None, to_state=None):
     """Generates migrations based on the specified app's state."""
 
     app_labels = [app_label]
@@ -90,7 +88,9 @@ def make_migration(app_label="tests"):
     )
 
     autodetector = MigrationAutodetector(
-        loader.project_state(), ProjectState.from_apps(apps), questioner
+        from_state or loader.project_state(),
+        to_state or ProjectState.from_apps(apps),
+        questioner,
     )
 
     changes = autodetector.changes(
@@ -100,7 +100,11 @@ def make_migration(app_label="tests"):
         migration_name="test",
     )
 
-    return changes[app_label][0]
+    changes_for_app = changes.get(app_label)
+    if not changes_for_app or len(changes_for_app) == 0:
+        return None
+
+    return changes_for_app[0]
 
 
 @contextmanager

@@ -1,8 +1,11 @@
 import pytest
 
+from django.apps import apps
 from django.db import models
+from django.db.migrations import AddField, AlterField, RemoveField
+from django.db.migrations.state import ProjectState
 
-from psqlextra.backend.migrations import operations
+from psqlextra.backend.migrations import operations, postgres_patched_migrations
 from psqlextra.models import (
     PostgresMaterializedViewModel,
     PostgresPartitionedModel,
@@ -11,13 +14,12 @@ from psqlextra.models import (
 from psqlextra.types import PostgresPartitioningMethod
 
 from .fake_model import (
-    define_fake_app,
     define_fake_materialized_view_model,
     define_fake_partitioned_model,
     define_fake_view_model,
     get_fake_model,
 )
-from .migrations import make_migration
+from .migrations import apply_migration, make_migration
 
 
 @pytest.mark.parametrize(
@@ -37,14 +39,13 @@ from .migrations import make_migration
         ),
     ],
 )
-def test_make_migration_create_partitioned_model(model_config):
+@postgres_patched_migrations()
+def test_make_migration_create_partitioned_model(fake_app, model_config):
     """Tests whether the right operations are generated when creating a new
     partitioned model."""
 
-    app_config = define_fake_app()
-
     model = define_fake_partitioned_model(
-        **model_config, meta_options=dict(app_label=app_config.name)
+        **model_config, meta_options=dict(app_label=fake_app.name)
     )
 
     migration = make_migration(model._meta.app_label)
@@ -68,18 +69,17 @@ def test_make_migration_create_partitioned_model(model_config):
     assert ops[1].name == "default"
 
 
-def test_make_migration_create_view_model():
+@postgres_patched_migrations()
+def test_make_migration_create_view_model(fake_app):
     """Tests whether the right operations are generated when creating a new
     view model."""
 
     underlying_model = get_fake_model({"name": models.TextField()})
 
-    app_config = define_fake_app()
-
     model = define_fake_view_model(
-        fields={"timestamp": models.DateTimeField()},
+        fields={"name": models.TextField()},
         view_options=dict(query=underlying_model.objects.all()),
-        meta_options=dict(app_label=app_config.name),
+        meta_options=dict(app_label=fake_app.name),
     )
 
     migration = make_migration(model._meta.app_label)
@@ -96,18 +96,17 @@ def test_make_migration_create_view_model():
     assert ops[0].view_options == model._view_meta.original_attrs
 
 
-def test_make_migration_create_materialized_view_model():
+@postgres_patched_migrations()
+def test_make_migration_create_materialized_view_model(fake_app):
     """Tests whether the right operations are generated when creating a new
     materialized view model."""
 
     underlying_model = get_fake_model({"name": models.TextField()})
 
-    app_config = define_fake_app()
-
     model = define_fake_materialized_view_model(
-        fields={"timestamp": models.DateTimeField()},
+        fields={"name": models.TextField()},
         view_options=dict(query=underlying_model.objects.all()),
-        meta_options=dict(app_label=app_config.name),
+        meta_options=dict(app_label=fake_app.name),
     )
 
     migration = make_migration(model._meta.app_label)
@@ -122,3 +121,64 @@ def test_make_migration_create_materialized_view_model():
 
     # make sure the view options got copied correctly
     assert ops[0].view_options == model._view_meta.original_attrs
+
+
+@pytest.mark.parametrize(
+    "define_view_model",
+    [define_fake_materialized_view_model, define_fake_view_model],
+)
+@postgres_patched_migrations()
+def test_make_migration_field_operations_view_models(
+    fake_app, define_view_model
+):
+    """Tests whether field operations against a (materialized) view are always
+    wrapped in the :see:ApplyState operation so that they don't actually get
+    applied to the database, yet Django applies to them to the project state.
+
+    This is important because you can't actually alter/add or delete
+    fields from a (materialized) view.
+    """
+
+    underlying_model = get_fake_model(
+        {"first_name": models.TextField(), "last_name": models.TextField()},
+        meta_options=dict(app_label=fake_app.name),
+    )
+
+    model = define_view_model(
+        fields={"first_name": models.TextField()},
+        view_options=dict(query=underlying_model.objects.all()),
+        meta_options=dict(app_label=fake_app.name),
+    )
+
+    state_1 = ProjectState.from_apps(apps)
+
+    migration = make_migration(model._meta.app_label)
+    apply_migration(migration.operations, state_1)
+
+    # add a field to the materialized view
+    last_name_field = models.TextField(null=True)
+    last_name_field.contribute_to_class(model, "last_name")
+
+    migration = make_migration(model._meta.app_label, from_state=state_1)
+    assert len(migration.operations) == 1
+    assert isinstance(migration.operations[0], operations.ApplyState)
+    assert isinstance(migration.operations[0].state_operation, AddField)
+
+    # alter the field on the materialized view
+    state_2 = ProjectState.from_apps(apps)
+    last_name_field = models.TextField(null=True, blank=True)
+    last_name_field.contribute_to_class(model, "last_name")
+
+    migration = make_migration(model._meta.app_label, from_state=state_2)
+    assert len(migration.operations) == 1
+    assert isinstance(migration.operations[0], operations.ApplyState)
+    assert isinstance(migration.operations[0].state_operation, AlterField)
+
+    # remove the field from the materialized view
+    migration = make_migration(
+        model._meta.app_label,
+        from_state=ProjectState.from_apps(apps),
+        to_state=state_1,
+    )
+    assert isinstance(migration.operations[0], operations.ApplyState)
+    assert isinstance(migration.operations[0].state_operation, RemoveField)

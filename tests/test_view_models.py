@@ -73,9 +73,8 @@ def test_view_model_meta_sql_with_named_params(model_base):
 @pytest.mark.parametrize(
     "model_base", [PostgresViewModel, PostgresMaterializedViewModel]
 )
-def test_view_model_meta_sql_with_named_params(model_base):
-    """Tests whether you can set a raw SQL query with a tuple of bind params as
-    the underlying query for a view."""
+def test_view_model_meta_sql(model_base):
+    """Tests whether you can set a raw SQL query without any params."""
 
     sql = "select 1"
 

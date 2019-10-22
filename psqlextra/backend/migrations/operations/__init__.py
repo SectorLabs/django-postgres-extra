@@ -1,6 +1,7 @@
 from .add_default_partition import PostgresAddDefaultPartition
 from .add_list_partition import PostgresAddListPartition
 from .add_range_partition import PostgresAddRangePartition
+from .apply_state import ApplyState
 from .create_materialized_view_model import PostgresCreateMaterializedViewModel
 from .create_partitioned_model import PostgresCreatePartitionedModel
 from .create_view_model import PostgresCreateViewModel
@@ -12,6 +13,7 @@ from .delete_range_partition import PostgresDeleteRangePartition
 from .delete_view_model import PostgresDeleteViewModel
 
 __all__ = [
+    "ApplyState",
     "PostgresAddRangePartition",
     "PostgresAddListPartition",
     "PostgresAddDefaultPartition",
