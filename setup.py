@@ -76,6 +76,7 @@ setup(
             "pytest-cov==2.8.1",
             "tox==3.14.0",
             "freezegun==0.3.12",
+            "coveralls==1.8.2",
         ],
         "analysis": [
             "black==19.3b0",

@@ -24,9 +24,6 @@ jobs:
                 environment:
                     DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
 
-            - store_test_results:
-                path: reports
-
     test-python38:
         docker:
             - image: python:3.8-alpine
@@ -53,6 +50,10 @@ jobs:
 
             - store_test_results:
                 path: reports
+
+            - run:
+                name: Upload coverage report
+                command: coveralls
 
     analysis:
         docker:
