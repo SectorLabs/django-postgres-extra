@@ -10,10 +10,10 @@
 | :four_leaf_clover: | **Code coverage** | [![Coverage Status](https://coveralls.io/repos/github/SectorLabs/django-postgres-extra/badge.svg?branch=coveralls)](https://coveralls.io/github/SectorLabs/django-postgres-extra?branch=master) |
 | <img src="https://icon-library.net/images/django-icon/django-icon-0.jpg" width="22px" height="22px" align="center" /> | **Django Versions** | 2.0, 2.1, 2.2 |
 | <img src="http://www.iconarchive.com/download/i73027/cornmanthe3rd/plex/Other-python.ico" width="22px" height="22px" align="center" /> | **Python Versions** | 3.7, 3.8 |
-| :book: | **Documentation** | [Read The Docs](https://django-postgres-extra.readthedocs.io) |
-| :warning: | **Upgrade** | [Upgrade fom v1.x](https://django-postgres-extra.readthedocs.io/major-releases#v2x)
-| :checkered_flag: | **Installation** | [Installation Guide](https://django-postgres-extra.readthedocs.io/#installation) |
-| :fire: | **Features** | [Features & Documentation](https://django-postgres-extra.readthedocs.io/#features) |
+| :book: | **Documentation** | [Read The Docs](https://django-postgres-extra.readthedocs.io/en/master/) |
+| :warning: | **Upgrade** | [Upgrade fom v1.x](https://django-postgres-extra.readthedocs.io/en/master/major_releases.html#new-features)
+| :checkered_flag: | **Installation** | [Installation Guide](https://django-postgres-extra.readthedocs.io/en/master/installation.html) |
+| :fire: | **Features** | [Features & Documentation](https://django-postgres-extra.readthedocs.io/en/master/index.html#features) |
 | :droplet: | **Future enhancements** | [Potential features](https://github.com/SectorLabs/django-postgres-extra/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement) |
 
 `django-postgres-extra` aims to make all of PostgreSQL's awesome features available through the Django ORM. We do this by taking care of all the hassle. As opposed to the many small packages that are available to try to bring a single feature to Django with minimal effort. ``django-postgres-extra`` goes the extra mile, with well tested implementations, seamless migrations and much more.
