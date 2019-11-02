@@ -7,7 +7,7 @@
 | :white_check_mark: | **Tests** | [![CircleCI](https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master.svg?style=svg)](https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master) |
 | :memo: | **License** | [![License](https://img.shields.io/:license-mit-blue.svg)](http://doge.mit-license.org) |
 | :package: | **PyPi** | [![PyPi](https://badge.fury.io/py/django-postgres-extra.svg)](https://pypi.python.org/pypi/django-postgres-extra) |
-| :four_leaf_clover: | **Code coverage** | [![Coverage Status](https://coveralls.io/repos/github/SectorLabs/django-postgres-extra/badge.svg?branch=coveralls)](https://coveralls.io/github/SectorLabs/django-postgres-extra?branch=coveralls) |
+| :four_leaf_clover: | **Code coverage** | [![Coverage Status](https://coveralls.io/repos/github/SectorLabs/django-postgres-extra/badge.svg?branch=coveralls)](https://coveralls.io/github/SectorLabs/django-postgres-extra?branch=master) |
 | <img src="https://icon-library.net/images/django-icon/django-icon-0.jpg" width="22px" height="22px" align="center" /> | **Django Versions** | 2.0, 2.1, 2.2 |
 | <img src="http://www.iconarchive.com/download/i73027/cornmanthe3rd/plex/Other-python.ico" width="22px" height="22px" align="center" /> | **Python Versions** | 3.7, 3.8 |
 | :book: | **Documentation** | [Read The Docs](https://django-postgres-extra.readthedocs.io) |
@@ -35,7 +35,6 @@ With seamless we mean that any features we add will work truly seamlessly. You s
     * Single query
     * Concurrency safe
     * With bulk support (single query)
-    * Expressions to select individual keys
 
 * **Extended support for HStoreField**
 

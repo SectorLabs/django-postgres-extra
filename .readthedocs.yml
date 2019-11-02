@@ -11,4 +11,4 @@ python:
         path: .
         extra_requirements:
            - docs
-      - requirements: requirements/test.txt
+           - test
