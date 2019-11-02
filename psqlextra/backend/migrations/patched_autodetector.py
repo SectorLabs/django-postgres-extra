@@ -92,9 +92,7 @@ class AddOperationHandler:
             self.app_label, operation.model_name
         )
 
-        if issubclass(model, PostgresViewModel) or issubclass(
-            model, PostgresMaterializedViewModel
-        ):
+        if issubclass(model, PostgresViewModel):
             return self.add(operations.ApplyState(state_operation=operation))
 
         return self.add(operation)
@@ -109,10 +107,10 @@ class AddOperationHandler:
 
         if issubclass(model, PostgresPartitionedModel):
             return self.add_create_partitioned_model(model, operation)
-        elif issubclass(model, PostgresViewModel):
-            return self.add_create_view_model(model, operation)
         elif issubclass(model, PostgresMaterializedViewModel):
             return self.add_create_materialized_view_model(model, operation)
+        elif issubclass(model, PostgresViewModel):
+            return self.add_create_view_model(model, operation)
 
         return self.add(operation)
 
@@ -126,10 +124,10 @@ class AddOperationHandler:
 
         if issubclass(model, PostgresPartitionedModel):
             return self.add_delete_partitioned_model(model, operation)
-        elif issubclass(model, PostgresViewModel):
-            return self.add_delete_view_model(model, operation)
         elif issubclass(model, PostgresMaterializedViewModel):
             return self.add_delete_materialized_view_model(model, operation)
+        elif issubclass(model, PostgresViewModel):
+            return self.add_delete_view_model(model, operation)
 
         return self.add(operation)
 

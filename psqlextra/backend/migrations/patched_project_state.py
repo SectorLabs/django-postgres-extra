@@ -32,10 +32,10 @@ def project_state_from_apps(apps):
         # state.. for everything else, business as usual
         if issubclass(model, PostgresPartitionedModel):
             model_state = PostgresPartitionedModelState.from_model(model)
-        elif issubclass(model, PostgresViewModel):
-            model_state = PostgresViewModelState.from_model(model)
         elif issubclass(model, PostgresMaterializedViewModel):
             model_state = PostgresMaterializedViewModelState.from_model(model)
+        elif issubclass(model, PostgresViewModel):
+            model_state = PostgresViewModelState.from_model(model)
         else:
             continue
 

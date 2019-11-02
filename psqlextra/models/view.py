@@ -100,7 +100,7 @@ class PostgresViewModel(PostgresModel, metaclass=PostgresViewModelMeta):
 
 
 class PostgresMaterializedViewModel(
-    PostgresModel, metaclass=PostgresViewModelMeta
+    PostgresViewModel, metaclass=PostgresViewModelMeta
 ):
     """Base class for creating a model that is a materialized view."""
 
