@@ -1,7 +1,7 @@
 from psqlextra.models import PostgresPartitionedModel
 from psqlextra.types import PostgresPartitioningMethod
 
-from .fake_model import define_fake_partitioning_model
+from .fake_model import define_fake_partitioned_model
 
 
 def test_partitioned_model_abstract():
@@ -24,7 +24,7 @@ def test_partitioned_model_default_options():
     :see:PostgresPartitionedModel.
     """
 
-    model = define_fake_partitioning_model()
+    model = define_fake_partitioned_model()
 
     assert model._partitioning_meta.method == PostgresPartitioningMethod.RANGE
     assert model._partitioning_meta.key == []
@@ -34,7 +34,7 @@ def test_partitioned_model_method_option():
     """Tests whether the `method` partitioning option is properly copied onto
     the options object."""
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         partitioning_options=dict(method=PostgresPartitioningMethod.LIST)
     )
 
@@ -45,7 +45,7 @@ def test_partitioned_model_method_option_none():
     """Tests whether setting the `method` partitioning option results in the
     default being set."""
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         partitioning_options=dict(method=None)
     )
 
@@ -56,7 +56,7 @@ def test_partitioned_model_key_option():
     """Tests whether the `key` partitioning option is properly copied onto the
     options object."""
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         partitioning_options=dict(key=["timestamp"])
     )
 
@@ -67,6 +67,6 @@ def test_partitioned_model_key_option_none():
     """Tests whether setting the `key` partitioning option results in the
     default being set."""
 
-    model = define_fake_partitioning_model(partitioning_options=dict(key=None))
+    model = define_fake_partitioned_model(partitioning_options=dict(key=None))
 
     assert model._partitioning_meta.key == []

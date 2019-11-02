@@ -7,7 +7,7 @@ from psqlextra.backend.schema import PostgresSchemaEditor
 from psqlextra.types import PostgresPartitioningMethod
 
 from . import db_introspection
-from .fake_model import define_fake_partitioning_model
+from .fake_model import define_fake_partitioned_model
 
 
 def test_schema_editor_create_delete_partitioned_model_range():
@@ -20,7 +20,7 @@ def test_schema_editor_create_delete_partitioned_model_range():
     method = PostgresPartitioningMethod.RANGE
     key = ["timestamp"]
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         {"name": models.TextField(), "timestamp": models.DateTimeField()},
         {"method": method, "key": key},
     )
@@ -55,7 +55,7 @@ def test_schema_editor_create_delete_partitioned_model_list():
     method = PostgresPartitioningMethod.LIST
     key = ["category"]
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         {"name": models.TextField(), "category": models.TextField()},
         {"method": method, "key": key},
     )
@@ -90,7 +90,7 @@ def test_schema_editor_create_delete_partitioned_model_default():
     method = PostgresPartitioningMethod.LIST
     key = ["category"]
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         {"name": models.TextField(), "category": models.TextField()},
         {"method": method, "key": key},
     )
@@ -123,7 +123,7 @@ def test_schema_editor_create_partitioned_model_no_method():
     needed.
     """
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         {"name": models.TextField(), "timestamp": models.DateTimeField()},
         {"key": ["timestamp"]},
     )
@@ -145,7 +145,7 @@ def test_schema_editor_create_partitioned_model_no_key():
     have a sane default.
     """
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         {"name": models.TextField(), "timestamp": models.DateTimeField()},
         {"method": PostgresPartitioningMethod.RANGE},
     )

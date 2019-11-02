@@ -12,7 +12,7 @@ from psqlextra.auto_partition import (
 )
 
 from . import db_introspection
-from .fake_model import define_fake_partitioning_model
+from .fake_model import define_fake_partitioned_model
 
 
 def _get_partitioned_table(model):
@@ -23,7 +23,7 @@ def test_auto_partition_monthly():
     """Tests whether automatically creating new partitions ahead monthly works
     as expected."""
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
     )
 
@@ -83,7 +83,7 @@ def test_auto_partition_monthly():
 
 
 def test_auto_partition_switch_monthly_weekly():
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
     )
 
@@ -104,7 +104,7 @@ def test_auto_partition_weekly():
     """Tests whether automatically creating new partitions ahead weekly works
     as expected."""
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
     )
 
@@ -159,7 +159,7 @@ def test_auto_partition_monthly_insert():
     """Tests whether automatically created monthly partitions line up
     perfectly."""
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
     )
 
@@ -199,7 +199,7 @@ def test_auto_partition_weekly_insert():
     """Tests whether automatically created weekly partitions line up
     perfectly."""
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
     )
 
@@ -240,7 +240,7 @@ def test_auto_partition_weekly_insert():
 
 
 def test_auto_partition_switch_interval():
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
     )
 

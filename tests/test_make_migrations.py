@@ -6,7 +6,7 @@ from psqlextra.backend.migrations import operations
 from psqlextra.models import PostgresPartitionedModel
 from psqlextra.types import PostgresPartitioningMethod
 
-from .fake_model import define_fake_app, define_fake_partitioning_model
+from .fake_model import define_fake_app, define_fake_partitioned_model
 from .migrations import make_migration
 
 
@@ -33,7 +33,7 @@ def test_make_migration_create_partitioned_model(model_config):
 
     app_config = define_fake_app()
 
-    model = define_fake_partitioning_model(
+    model = define_fake_partitioned_model(
         **model_config, meta_options=dict(app_label=app_config.name)
     )
 

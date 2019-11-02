@@ -33,7 +33,7 @@ def define_fake_model(
     return model
 
 
-def define_fake_partitioning_model(
+def define_fake_partitioned_model(
     fields=None, partitioning_options={}, meta_options={}
 ):
     model = define_fake_model(

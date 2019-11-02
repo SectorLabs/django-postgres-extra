@@ -13,7 +13,7 @@ from psqlextra.manager import PostgresManager
 from psqlextra.models import PostgresPartitionedModel
 from psqlextra.types import PostgresPartitioningMethod
 
-from .fake_model import define_fake_partitioning_model
+from .fake_model import define_fake_partitioned_model
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def model():
         "key": ["category"],
     }
 
-    model = define_fake_partitioning_model(fields, partitioning_options)
+    model = define_fake_partitioned_model(fields, partitioning_options)
     return model
 
 
