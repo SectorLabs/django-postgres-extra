@@ -1,8 +1,0 @@
--r base.txt
-
-black==19.3b0
-flake8==3.7.7
-autoflake==1.3
-autopep8==1.4.4
-isort==4.3.20
-sl-docformatter==1.4

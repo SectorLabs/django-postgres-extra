@@ -16,7 +16,7 @@ jobs:
 
             - run:
                 name: Install Python packages
-                command: pip install -r requirements/test.txt
+                command: pip install .[test]
 
             - run:
                 name: Run tests
@@ -43,7 +43,7 @@ jobs:
 
             - run:
                 name: Install Python packages
-                command: pip install -r requirements/test.txt
+                command: pip install .[test]
 
             - run:
                 name: Run tests
@@ -65,7 +65,7 @@ jobs:
 
             - run:
                 name: Install Python packages
-                command: pip install -r requirements/analysis.txt
+                command: pip install .[analysis]
 
             - run:
                 name: Verify

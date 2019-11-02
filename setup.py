@@ -65,7 +65,27 @@ setup(
         "python-dateutil==2.8.0",
         "structlog==19.1.0",
     ],
-    extras_require={"docs": ["Sphinx==2.2.0", "sphinx-rtd-theme==0.4.3"]},
+    extras_require={
+        "docs": ["Sphinx==2.2.0", "sphinx-rtd-theme==0.4.3"],
+        "test": [
+            "psycopg2==2.8.4",
+            "dj-database-url==0.5.0",
+            "pytest==5.2.2",
+            "pytest-benchmark==3.2.2",
+            "pytest-django==3.6.0",
+            "pytest-cov==2.8.1",
+            "tox==3.14.0",
+            "freezegun==0.3.12",
+        ],
+        "analysis": [
+            "black==19.3b0",
+            "flake8==3.7.7",
+            "autoflake==1.3",
+            "autopep8==1.4.4",
+            "isort==4.3.20",
+            "sl-docformatter==1.4",
+        ],
+    },
     cmdclass={
         "lint": create_command(
             "Lints the code", [["flake8", "setup.py", "psqlextra", "tests"]]

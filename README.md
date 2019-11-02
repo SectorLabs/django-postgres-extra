@@ -85,8 +85,7 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 
 4. Install the development/test dependencies:
 
-       λ pip install -r requirements/test.txt
-       λ pip install -r requirements/analysis.txt
+       λ pip install .[test] .[analysis]
 
 5. Run the tests:
 
