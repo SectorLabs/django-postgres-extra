@@ -8,11 +8,12 @@ class ConditionalUniqueIndex(Index):
 
     Useful, for example, if you need unique combination of foreign keys, but you might want to include
     NULL as a valid value. In that case, you can just use:
+
     >>> class Meta:
-    ...    indexes = [
-    ...        ConditionalUniqueIndex(fields=['a', 'b', 'c'], condition='"c" IS NOT NULL'),
-    ...        ConditionalUniqueIndex(fields=['a', 'b'], condition='"c" IS NULL')
-    ...    ]
+    >>>    indexes = [
+    >>>        ConditionalUniqueIndex(fields=['a', 'b', 'c'], condition='"c" IS NOT NULL'),
+    >>>        ConditionalUniqueIndex(fields=['a', 'b'], condition='"c" IS NULL')
+    >>>    ]
     """
 
     sql_create_index = "CREATE UNIQUE INDEX %(name)s ON %(table)s (%(columns)s)%(extra)s WHERE %(condition)s"

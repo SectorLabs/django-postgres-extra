@@ -21,7 +21,16 @@ class HStoreField(DjangoHStoreField):
         required: List[str] = None,
         **kwargs
     ):
-        """Initializes a new instance of :see:HStoreField."""
+        """Initializes a new instance of :see:HStoreField.
+
+        Arguments:
+            uniqueness:
+                List of keys to enforce as unique. Use tuples
+                to enforce multiple keys together to be unique.
+
+            required:
+                List of keys that should be enforced as required.
+        """
 
         super(HStoreField, self).__init__(*args, **kwargs)
 

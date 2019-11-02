@@ -65,6 +65,7 @@ setup(
         "python-dateutil==2.8.0",
         "structlog==19.1.0",
     ],
+    extras_require={"docs": ["Sphinx==2.2.0", "sphinx-rtd-theme==0.4.3"]},
     cmdclass={
         "lint": create_command(
             "Lints the code", [["flake8", "setup.py", "psqlextra", "tests"]]
