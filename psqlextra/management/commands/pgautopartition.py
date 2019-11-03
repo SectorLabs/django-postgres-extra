@@ -1,15 +1,11 @@
 from django.apps import apps
 from django.core.management.base import BaseCommand
+from django.db.utils import NotSupportedError, OperationalError
 
 from psqlextra.auto_partition import (
     PostgresAutoPartitioningIntervalUnit,
     postgres_auto_partition,
 )
-from psqlextra.models import PostgresPartitionedModel
-
-
-class PostgresAutoPartitioningError(RuntimeError):
-    pass
 
 
 class Command(BaseCommand):
@@ -66,8 +62,11 @@ class Command(BaseCommand):
         interval = options.get("interval")
 
         model = apps.get_model(app_label, model_name)
-        if not issubclass(model, PostgresPartitionedModel):
-            raise PostgresAutoPartitioningError(
+        if not model:
+            raise OperationalError(f"Cannot find a model named '{model_name}'")
+
+        if not issubclass(model, PostgresMaterializedViewModel):
+            raise NotSupportedError(
                 f"Model {model.__name__} is not a `PostgresPartitionedModel`"
             )
 
