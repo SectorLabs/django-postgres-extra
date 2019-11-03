@@ -1,10 +1,15 @@
-from typing import List
+from typing import List, Optional, Tuple
+
+import django
 
 from django.core.exceptions import SuspiciousOperation
-from django.db import connections
+from django.db import connections, models
 from django.db.models import sql
+from django.db.models.constants import LOOKUP_SEP
 
 from .compiler import PostgresInsertCompiler, PostgresUpdateCompiler
+from .expressions import HStoreColumn
+from .fields import HStoreField
 from .types import ConflictAction
 
 
@@ -49,6 +54,73 @@ class PostgresQuery(sql.Query):
 
             self.annotations[new_name] = annotation
             del self.annotations[old_name]
+
+    def add_fields(self, field_names: List[str], *args, **kwargs) -> bool:
+        """Adds the given (model) fields to the select set.
+
+        The field names are added in the order specified. This overrides
+        the base class's add_fields method. This is called by the
+        .values() or .values_list() method of the query set. It
+        instructs the ORM to only select certain values. A lot of
+        processing is neccesarry because it can be used to easily do
+        joins. For example, `my_fk__name` pulls in the `name` field in
+        foreign key `my_fk`. In our case, we want to be able to do
+        `title__en`, where `title` is a HStoreField and `en` a key. This
+        doesn't really involve a join. We iterate over the specified
+        field names and filter out the ones that refer to HStoreField
+        and compile it into an expression which is added to the list of
+        to be selected fields using `self.add_select`.
+        """
+
+        # django knows how to do all of this natively from v2.1
+        # see: https://github.com/django/django/commit/20bab2cf9d02a5c6477d8aac066a635986e0d3f3
+        if django.VERSION >= (2, 1):
+            return super().add_fields(field_names, *args, **kwargs)
+
+        select = []
+        field_names_without_hstore = []
+
+        for name in field_names:
+            parts = name.split(LOOKUP_SEP)
+
+            # it cannot be a special hstore thing if there's no __ in it
+            if len(parts) > 1:
+                column_name, hstore_key = parts[:2]
+                is_hstore, field = self._is_hstore_field(column_name)
+                if is_hstore:
+                    select.append(
+                        HStoreColumn(
+                            self.model._meta.db_table or self.model.name,
+                            field,
+                            hstore_key,
+                        )
+                    )
+                    continue
+
+            field_names_without_hstore.append(name)
+
+        super().add_fields(field_names_without_hstore, *args, **kwargs)
+
+        if len(select) > 0:
+            self.set_select(self.select + tuple(select))
+
+    def _is_hstore_field(
+        self, field_name: str
+    ) -> Tuple[bool, Optional[models.Field]]:
+        """Gets whether the field with the specified name is a HStoreField.
+
+        Returns     A tuple of a boolean indicating whether the field
+        with the specified name is a HStoreField, and the     field
+        instance.
+        """
+
+        field_instance = None
+        for field in self.model._meta.local_concrete_fields:
+            if field.name == field_name or field.column == field_name:
+                field_instance = field
+                break
+
+        return isinstance(field_instance, HStoreField), field_instance
 
 
 class PostgresInsertQuery(sql.InsertQuery):
