@@ -6,7 +6,7 @@ class CaseInsensitiveUniqueIndex(Index):
         "CREATE UNIQUE INDEX %(name)s ON %(table)s (%(columns)s)%(extra)s"
     )
 
-    def create_sql(self, model, schema_editor, using=""):
+    def create_sql(self, model, schema_editor, using="", **kwargs):
         statement = super().create_sql(model, schema_editor, using)
         statement.template = self.sql_create_unique_index
 

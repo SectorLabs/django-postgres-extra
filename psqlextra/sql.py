@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from typing import List, Optional, Tuple
 
 from django.core.exceptions import SuspiciousOperation
@@ -51,12 +50,8 @@ class PostgresQuery(sql.Query):
                     ).format(old_name=old_name, new_name=new_name)
                 )
 
-            self._annotations = OrderedDict(
-                [
-                    (new_name, v) if k == old_name else (k, v)
-                    for k, v in self._annotations.items()
-                ]
-            )
+            self.annotations[new_name] = annotation
+            del self.annotations[old_name]
 
     def add_fields(
         self, field_names: List[str], allow_m2m: bool = True

@@ -25,7 +25,7 @@ class ConditionalUniqueIndex(Index):
 
         self._condition = condition
 
-    def create_sql(self, model, schema_editor, using=""):
+    def create_sql(self, model, schema_editor, using="", **kwargs):
         """Creates the actual SQL used when applying the migration."""
         if django.VERSION >= (2, 0):
             statement = super().create_sql(model, schema_editor, using)
