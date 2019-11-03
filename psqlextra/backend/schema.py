@@ -20,6 +20,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     PostgreSQL."""
 
     sql_create_view = "CREATE VIEW %s AS (%s)"
+    sql_replace_view = "CREATE OR REPLACE VIEW %s AS (%s)"
     sql_drop_view = "DROP VIEW IF EXISTS %s"
     sql_create_materialized_view = (
         "CREATE MATERIALIZED VIEW %s AS (%s) WITH DATA"
@@ -87,6 +88,14 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         """Creates a new view model."""
 
         self._create_view_model(self.sql_create_view, model)
+
+    def replace_view_model(self, model: Model) -> None:
+        """Replaces a view model with a newer version.
+
+        This is used to alter the backing query of a view.
+        """
+
+        self._create_view_model(self.sql_replace_view, model)
 
     def delete_view_model(self, model: Model) -> None:
         """Deletes a view model."""
