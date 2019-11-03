@@ -1,5 +1,3 @@
-import structlog
-
 from django.apps import apps
 from django.core.management.base import BaseCommand
 
@@ -8,8 +6,6 @@ from psqlextra.auto_partition import (
     postgres_auto_partition,
 )
 from psqlextra.models import PostgresPartitionedModel
-
-LOGGER = structlog.get_logger(__name__)
 
 
 class PostgresAutoPartitioningError(RuntimeError):
@@ -24,17 +20,17 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--app-label",
-            "-a",
+            "app-label",
             type=str,
             help="Label of the app the partitioned model is in.",
-            required=True,
         )
+
         parser.add_argument(
             "model_name",
             type=str,
             help="Name of the partitioned model to auto partition for.",
         )
+
         parser.add_argument(
             "--count",
             "-c",
@@ -42,6 +38,7 @@ class Command(BaseCommand):
             help="Amount of partitions to create in ahead of the current date.",
             default=1,
         )
+
         parser.add_argument(
             "--interval-unit",
             "-u",
@@ -50,6 +47,7 @@ class Command(BaseCommand):
             help="Unit in which to express the interval (months/weeks/days).",
             default="month",
         )
+
         parser.add_argument(
             "--interval",
             "-i",
