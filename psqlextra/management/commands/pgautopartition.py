@@ -6,6 +6,7 @@ from psqlextra.auto_partition import (
     PostgresAutoPartitioningIntervalUnit,
     postgres_auto_partition,
 )
+from psqlextra.models import PostgresPartitionedModel
 
 
 class Command(BaseCommand):
@@ -65,7 +66,7 @@ class Command(BaseCommand):
         if not model:
             raise OperationalError(f"Cannot find a model named '{model_name}'")
 
-        if not issubclass(model, PostgresMaterializedViewModel):
+        if not issubclass(model, PostgresPartitionedModel):
             raise NotSupportedError(
                 f"Model {model.__name__} is not a `PostgresPartitionedModel`"
             )
