@@ -48,6 +48,7 @@ Explore the documentation to learn about all features:
    deletion
    table_partitioning
    expressions
+   annotations
    settings
    api_reference
    major_releases
