@@ -127,4 +127,4 @@ class PostgresMaterializedViewModel(
         conn_name = using or "default"
 
         with connections[conn_name].schema_editor() as schema_editor:
-            schema_editor.refresh_materialized_view(cls, concurrently)
+            schema_editor.refresh_materialized_view_model(cls, concurrently)

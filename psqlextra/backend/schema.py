@@ -70,7 +70,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         super().delete_model(model)
 
-    def refresh_materialized_view(
+    def refresh_materialized_view_model(
         self, model: Model, concurrently: bool = False
     ) -> None:
         """Refreshes a materialized view."""
