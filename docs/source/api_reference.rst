@@ -27,6 +27,8 @@ API Reference
 
    .. autoclass:: HStoreRef
 
+   .. autoclass:: DateTimeEpoch
+
 .. automodule:: psqlextra.indexes
 
    .. autoclass:: ConditionalUniqueIndex

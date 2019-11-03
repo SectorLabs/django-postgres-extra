@@ -47,6 +47,7 @@ Explore the documentation to learn about all features:
    conflict_handling
    deletion
    table_partitioning
+   expressions
    settings
    api_reference
    major_releases
