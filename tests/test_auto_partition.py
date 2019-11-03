@@ -3,11 +3,13 @@ import datetime
 import freezegun
 import pytest
 
+from dateutil.relativedelta import relativedelta
 from django.db import connection, models, transaction
 from django.db.utils import IntegrityError, ProgrammingError
 
 from psqlextra.auto_partition import (
     PostgresAutoPartitioningIntervalUnit,
+    postgres_auto_delete_partitions,
     postgres_auto_partition,
 )
 
@@ -41,18 +43,18 @@ def test_auto_partition_monthly():
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 12
-    assert table.partitions[0].name == f"{model._meta.db_table}_1337_jan"
-    assert table.partitions[1].name == f"{model._meta.db_table}_1337_feb"
-    assert table.partitions[2].name == f"{model._meta.db_table}_1337_mar"
-    assert table.partitions[3].name == f"{model._meta.db_table}_1337_apr"
-    assert table.partitions[4].name == f"{model._meta.db_table}_1337_may"
-    assert table.partitions[5].name == f"{model._meta.db_table}_1337_jun"
-    assert table.partitions[6].name == f"{model._meta.db_table}_1337_jul"
-    assert table.partitions[7].name == f"{model._meta.db_table}_1337_aug"
-    assert table.partitions[8].name == f"{model._meta.db_table}_1337_sep"
-    assert table.partitions[9].name == f"{model._meta.db_table}_1337_oct"
-    assert table.partitions[10].name == f"{model._meta.db_table}_1337_nov"
-    assert table.partitions[11].name == f"{model._meta.db_table}_1337_dec"
+    assert table.partitions[0].full_name == f"{model._meta.db_table}_1337_jan"
+    assert table.partitions[1].full_name == f"{model._meta.db_table}_1337_feb"
+    assert table.partitions[2].full_name == f"{model._meta.db_table}_1337_mar"
+    assert table.partitions[3].full_name == f"{model._meta.db_table}_1337_apr"
+    assert table.partitions[4].full_name == f"{model._meta.db_table}_1337_may"
+    assert table.partitions[5].full_name == f"{model._meta.db_table}_1337_jun"
+    assert table.partitions[6].full_name == f"{model._meta.db_table}_1337_jul"
+    assert table.partitions[7].full_name == f"{model._meta.db_table}_1337_aug"
+    assert table.partitions[8].full_name == f"{model._meta.db_table}_1337_sep"
+    assert table.partitions[9].full_name == f"{model._meta.db_table}_1337_oct"
+    assert table.partitions[10].full_name == f"{model._meta.db_table}_1337_nov"
+    assert table.partitions[11].full_name == f"{model._meta.db_table}_1337_dec"
 
     # re-running it with 13, should just create one additional partition
     with freezegun.freeze_time("1337-01-30"):
@@ -65,7 +67,7 @@ def test_auto_partition_monthly():
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 13
-    assert table.partitions[12].name == f"{model._meta.db_table}_1338_jan"
+    assert table.partitions[12].full_name == f"{model._meta.db_table}_1338_jan"
 
     # it's november now, we only want to create 4 partitions ahead,
     # so only one new partition should be created for february 1338
@@ -79,7 +81,7 @@ def test_auto_partition_monthly():
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 14
-    assert table.partitions[13].name == f"{model._meta.db_table}_1338_feb"
+    assert table.partitions[13].full_name == f"{model._meta.db_table}_1338_feb"
 
 
 def test_auto_partition_switch_monthly_weekly():
@@ -122,10 +124,18 @@ def test_auto_partition_weekly():
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 4
-    assert table.partitions[0].name == f"{model._meta.db_table}_1337_week_03"
-    assert table.partitions[1].name == f"{model._meta.db_table}_1337_week_04"
-    assert table.partitions[2].name == f"{model._meta.db_table}_1337_week_05"
-    assert table.partitions[3].name == f"{model._meta.db_table}_1337_week_06"
+    assert (
+        table.partitions[0].full_name == f"{model._meta.db_table}_1337_week_03"
+    )
+    assert (
+        table.partitions[1].full_name == f"{model._meta.db_table}_1337_week_04"
+    )
+    assert (
+        table.partitions[2].full_name == f"{model._meta.db_table}_1337_week_05"
+    )
+    assert (
+        table.partitions[3].full_name == f"{model._meta.db_table}_1337_week_06"
+    )
 
     # re-running it with 5, should just create one additional partition
     with freezegun.freeze_time("1337-01-23"):
@@ -138,7 +148,9 @@ def test_auto_partition_weekly():
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 5
-    assert table.partitions[4].name == f"{model._meta.db_table}_1337_week_07"
+    assert (
+        table.partitions[4].full_name == f"{model._meta.db_table}_1337_week_07"
+    )
 
     # it's june now, we want to partition two weeks ahead
     with freezegun.freeze_time("1337-06-03"):
@@ -151,8 +163,12 @@ def test_auto_partition_weekly():
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 7
-    assert table.partitions[5].name == f"{model._meta.db_table}_1337_week_22"
-    assert table.partitions[6].name == f"{model._meta.db_table}_1337_week_23"
+    assert (
+        table.partitions[5].full_name == f"{model._meta.db_table}_1337_week_22"
+    )
+    assert (
+        table.partitions[6].full_name == f"{model._meta.db_table}_1337_week_23"
+    )
 
 
 def test_auto_partition_monthly_insert():
@@ -284,5 +300,49 @@ def test_auto_partition_switch_interval():
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 2
-    assert table.partitions[0].name == f"{model._meta.db_table}_1337_jan"
-    assert table.partitions[1].name == f"{model._meta.db_table}_1337_week_05"
+    assert table.partitions[0].full_name == f"{model._meta.db_table}_1337_jan"
+    assert (
+        table.partitions[1].full_name == f"{model._meta.db_table}_1337_week_05"
+    )
+
+
+@pytest.mark.parametrize("dry_run", [True, False])
+def test_auto_partition_delete_partitions(dry_run):
+    """Tests whether automaticall deleting partitions that are older than a
+    specific amount of time works as expected."""
+
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    # create thread partitions
+    with freezegun.freeze_time("2019-01-01"):
+        postgres_auto_partition(
+            model,
+            count=3,
+            interval_unit=PostgresAutoPartitioningIntervalUnit.MONTH,
+            interval=1,
+        )
+
+        table = _get_partitioned_table(model)
+        assert len(table.partitions) == 3
+
+    # it's april, we want to keep at most three months
+    with freezegun.freeze_time("2019-05-01"):
+        postgres_auto_delete_partitions(
+            model, max_age=relativedelta(months=3), dry_run=dry_run
+        )
+
+        table = _get_partitioned_table(model)
+        if not dry_run:
+            assert len(table.partitions) == 2
+        else:
+            assert len(table.partitions) == 3
+
+
+def test_auto_partition_delete_partitions_dry_run():
+    """Tests whether automaticall deleting partitions that are older than a
+    specific amount of time works as expected."""

@@ -216,7 +216,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         self._partitioning_properties_for_model(model)
 
         sql = self.sql_add_range_partition % (
-            self.quote_name(self.create_partition_table_name(model, name)),
+            self.quote_name(self.create_partition_full_name(model, name)),
             self.quote_name(model._meta.db_table),
             "%s",
             "%s",
@@ -246,7 +246,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         self._partitioning_properties_for_model(model)
 
         sql = self.sql_add_list_partition % (
-            self.quote_name(self.create_partition_table_name(model, name)),
+            self.quote_name(self.create_partition_full_name(model, name)),
             self.quote_name(model._meta.db_table),
             ",".join(["%s" for _ in range(len(values))]),
         )
@@ -272,7 +272,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         self._partitioning_properties_for_model(model)
 
         sql = self.sql_add_default_partition % (
-            self.quote_name(self.create_partition_table_name(model, name)),
+            self.quote_name(self.create_partition_full_name(model, name)),
             self.quote_name(model._meta.db_table),
         )
 
@@ -282,7 +282,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         """Deletes the partition with the specified name."""
 
         sql = self.sql_delete_partition % self.quote_name(
-            self.create_partition_table_name(model, name)
+            self.create_partition_full_name(model, name)
         )
         self.execute(sql)
 
@@ -446,5 +446,5 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         return meta
 
-    def create_partition_table_name(self, model: Model, name: str) -> str:
+    def create_partition_full_name(self, model: Model, name: str) -> str:
         return "%s_%s" % (model._meta.db_table.lower(), name.lower())

@@ -1,5 +1,10 @@
+import re
+
 from dataclasses import dataclass
-from typing import List
+from datetime import datetime
+from typing import List, Union
+
+from django.db.utils import NotSupportedError, OperationalError
 
 from psqlextra.types import PostgresPartitioningMethod
 
@@ -11,6 +16,8 @@ class PostgresIntrospectedPartitionTable:
     """Data container for information about a partition."""
 
     name: str
+    full_name: str
+    values: List[Union[str, datetime, int, float]]
 
 
 @dataclass
@@ -77,7 +84,8 @@ class PostgresIntrospection(base_impl.introspection()):
 
         sql = """
             SELECT
-                child.relname
+                child.relname,
+                pg_get_expr(child.relpartbound, child.oid)
             FROM pg_inherits
             JOIN
                 pg_class parent
@@ -100,10 +108,66 @@ class PostgresIntrospection(base_impl.introspection()):
         """
 
         cursor.execute(sql, (table_name,))
-        return [
-            PostgresIntrospectedPartitionTable(name=row[0])
-            for row in cursor.fetchall()
-        ]
+        partitions = []
+
+        for row in cursor.fetchall():
+            full_name = row[0]
+            name = full_name.replace(table_name + "_", "")
+            values_expr = row[1]
+            values = []
+
+            # dragons be here!!
+            # this is some really ugly stuff... there's no way to get
+            # a the range or list of values used for a partition from postgres
+            # other than parsing the expression postgres returns :(
+
+            if "FOR VALUES FROM" in values_expr:
+                values_matches = re.search(
+                    r"\('?(.*)?'\) TO \('?(.*)?'\)", values_expr
+                )
+                if not values_matches:
+                    raise OperationalError(
+                        f"Cannot parse partition {table_name}'s boundaries"
+                    )
+
+                from_value = values_matches.group(1)
+                to_value = values_matches.group(2)
+
+                if not from_value or not to_value:
+                    raise OperationalError(
+                        f"{table_name}'s appears to be range partition, but cannot parse boundaries"
+                    )
+
+                values = [
+                    self._parse_partition_value(from_value),
+                    self._parse_partition_value(to_value),
+                ]
+
+            elif "FOR VALUES IN" in values_expr:
+                values_matches = re.search(r"\((.*)\)", values_expr)
+                if not values_matches:
+                    raise OperationalError(
+                        f"Cannot parse partition {table_name}'s boundaries"
+                    )
+
+                values = [
+                    self._parse_partition_value(value)
+                    for value in values_match.group(1)
+                    .replace("'", "")
+                    .split(",")
+                ]
+            else:
+                raise NotSupportedError(
+                    f"Partition {table_name} uses an unsupported partitioning method"
+                )
+
+            partitions.append(
+                PostgresIntrospectedPartitionTable(
+                    name=name, full_name=full_name, values=values
+                )
+            )
+
+        return partitions
 
     def get_partition_key(self, cursor, table_name: str) -> List[str]:
         """Gets the partition key for the specified partitioned table.
@@ -161,3 +225,22 @@ class PostgresIntrospection(base_impl.introspection()):
                 constraints[index]["definition"] = definition
 
         return constraints
+
+    @staticmethod
+    def _parse_partition_value(value):
+        try:
+            return datetime.strptime(value, "%Y-%m-%d %H:%M:%S-%f")
+        except ValueError:
+            pass
+
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            pass
+
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            pass
+
+        return value
