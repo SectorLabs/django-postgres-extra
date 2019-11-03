@@ -1,13 +1,19 @@
 from typing import Any, List
 from unittest import mock
 
-from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
+from django.core.exceptions import (
+    FieldDoesNotExist,
+    ImproperlyConfigured,
+    SuspiciousOperation,
+)
+from django.db import transaction
 from django.db.models import Field, Model
 
 from psqlextra.type_assertions import is_sql_with_params
 from psqlextra.types import PostgresPartitioningMethod
 
 from . import base_impl
+from .introspection import PostgresIntrospection
 from .side_effects import (
     HStoreRequiredSchemaEditorSideEffect,
     HStoreUniqueSchemaEditorSideEffect,
@@ -53,6 +59,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             side_effect.quote_name = self.quote_name
 
         self.deferred_sql = []
+        self.introspection = PostgresIntrospection(self.connection)
 
     def create_model(self, model: Model) -> None:
         """Creates a new model."""
@@ -107,6 +114,37 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         """Creates a new materialized view model."""
 
         self._create_view_model(self.sql_create_materialized_view, model)
+
+    def replace_materialized_view_model(self, model: Model) -> None:
+        """Replaces a materialized view with a newer version.
+
+        This is used to alter the backing query of a materialized view.
+
+        Replacing a materialized view is a lot trickier than a normal view.
+        For normal views we can use `CREATE OR REPLACE VIEW`, but for
+        materialized views, we have to create the new view, copy all
+        indexes and constraints and drop the old one.
+
+        This operation is atomic as it runs in a transaction.
+        """
+
+        with self.connection.cursor() as cursor:
+            constraints = self.introspection.get_constraints(
+                cursor, model._meta.db_table
+            )
+
+        with transaction.atomic():
+            self.delete_materialized_view_model(model)
+            self.create_materialized_view_model(model)
+
+            for constraint_name, constraint_options in constraints.items():
+                if not constraint_options["definition"]:
+                    raise SuspiciousOperation(
+                        "Table %s has a constraint '%s' that no definition could be generated for",
+                        (model._meta.db_tabel, constraint_name),
+                    )
+
+                self.execute(constraint_options["definition"])
 
     def delete_materialized_view_model(self, model: Model) -> None:
         """Deletes a materialized view model."""

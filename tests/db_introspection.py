@@ -30,3 +30,12 @@ def get_partitions(table_name: str):
     with connection.cursor() as cursor:
         introspection = connection.introspection
         return introspection.get_partitions(cursor, table_name)
+
+
+def get_constraints(table_name: str):
+    """Gets a complete list of constraints and indexes for the specified
+    table."""
+
+    with connection.cursor() as cursor:
+        introspection = connection.introspection
+        return introspection.get_constraints(cursor, table_name)

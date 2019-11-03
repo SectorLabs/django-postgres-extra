@@ -101,3 +101,45 @@ def test_schema_editor_create_delete_materialized_view():
 
     # make sure it was actually deleted
     assert model._meta.db_table not in db_introspection.table_names(True)
+
+
+def test_schema_editor_replace_materialized_view():
+    """Tests whether creating a materialized view and then replacing it with
+    another one (thus changing the backing query) works as expected."""
+
+    underlying_model = get_fake_model({"name": models.TextField()})
+
+    model = define_fake_materialized_view_model(
+        {"name": models.TextField()},
+        {"query": underlying_model.objects.filter(name="test1")},
+        {"indexes": [models.Index(fields=["name"])]},
+    )
+
+    underlying_model.objects.create(name="test1")
+    underlying_model.objects.create(name="test2")
+
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.create_materialized_view_model(model)
+
+    for index in model._meta.indexes:
+        schema_editor.add_index(model, index)
+
+    constraints_before = db_introspection.get_constraints(model._meta.db_table)
+
+    objs = list(model.objects.all())
+    assert len(objs) == 1
+    assert objs[0].name == "test1"
+
+    model._view_meta.query = underlying_model.objects.filter(
+        name="test2"
+    ).query.sql_with_params()
+    schema_editor.replace_materialized_view_model(model)
+
+    objs = list(model.objects.all())
+    assert len(objs) == 1
+    assert objs[0].name == "test2"
+
+    # make sure all indexes/constraints still exists because
+    # replacing a materialized view involves re-creating it
+    constraints_after = db_introspection.get_constraints(model._meta.db_table)
+    assert constraints_after == constraints_before

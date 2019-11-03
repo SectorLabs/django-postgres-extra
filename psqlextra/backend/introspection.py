@@ -140,3 +140,24 @@ class PostgresIntrospection(base_impl.introspection()):
 
         cursor.execute(sql, (table_name,))
         return [row[0] for row in cursor.fetchall()]
+
+    def get_constraints(self, cursor, table_name: str):
+        """Retrieve any constraints or keys (unique, pk, fk, check, index)
+        across one or more columns.
+
+        Also retrieve the definition of expression-based indexes.
+        """
+
+        constraints = super().get_constraints(cursor, table_name)
+
+        # standard Django implementation does not return the definition
+        # for indexes, only for constraints, let's patch that up
+        cursor.execute(
+            "SELECT indexname, indexdef FROM pg_indexes WHERE tablename = %s",
+            (table_name,),
+        )
+        for index, definition in cursor.fetchall():
+            if constraints[index].get("definition") is None:
+                constraints[index]["definition"] = definition
+
+        return constraints
