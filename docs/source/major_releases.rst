@@ -33,6 +33,7 @@ Breaking changes
 * Inserts with ``ConflictAction.NOTHING`` only returns new rows. Conflicting rows are not returned.
 * Drop support for Python 3.5 and 3.6.
 * Drop support for Django 1.x.
+* Removes ``psqlextra.expressions.Min``, ``psqlextra.expressions.Max``, these are natively supported by Django.
 
 
 FAQ

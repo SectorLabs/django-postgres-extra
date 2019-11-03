@@ -147,33 +147,6 @@ class HStoreRef(expressions.F):
         return expression
 
 
-class NonGroupableFunc(expressions.Func):
-    """A version of Django's :see:Func expression that is _never_ included in
-    the GROUP BY clause."""
-
-    def get_group_by_cols(self):
-        """Gets the columns to be included in the GROUP BY clause.
-
-        We have to override this because Django's default behavior is to
-        include function calls in GROUP by clauses.
-        """
-        return []
-
-
-class Min(NonGroupableFunc):
-    """Exposes PostgreSQL's MIN(..) func."""
-
-    def __init__(self, expression):
-        super().__init__(expression, function="MIN")
-
-
-class Max(NonGroupableFunc):
-    """Exposes PostgreSQL's Max(..) func."""
-
-    def __init__(self, expression):
-        super().__init__(expression, function="Max")
-
-
 class DateTimeEpochColumn(expressions.Col):
     """Gets the date/time column as a UNIX epoch timestamp."""
 
