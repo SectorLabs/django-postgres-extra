@@ -13,6 +13,7 @@ reports/
 
 # Ignore build results
 *.egg-info/
+pip-wheel-metadata/
 dist/
 
 # Ignore stupid .DS_Store
