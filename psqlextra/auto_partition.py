@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Optional
+from typing import Generator, Optional, Tuple
 
 import structlog
 
@@ -99,21 +99,12 @@ def postgres_auto_partition(
 
     schema_editor = connection.schema_editor()
 
-    start_datetime = datetime.now()
-    if interval_unit == PostgresAutoPartitioningIntervalUnit.MONTH:
-        start_datetime = start_datetime.replace(day=1)
-    elif interval_unit == PostgresAutoPartitioningIntervalUnit.WEEK:
-        start_datetime = start_datetime - relativedelta(
-            days=start_datetime.weekday()
+    for (start_datetime, end_datetime) in partition_interval_generator(
+        count, interval_unit, interval
+    ):
+        partition_name = get_postgres_partition_name(
+            interval_unit, start_datetime
         )
-
-    for _ in range(count):
-        if interval_unit == PostgresAutoPartitioningIntervalUnit.MONTH:
-            end_datetime = start_datetime + relativedelta(months=+interval)
-            partition_name = start_datetime.strftime("%Y_%b").lower()
-        elif interval_unit == PostgresAutoPartitioningIntervalUnit.WEEK:
-            end_datetime = start_datetime + relativedelta(weeks=+interval)
-            partition_name = start_datetime.strftime("%Y_week_%W").lower()
 
         from_values = start_datetime.strftime("%Y-%m-%d")
         to_values = end_datetime.strftime("%Y-%m-%d")
@@ -126,7 +117,6 @@ def postgres_auto_partition(
         )
 
         if start_from and start_datetime.date() < start_from:
-            start_datetime = end_datetime
             logger.info(
                 "Skipping creation of partition, before specified start date",
                 start_from=start_from,
@@ -160,4 +150,37 @@ def postgres_auto_partition(
 
         logger.info("Created partition")
 
+
+def get_postgres_partition_name(
+    interval_unit: PostgresAutoPartitioningIntervalUnit,
+    datetime_value: datetime,
+) -> Optional[str]:
+    if interval_unit == PostgresAutoPartitioningIntervalUnit.MONTH:
+        return datetime_value.strftime("%Y_%b").lower()
+    elif interval_unit == PostgresAutoPartitioningIntervalUnit.WEEK:
+        return datetime_value.strftime("%Y_week_%W").lower()
+
+    return None
+
+
+def partition_interval_generator(
+    count: int,
+    interval_unit: PostgresAutoPartitioningIntervalUnit,
+    interval: int,
+) -> Generator[Tuple[datetime, datetime], None, None]:
+    start_datetime = datetime.now()
+    delta = None
+
+    if interval_unit == PostgresAutoPartitioningIntervalUnit.MONTH:
+        start_datetime = start_datetime.replace(day=1)
+        delta = relativedelta(months=+interval)
+    elif interval_unit == PostgresAutoPartitioningIntervalUnit.WEEK:
+        start_datetime = start_datetime - relativedelta(
+            days=start_datetime.weekday()
+        )
+        delta = relativedelta(weeks=+interval)
+
+    for _ in range(count):
+        end_datetime = start_datetime + delta
+        yield (start_datetime, end_datetime)
         start_datetime = end_datetime
