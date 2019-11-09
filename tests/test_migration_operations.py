@@ -43,7 +43,7 @@ def _partition_exists(model_op, op):
         (
             partition
             for partition in table.partitions
-            if partition.name == f"{model_table_name}_{op.name}"
+            if partition.full_name == f"{model_table_name}_{op.name}"
         ),
         None,
     )

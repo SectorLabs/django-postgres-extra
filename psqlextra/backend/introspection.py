@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 from psqlextra.types import PostgresPartitioningMethod
 
@@ -11,6 +11,7 @@ class PostgresIntrospectedPartitionTable:
     """Data container for information about a partition."""
 
     name: str
+    full_name: str
 
 
 @dataclass
@@ -21,6 +22,20 @@ class PostgresIntrospectedPartitonedTable:
     method: PostgresPartitioningMethod
     key: List[str]
     partitions: List[PostgresIntrospectedPartitionTable]
+
+    def partition_by_name(
+        self, name: str
+    ) -> Optional[PostgresIntrospectedPartitionTable]:
+        """Finds the partition with the specified name."""
+
+        return next(
+            (
+                partition
+                for partition in self.partitions
+                if partition.name == name
+            ),
+            None,
+        )
 
 
 class PostgresIntrospection(base_impl.introspection()):
@@ -100,8 +115,11 @@ class PostgresIntrospection(base_impl.introspection()):
         """
 
         cursor.execute(sql, (table_name,))
+
         return [
-            PostgresIntrospectedPartitionTable(name=row[0])
+            PostgresIntrospectedPartitionTable(
+                name=row[0].replace(f"{table_name}_", ""), full_name=row[0]
+            )
             for row in cursor.fetchall()
         ]
 

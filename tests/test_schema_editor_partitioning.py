@@ -31,7 +31,7 @@ def test_schema_editor_create_delete_partitioned_model_range():
     assert table.name == model._meta.db_table
     assert table.method == method
     assert table.key == key
-    assert table.partitions[0].name == model._meta.db_table + "_pt1"
+    assert table.partitions[0].full_name == model._meta.db_table + "_pt1"
 
     schema_editor.delete_partitioned_model(model)
 
@@ -63,7 +63,7 @@ def test_schema_editor_create_delete_partitioned_model_list():
     assert table.name == model._meta.db_table
     assert table.method == method
     assert table.key == key
-    assert table.partitions[0].name == model._meta.db_table + "_pt1"
+    assert table.partitions[0].full_name == model._meta.db_table + "_pt1"
 
     schema_editor.delete_partitioned_model(model)
 
@@ -95,7 +95,7 @@ def test_schema_editor_create_delete_partitioned_model_default():
     assert table.name == model._meta.db_table
     assert table.method == method
     assert table.key == key
-    assert table.partitions[0].name == model._meta.db_table + "_default"
+    assert table.partitions[0].full_name == model._meta.db_table + "_default"
 
     schema_editor.delete_partitioned_model(model)
 

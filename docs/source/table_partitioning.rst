@@ -276,13 +276,13 @@ Deleting a partition
 Adding/removing partitions automatically
 ----------------------------------------
 
-:meth:`psqlextra.auto_partition.postgres_auto_partition` is an experimental helper function that can be called periodically to automatically create new partitions if you're using range partitioning.
+:class:`psqlextra.partitioning.PostgresPartitioningManager` an experimental helper class that can be called periodically to automatically create new partitions if you're using range partitioning.
 
 .. note::
 
    There is currently no scheduler or command to automatically create new partitions. You'll have to run this function in your own cron jobs.
 
-The auto partitioner supports automatically creating monthly or weekly partitions. Use the ``count`` parameter to configure how many partitions it should create ahead. Use the ``interval`` parameter to control how many "units" fit into a single partition.
+The auto partitioner supports automatically creating yearly, monthly, weekly or daily partitions. Use the ``count`` parameter to configure how many partitions it should create ahead.
 
 
 Partitioning strategies
@@ -292,22 +292,22 @@ Partitioning strategies
 Monthly partitioning
 ~~~~~~~~~~~~~~~~~~~~
 
-Partitions will be named ``[table_name]_[3-letter month nmae]``.
+Partitions will be named ``[table_name]_[3-letter month name]``.
 
 .. code-block:: python
 
-   from psqlextra.auto_partition import (
-      postgres_auto_partition,
-      PostgresAutoPartitioningIntervalUnit,
+   from psqlextra.partitioning import (
+      PostgresPartitioningManager,
+      partition_by_time,
    )
 
    # 3 partitions ahead, each partition is one month
-   postgres_auto_partition(
+   manager = PostgresPartitioningManager(
       model=MyPartitionedModel,
       count=3,
-      interval_unit=PostgresAutoPartitioningIntervalUnit.MONTH,
-      interval=1,
+      months=1,
    )
+   manager.auto_create()
 
 
 Weekly partitioning
@@ -317,27 +317,27 @@ Partitions will be named ``[table_name]_week_[week number]``.
 
 .. code-block:: python
 
-   from psqlextra.auto_partition import (
-      postgres_auto_partition,
-      PostgresAutoPartitioningIntervalUnit,
+   from psqlextra.partitioning import (
+      PostgresPartitioningManager,
+      partition_by_time,
    )
 
    # 4 partitions ahead, each partition is 1 week
-   postgres_auto_partition(
+   manager = PostgresPartitioningManager(
       model=MyPartitionedModel,
       count=4,
-      interval_unit=PostgresAutoPartitioningIntervalUnit.WEEK,
-      interval=1,
+      weeks=1,
    )
+   manager.auto_create()
 
 
    # 6 partitions ahead, each partition is 2 weeks
-   postgres_auto_partition(
+   manager = PostgresPartitioningManager(
       model=MyPartitionedModel,
       count=6,
-      interval_unit=PostgresAutoPartitioningIntervalUnit.WEEK,
-      interval=2,
+      weeks=2,
    )
+   manager.auto_create()
 
 
 Switching partitioning strategies
