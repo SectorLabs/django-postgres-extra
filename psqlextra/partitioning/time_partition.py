@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from .error import PostgresPartitioningError
 from .range_partition import PostgresRangePartition
 from .time_partition_size import (
     PostgresTimePartitionSize,
@@ -12,6 +13,13 @@ class PostgresTimePartition(PostgresRangePartition):
 
     :see:PostgresTimePartitioningStrategy for more info.
     """
+
+    _unit_name_format = {
+        PostgresTimePartitionUnit.YEARS: "%Y",
+        PostgresTimePartitionUnit.MONTHS: "%Y_%b",
+        PostgresTimePartitionUnit.WEEKS: "%Y_week_%W",
+        PostgresTimePartitionUnit.DAYS: "%Y_%b_%d",
+    }
 
     def __init__(
         self, size: PostgresTimePartitionSize, start_datetime: datetime
@@ -28,16 +36,11 @@ class PostgresTimePartition(PostgresRangePartition):
         self.end_datetime = end_datetime
 
     def name(self) -> str:
-        if self.size.unit == PostgresTimePartitionUnit.YEARS:
-            return self.start_datetime.strftime("%Y").lower()
+        name_format = self._unit_name_format.get(self.size.unit)
+        if not name_format:
+            raise PostgresPartitioningError("Unknown size/unit")
 
-        if self.size.unit == PostgresTimePartitionUnit.MONTHS:
-            return self.start_datetime.strftime("%Y_%b").lower()
-
-        if self.size.unit == PostgresTimePartitionUnit.WEEKS:
-            return self.start_datetime.strftime("%Y_week_%W").lower()
-
-        return self.start_datetime.strftime("%Y_%b_%d").lower()
+        return self.start_datetime.strftime(name_format).lower()
 
 
 __all__ = ["PostgresTimePartition"]

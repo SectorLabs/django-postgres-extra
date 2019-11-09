@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
+from dateutil.relativedelta import relativedelta
+
 from psqlextra.models import PostgresPartitionedModel
 
 from .config import PostgresPartitioningConfig
@@ -11,11 +13,12 @@ from .time_strategy import PostgresTimePartitioningStrategy
 def partition_by_time(
     model: PostgresPartitionedModel,
     count: int,
+    start_from: datetime,
     years: Optional[int] = None,
     months: Optional[int] = None,
     weeks: Optional[int] = None,
     days: Optional[int] = None,
-    start_from: Optional[datetime] = None,
+    max_age: Optional[relativedelta] = None,
 ) -> PostgresPartitioningConfig:
     """Short-hand for generating a partitioning config that partitions the
     specified model by time.
@@ -29,6 +32,20 @@ def partition_by_time(
             The amount of partitions to create ahead of
             the current date/time.
 
+        start_from:
+            Skip creating any partitions that would
+            contain data _before_ this date.
+
+            Use this when switching partitioning
+            interval. Useful when you've already partitioned
+            ahead using the original interval and want
+            to avoid creating overlapping partitioninig.
+            Set this to the _end date_ for the
+            last partition that was created.
+
+            Only delete partitions newer than this
+            (but older than :paramref:max_age).
+
         years:
             The amount of years each partition should contain.
 
@@ -41,19 +58,12 @@ def partition_by_time(
         days:
             The amount of days each partition should contain.
 
-        start_from:
-            Skip creating any partitions that would
-            contain data _before_ this date.
+        max_age:
+            The maximum age of a partition (calculated from the
+            start of the partition).
 
-            Use this when switching partitioning
-            interval. Useful when you've already partitioned
-            ahead using the original interval and want
-            to avoid creating overlapping partitioninig.
-            Set this to the _end date_ for the
-            last partition that was created.
-
-            If the specified start date is in the past,
-            it is ignored.
+            Partitions older than this are deleted when running
+            a delete/cleanup run.
     """
 
     return PostgresPartitioningConfig(
@@ -64,6 +74,7 @@ def partition_by_time(
             ),
             count=count,
             start_from=start_from,
+            max_age=max_age,
         ),
     )
 

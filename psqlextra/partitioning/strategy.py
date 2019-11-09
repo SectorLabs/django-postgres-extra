@@ -9,8 +9,12 @@ class PostgresPartitioningStrategy:
     table."""
 
     @abstractmethod
-    def generate(self) -> Generator[PostgresPartition, None, None]:
+    def to_create(self,) -> Generator[PostgresPartition, None, None]:
         """Generates a list of partitions to be created."""
+
+    @abstractmethod
+    def to_delete(self,) -> Generator[PostgresPartition, None, None]:
+        """Generates a list of partitions to be deleted."""
 
 
 __all__ = ["PostgresRangePartitioningStrategy"]

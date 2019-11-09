@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 
 from django.db import models
@@ -22,8 +24,12 @@ def test_partitioning_manager_duplicate_model():
     with pytest.raises(PostgresPartitioningError):
         manager = PostgresPartitioningManager(
             [
-                partition_by_time(model, years=1, count=3),
-                partition_by_time(model, years=1, count=3),
+                partition_by_time(
+                    model, years=1, count=3, start_from=date(1337, 1, 1)
+                ),
+                partition_by_time(
+                    model, years=1, count=3, start_from=date(1337, 1, 1)
+                ),
             ]
         )
 
@@ -36,13 +42,17 @@ def test_partitioning_manager_find_by_model():
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
     )
 
-    config1 = partition_by_time(model1, years=1, count=3)
+    config1 = partition_by_time(
+        model1, years=1, count=3, start_from=date(1337, 1, 1)
+    )
 
     model2 = define_fake_partitioned_model(
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
     )
 
-    config2 = partition_by_time(model2, months=1, count=2)
+    config2 = partition_by_time(
+        model2, months=1, count=2, start_from=date(1337, 1, 1)
+    )
 
     manager = PostgresPartitioningManager([config1, config2])
     assert manager.find_by_model(model1) == config1
@@ -57,9 +67,13 @@ def test_partitioning_manager_auto_create_not_partitioned_model():
 
     with pytest.raises(PostgresPartitioningError):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, months=1, count=2)]
+            [
+                partition_by_time(
+                    model, months=1, count=2, start_from=date(1337, 1, 1)
+                )
+            ]
         )
-        manager.auto_create(model)
+        manager.auto_create()
 
 
 def test_partitioning_manager_auto_create_non_existent_model():
@@ -72,19 +86,10 @@ def test_partitioning_manager_auto_create_non_existent_model():
 
     with pytest.raises(PostgresPartitioningError):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, months=1, count=2)]
+            [
+                partition_by_time(
+                    model, months=1, count=2, start_from=date(1337, 1, 1)
+                )
+            ]
         )
-        manager.auto_create(model)
-
-
-def test_partitioning_manager_auto_create_non_existent_config():
-    """Tests that the auto partitioner does not try to partition for for a
-    model that doesn't have a config."""
-
-    model = define_fake_partitioned_model(
-        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
-    )
-
-    with pytest.raises(PostgresPartitioningError):
-        manager = PostgresPartitioningManager([])
-        manager.auto_create(model)
+        manager.auto_create()

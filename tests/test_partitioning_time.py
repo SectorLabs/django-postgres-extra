@@ -1,8 +1,11 @@
 import datetime
 
+from datetime import date
+
 import freezegun
 import pytest
 
+from dateutil.relativedelta import relativedelta
 from django.db import connection, models, transaction
 from django.db.utils import IntegrityError, ProgrammingError
 
@@ -31,28 +34,36 @@ def test_partitioning_time_yearly_auto_create():
     schema_editor = connection.schema_editor()
     schema_editor.create_partitioned_model(model)
 
-    with freezegun.freeze_time("1337-01-01"):
+    with freezegun.freeze_time("2019-1-1"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, years=1, count=2)]
+            [
+                partition_by_time(
+                    model, years=1, count=2, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 2
-    assert table.partitions[0].name == "1337"
-    assert table.partitions[1].name == "1338"
+    assert table.partitions[0].name == "2019"
+    assert table.partitions[1].name == "2020"
 
-    with freezegun.freeze_time("1337-12-30"):
+    with freezegun.freeze_time("2019-12-30"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, years=1, count=3)]
+            [
+                partition_by_time(
+                    model, years=1, count=3, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 3
-    assert table.partitions[0].name == "1337"
-    assert table.partitions[1].name == "1338"
-    assert table.partitions[2].name == "1339"
+    assert table.partitions[0].name == "2019"
+    assert table.partitions[1].name == "2020"
+    assert table.partitions[2].name == "2021"
 
 
 def test_partitioning_time_monthly_auto_create():
@@ -67,49 +78,61 @@ def test_partitioning_time_monthly_auto_create():
     schema_editor.create_partitioned_model(model)
 
     # create partitions for the next 12 months (including the current)
-    with freezegun.freeze_time("1337-01-30"):
+    with freezegun.freeze_time("2019-1-30"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, months=1, count=12)]
+            [
+                partition_by_time(
+                    model, months=1, count=12, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 12
-    assert table.partitions[0].name == "1337_jan"
-    assert table.partitions[1].name == "1337_feb"
-    assert table.partitions[2].name == "1337_mar"
-    assert table.partitions[3].name == "1337_apr"
-    assert table.partitions[4].name == "1337_may"
-    assert table.partitions[5].name == "1337_jun"
-    assert table.partitions[6].name == "1337_jul"
-    assert table.partitions[7].name == "1337_aug"
-    assert table.partitions[8].name == "1337_sep"
-    assert table.partitions[9].name == "1337_oct"
-    assert table.partitions[10].name == "1337_nov"
-    assert table.partitions[11].name == "1337_dec"
+    assert table.partitions[0].name == "2019_jan"
+    assert table.partitions[1].name == "2019_feb"
+    assert table.partitions[2].name == "2019_mar"
+    assert table.partitions[3].name == "2019_apr"
+    assert table.partitions[4].name == "2019_may"
+    assert table.partitions[5].name == "2019_jun"
+    assert table.partitions[6].name == "2019_jul"
+    assert table.partitions[7].name == "2019_aug"
+    assert table.partitions[8].name == "2019_sep"
+    assert table.partitions[9].name == "2019_oct"
+    assert table.partitions[10].name == "2019_nov"
+    assert table.partitions[11].name == "2019_dec"
 
     # re-running it with 13, should just create one additional partition
-    with freezegun.freeze_time("1337-01-30"):
+    with freezegun.freeze_time("2019-1-30"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, months=1, count=13)]
+            [
+                partition_by_time(
+                    model, months=1, count=13, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 13
-    assert table.partitions[12].name == "1338_jan"
+    assert table.partitions[12].name == "2020_jan"
 
     # it's november now, we only want to create 4 partitions ahead,
     # so only one new partition should be created for february 1338
-    with freezegun.freeze_time("1337-11-01"):
+    with freezegun.freeze_time("2019-11-1"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, months=1, count=4)]
+            [
+                partition_by_time(
+                    model, months=1, count=4, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 14
-    assert table.partitions[13].name == "1338_feb"
+    assert table.partitions[13].name == "2020_feb"
 
 
 def test_partitioning_time_weekly_auto_create():
@@ -124,41 +147,53 @@ def test_partitioning_time_weekly_auto_create():
     schema_editor.create_partitioned_model(model)
 
     # create partitions for the next 4 weeks (including the current)
-    with freezegun.freeze_time("1337-01-23"):
+    with freezegun.freeze_time("2019-1-23"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, weeks=1, count=4)]
+            [
+                partition_by_time(
+                    model, weeks=1, count=4, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 4
-    assert table.partitions[0].name == "1337_week_03"
-    assert table.partitions[1].name == "1337_week_04"
-    assert table.partitions[2].name == "1337_week_05"
-    assert table.partitions[3].name == "1337_week_06"
+    assert table.partitions[0].name == "2019_week_03"
+    assert table.partitions[1].name == "2019_week_04"
+    assert table.partitions[2].name == "2019_week_05"
+    assert table.partitions[3].name == "2019_week_06"
 
     # re-running it with 5, should just create one additional partition
-    with freezegun.freeze_time("1337-01-23"):
+    with freezegun.freeze_time("2019-1-23"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, weeks=1, count=5)]
+            [
+                partition_by_time(
+                    model, weeks=1, count=5, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 5
-    assert table.partitions[4].name == "1337_week_07"
+    assert table.partitions[4].name == "2019_week_07"
 
     # it's june now, we want to partition two weeks ahead
-    with freezegun.freeze_time("1337-06-03"):
+    with freezegun.freeze_time("2019-06-03"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, weeks=1, count=2)]
+            [
+                partition_by_time(
+                    model, weeks=1, count=2, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 7
-    assert table.partitions[5].name == "1337_week_22"
-    assert table.partitions[6].name == "1337_week_23"
+    assert table.partitions[5].name == "2019_week_22"
+    assert table.partitions[6].name == "2019_week_23"
 
 
 def test_partitioning_time_daily_auto_create():
@@ -173,41 +208,53 @@ def test_partitioning_time_daily_auto_create():
     schema_editor.create_partitioned_model(model)
 
     # create partitions for the next 4 days (including the current)
-    with freezegun.freeze_time("1337-01-23"):
+    with freezegun.freeze_time("2019-1-23"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, days=1, count=4)]
+            [
+                partition_by_time(
+                    model, days=1, count=4, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 4
-    assert table.partitions[0].name == "1337_jan_23"
-    assert table.partitions[1].name == "1337_jan_24"
-    assert table.partitions[2].name == "1337_jan_25"
-    assert table.partitions[3].name == "1337_jan_26"
+    assert table.partitions[0].name == "2019_jan_23"
+    assert table.partitions[1].name == "2019_jan_24"
+    assert table.partitions[2].name == "2019_jan_25"
+    assert table.partitions[3].name == "2019_jan_26"
 
     # re-running it with 5, should just create one additional partition
-    with freezegun.freeze_time("1337-01-23"):
+    with freezegun.freeze_time("2019-1-23"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, days=1, count=5)]
+            [
+                partition_by_time(
+                    model, days=1, count=5, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 5
-    assert table.partitions[4].name == "1337_jan_27"
+    assert table.partitions[4].name == "2019_jan_27"
 
     # it's june now, we want to partition two days ahead
-    with freezegun.freeze_time("1337-06-03"):
+    with freezegun.freeze_time("2019-06-03"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, days=1, count=2)]
+            [
+                partition_by_time(
+                    model, days=1, count=2, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 7
-    assert table.partitions[5].name == "1337_jun_03"
-    assert table.partitions[6].name == "1337_jun_04"
+    assert table.partitions[5].name == "2019_jun_03"
+    assert table.partitions[6].name == "2019_jun_04"
 
 
 def test_partitioning_time_monthly_auto_create_insert():
@@ -221,29 +268,37 @@ def test_partitioning_time_monthly_auto_create_insert():
     schema_editor = connection.schema_editor()
     schema_editor.create_partitioned_model(model)
 
-    with freezegun.freeze_time("1337-01-01"):
+    with freezegun.freeze_time("2019-1-1"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, months=1, count=2)]
+            [
+                partition_by_time(
+                    model, months=1, count=2, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
-    model.objects.create(timestamp=datetime.date(1337, 1, 1))
-    model.objects.create(timestamp=datetime.date(1337, 1, 31))
-    model.objects.create(timestamp=datetime.date(1337, 2, 28))
+    model.objects.create(timestamp=datetime.date(2019, 1, 1))
+    model.objects.create(timestamp=datetime.date(2019, 1, 31))
+    model.objects.create(timestamp=datetime.date(2019, 2, 28))
 
     with transaction.atomic():
         with pytest.raises(IntegrityError):
-            model.objects.create(timestamp=datetime.date(1337, 3, 1))
-            model.objects.create(timestamp=datetime.date(1337, 3, 2))
+            model.objects.create(timestamp=datetime.date(2019, 3, 1))
+            model.objects.create(timestamp=datetime.date(2019, 3, 2))
 
-    with freezegun.freeze_time("1337-01-01"):
+    with freezegun.freeze_time("2019-1-1"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, months=1, count=3)]
+            [
+                partition_by_time(
+                    model, months=1, count=3, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
-    model.objects.create(timestamp=datetime.date(1337, 3, 1))
-    model.objects.create(timestamp=datetime.date(1337, 3, 2))
+    model.objects.create(timestamp=datetime.date(2019, 3, 1))
+    model.objects.create(timestamp=datetime.date(2019, 3, 2))
 
 
 def test_partitioning_time_weekly_auto_create_insert():
@@ -258,32 +313,40 @@ def test_partitioning_time_weekly_auto_create_insert():
     schema_editor.create_partitioned_model(model)
 
     # that's a monday
-    with freezegun.freeze_time("1337-01-07"):
+    with freezegun.freeze_time("2019-1-07"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, weeks=1, count=2)]
+            [
+                partition_by_time(
+                    model, weeks=1, count=2, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 2
 
-    model.objects.create(timestamp=datetime.date(1337, 1, 7))
-    model.objects.create(timestamp=datetime.date(1337, 1, 14))
-    model.objects.create(timestamp=datetime.date(1337, 1, 20))
+    model.objects.create(timestamp=datetime.date(2019, 1, 7))
+    model.objects.create(timestamp=datetime.date(2019, 1, 14))
+    model.objects.create(timestamp=datetime.date(2019, 1, 20))
 
     with transaction.atomic():
         with pytest.raises(IntegrityError):
-            model.objects.create(timestamp=datetime.date(1337, 1, 21))
-            model.objects.create(timestamp=datetime.date(1337, 1, 22))
+            model.objects.create(timestamp=datetime.date(2019, 1, 21))
+            model.objects.create(timestamp=datetime.date(2019, 1, 22))
 
-    with freezegun.freeze_time("1337-01-07"):
+    with freezegun.freeze_time("2019-1-07"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, weeks=1, count=3)]
+            [
+                partition_by_time(
+                    model, weeks=1, count=3, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
-    model.objects.create(timestamp=datetime.date(1337, 1, 21))
-    model.objects.create(timestamp=datetime.date(1337, 1, 22))
+    model.objects.create(timestamp=datetime.date(2019, 1, 21))
+    model.objects.create(timestamp=datetime.date(2019, 1, 22))
 
 
 def test_partitioning_time_daily_auto_create_insert():
@@ -298,31 +361,39 @@ def test_partitioning_time_daily_auto_create_insert():
     schema_editor.create_partitioned_model(model)
 
     # that's a monday
-    with freezegun.freeze_time("1337-01-07"):
+    with freezegun.freeze_time("2019-1-07"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, days=1, count=2)]
+            [
+                partition_by_time(
+                    model, days=1, count=2, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 2
 
-    model.objects.create(timestamp=datetime.date(1337, 1, 7))
-    model.objects.create(timestamp=datetime.date(1337, 1, 8))
+    model.objects.create(timestamp=datetime.date(2019, 1, 7))
+    model.objects.create(timestamp=datetime.date(2019, 1, 8))
 
     with transaction.atomic():
         with pytest.raises(IntegrityError):
-            model.objects.create(timestamp=datetime.date(1337, 1, 9))
-            model.objects.create(timestamp=datetime.date(1337, 1, 10))
+            model.objects.create(timestamp=datetime.date(2019, 1, 9))
+            model.objects.create(timestamp=datetime.date(2019, 1, 10))
 
-    with freezegun.freeze_time("1337-01-07"):
+    with freezegun.freeze_time("2019-1-07"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, days=1, count=4)]
+            [
+                partition_by_time(
+                    model, days=1, count=4, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
-    model.objects.create(timestamp=datetime.date(1337, 1, 9))
-    model.objects.create(timestamp=datetime.date(1337, 1, 10))
+    model.objects.create(timestamp=datetime.date(2019, 1, 9))
+    model.objects.create(timestamp=datetime.date(2019, 1, 10))
 
 
 def test_partitioning_time_switch_interval():
@@ -334,9 +405,13 @@ def test_partitioning_time_switch_interval():
     schema_editor.create_partitioned_model(model)
 
     # create partition for january
-    with freezegun.freeze_time("1337-01-01"):
+    with freezegun.freeze_time("2019-1-1"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, months=1, count=1)]
+            [
+                partition_by_time(
+                    model, months=1, count=1, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
@@ -345,11 +420,15 @@ def test_partitioning_time_switch_interval():
 
     # three weeks later, oh damn! many data, maybe weekly partitioning?
     # suprise! won't work... now we overlapping partitions
-    with freezegun.freeze_time("1337-01-21"):
+    with freezegun.freeze_time("2019-1-21"):
         with pytest.raises(ProgrammingError):
             with transaction.atomic():
                 manager = PostgresPartitioningManager(
-                    [partition_by_time(model, weeks=1, count=1)]
+                    [
+                        partition_by_time(
+                            model, weeks=1, count=1, start_from=date(2019, 1, 1)
+                        )
+                    ]
                 )
                 manager.auto_create()
 
@@ -362,7 +441,7 @@ def test_partitioning_time_switch_interval():
                     model,
                     weeks=1,
                     count=3,
-                    start_from=datetime.date(1337, 1, 31),
+                    start_from=datetime.date(2019, 1, 31),
                 )
             ]
         )
@@ -370,17 +449,17 @@ def test_partitioning_time_switch_interval():
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 2
-    assert table.partitions[0].name == "1337_jan"
-    assert table.partitions[1].name == "1337_week_05"
+    assert table.partitions[0].name == "2019_jan"
+    assert table.partitions[1].name == "2019_week_05"
 
 
 @pytest.mark.parametrize(
     "kwargs,partition_names",
     [
-        (dict(days=2), ["1337_jan_01", "1337_jan_03"]),
-        (dict(weeks=2), ["1337_week_00", "1337_week_02"]),
-        (dict(months=2), ["1337_jan", "1337_mar"]),
-        (dict(years=2), ["1337", "1339"]),
+        (dict(days=2), ["2019_jan_01", "2019_jan_03"]),
+        (dict(weeks=2), ["2019_week_00", "2019_week_02"]),
+        (dict(months=2), ["2019_jan", "2019_mar"]),
+        (dict(years=2), ["2019", "2021"]),
     ],
 )
 def test_partitioning_time_multiple(kwargs, partition_names):
@@ -391,15 +470,152 @@ def test_partitioning_time_multiple(kwargs, partition_names):
     schema_editor = connection.schema_editor()
     schema_editor.create_partitioned_model(model)
 
-    with freezegun.freeze_time("1337-01-01"):
+    with freezegun.freeze_time("2019-1-1"):
         manager = PostgresPartitioningManager(
-            [partition_by_time(model, **kwargs, count=2)]
+            [
+                partition_by_time(
+                    model, **kwargs, count=2, start_from=date(2019, 1, 1)
+                )
+            ]
         )
         manager.auto_create()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 2
     assert partition_names == [par.name for par in table.partitions]
+
+
+@pytest.mark.parametrize(
+    "kwargs,timepoints",
+    [
+        (
+            dict(years=1, max_age=relativedelta(years=2)),
+            [("2019-1-1", 6), ("2020-1-1", 6), ("2021-1-1", 5)],
+        ),
+        (
+            dict(months=1, max_age=relativedelta(months=1)),
+            [
+                ("2019-1-1", 6),
+                ("2019-2-1", 5),
+                ("2019-2-28", 5),
+                ("2019-3-1", 4),
+            ],
+        ),
+        (
+            dict(weeks=2, max_age=relativedelta(weeks=8)),
+            [
+                ("2019-1-1", 6),
+                ("2019-2-20", 6),
+                ("2019-3-1", 5),
+                ("2019-4-1", 3),
+            ],
+        ),
+        (
+            dict(days=7, max_age=relativedelta(weeks=1)),
+            [
+                ("2019-1-1", 6),
+                ("2019-1-4", 6),
+                ("2019-1-8", 5),
+                ("2019-1-15", 4),
+                ("2019-1-16", 4),
+            ],
+        ),
+    ],
+)
+def test_partitioning_time_delete(kwargs, timepoints):
+    """Tests whether partitions older than the specified max_age are
+    automatically deleted."""
+
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    partition_kwargs = {
+        "model": model,
+        "count": 6,
+        "start_from": date(2019, 1, 1),
+        **kwargs,
+    }
+
+    manager = PostgresPartitioningManager(
+        [partition_by_time(**partition_kwargs)]
+    )
+
+    with freezegun.freeze_time(timepoints[0][0]):
+        manager.auto_create()
+
+    for index, (dt, partition_count) in enumerate(timepoints):
+        with freezegun.freeze_time(dt):
+            manager.auto_delete()
+
+            table = _get_partitioned_table(model)
+            assert len(table.partitions) == partition_count
+
+
+def test_partitioning_time_delete_start_from():
+    """Tests whether partitions created before the specified start date/time
+    are not deleted even if they're older than max_age."""
+
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    manager = PostgresPartitioningManager(
+        [
+            partition_by_time(
+                model, count=2, months=1, start_from=date(2019, 1, 1)
+            )
+        ]
+    )
+
+    with freezegun.freeze_time("2019-1-1"):
+        manager.auto_create()
+
+        table = _get_partitioned_table(model)
+        assert len(table.partitions) == 2
+
+    # switching from monthly to weekly, we start creating new
+    # weekly partitions from 2019-3-1 so that we don't create
+    # partitions that overlap with already existing monthly partitions
+    manager = PostgresPartitioningManager(
+        [
+            partition_by_time(
+                model,
+                count=2,
+                weeks=1,
+                start_from=date(2019, 3, 1),
+                max_age=relativedelta(weeks=1),
+            )
+        ]
+    )
+
+    with freezegun.freeze_time("2019-2-1"):
+        manager.auto_create()
+        manager.auto_delete()
+
+        table = _get_partitioned_table(model)
+        assert len(table.partitions) == 2
+
+    with freezegun.freeze_time("2020-1-1"):
+        manager.auto_create()
+        manager.auto_delete()
+
+        table = _get_partitioned_table(model)
+        assert len(table.partitions) == 4
+
+        # we switched partitioning config and the deleter
+        # should not touch these very old partitions because
+        # they were created before start_from=2019-3-1
+        assert table.partitions[0].name == "2019_jan"
+        assert table.partitions[1].name == "2019_feb"
+        assert table.partitions[2].name == "2020_week_00"
+        assert table.partitions[3].name == "2020_week_01"
 
 
 def test_partitioning_time_no_size():
@@ -411,7 +627,7 @@ def test_partitioning_time_no_size():
     )
 
     with pytest.raises(PostgresPartitioningError):
-        partition_by_time(model, count=1)
+        partition_by_time(model, count=1, start_from=date(2019, 1, 1))
 
 
 def test_partitioning_time_multiple_sizes():
@@ -423,4 +639,6 @@ def test_partitioning_time_multiple_sizes():
     )
 
     with pytest.raises(PostgresPartitioningError):
-        partition_by_time(model, weeks=1, months=2, count=1)
+        partition_by_time(
+            model, weeks=1, months=2, count=1, start_from=date(2019, 1, 1)
+        )

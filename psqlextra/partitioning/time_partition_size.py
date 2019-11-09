@@ -1,7 +1,7 @@
 import enum
 
-from datetime import datetime
-from typing import Optional
+from datetime import date, datetime
+from typing import Optional, Union
 
 from dateutil.relativedelta import relativedelta
 
@@ -74,15 +74,19 @@ class PostgresTimePartitionSize:
 
     def start(self, dt: datetime) -> datetime:
         if self.unit == PostgresTimePartitionUnit.YEARS:
-            return dt.replace(month=1, day=1)
+            return self._ensure_datetime(dt.replace(month=1, day=1))
 
         if self.unit == PostgresTimePartitionUnit.MONTHS:
-            return dt.replace(day=1)
+            return self._ensure_datetime(dt.replace(day=1))
 
         if self.unit == PostgresTimePartitionUnit.WEEKS:
-            return dt - relativedelta(dt.weekday())
+            return self._ensure_datetime(dt - relativedelta(dt.weekday()))
 
-        return dt
+        return self._ensure_datetime(dt)
+
+    @staticmethod
+    def _ensure_datetime(dt: Union[date, datetime]) -> datetime:
+        return datetime(year=dt.year, month=dt.month, day=dt.day)
 
     def __repr__(self) -> str:
         return "PostgresTimePartitionSize<%s, %s>" % (self.unit, self.value)

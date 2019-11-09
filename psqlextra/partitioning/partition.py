@@ -1,6 +1,7 @@
 from abc import abstractmethod
 
 from psqlextra.backend.schema import PostgresSchemaEditor
+from psqlextra.models import PostgresPartitionedModel
 
 
 class PostgresPartition:
@@ -11,8 +12,20 @@ class PostgresPartition:
         """Generates/computes the name for this partition."""
 
     @abstractmethod
-    def create(self, schema_editor: PostgresSchemaEditor) -> None:
+    def create(
+        self,
+        model: PostgresPartitionedModel,
+        schema_editor: PostgresSchemaEditor,
+    ) -> None:
         """Creates this partition in the database."""
+
+    @abstractmethod
+    def delete(
+        self,
+        model: PostgresPartitionedModel,
+        schema_editor: PostgresSchemaEditor,
+    ) -> None:
+        """Deletes this partition from the database."""
 
 
 __all__ = ["PostgresPartition"]

@@ -26,5 +26,12 @@ class PostgresRangePartition(PostgresPartition):
             to_values=self.to_values,
         )
 
+    def delete(
+        self,
+        model: PostgresPartitionedModel,
+        schema_editor: PostgresSchemaEditor,
+    ) -> None:
+        schema_editor.delete_partition(model, self.name())
+
 
 __all__ = ["PostgresRangePartition"]
