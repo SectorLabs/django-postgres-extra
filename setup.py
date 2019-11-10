@@ -64,6 +64,7 @@ setup(
         "enforce==0.3.4",
         "python-dateutil==2.8.0",
         "structlog==19.1.0",
+        "ansimarkup==1.4.0",
     ],
     extras_require={
         "docs": ["Sphinx==2.2.0", "sphinx-rtd-theme==0.4.3"],
@@ -77,6 +78,7 @@ setup(
             "tox==3.14.0",
             "freezegun==0.3.12",
             "coveralls==1.8.2",
+            "snapshottest==0.5",
         ],
         "analysis": [
             "black==19.3b0",

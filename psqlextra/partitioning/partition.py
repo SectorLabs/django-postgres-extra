@@ -29,5 +29,10 @@ class PostgresPartition:
     ) -> None:
         """Deletes this partition from the database."""
 
+    def deconstruct(self) -> dict:
+        """Deconstructs this partition into a dict of attributes/fields."""
+
+        return {"name": self.name()}
+
 
 __all__ = ["PostgresPartition"]

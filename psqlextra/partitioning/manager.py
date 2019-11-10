@@ -1,13 +1,42 @@
-from typing import List, Optional
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
 
-import structlog
-
+from ansimarkup import ansiprint
 from django.db import connections
 
 from psqlextra.models import PostgresPartitionedModel
 
 from .config import PostgresPartitioningConfig
 from .error import PostgresPartitioningError
+from .partition import PostgresPartition
+
+PartitionList = List[Tuple[PostgresPartitionedModel, List[PostgresPartition]]]
+
+
+@dataclass
+class PostgresModelPartitionPlan:
+    model: PostgresPartitionedModel
+    created_partitions: List[PostgresPartition]
+    deleted_partitions: List[PostgresPartition]
+
+    def print(self) -> None:
+        if (
+            len(self.created_partitions) == 0
+            and len(self.deleted_partitions) == 0
+        ):
+            return
+
+        ansiprint(f"<b><white>{self.model.__name__}:</white></b>")
+
+        for partition in self.deleted_partitions:
+            ansiprint("<b><red>  - %s</red></b>" % partition.name())
+            for key, value in partition.deconstruct().items():
+                ansiprint(f"<white>     <b>{key}</b>: {value}</white>")
+
+        for partition in self.created_partitions:
+            ansiprint("<b><green>  + %s</green></b>" % partition.name())
+            for key, value in partition.deconstruct().items():
+                ansiprint(f"<white>     <b>{key}</b>: {value}</white>")
 
 
 class PostgresPartitioningManager:
@@ -24,45 +53,65 @@ class PostgresPartitioningManager:
         self.configs = configs
         self._validate_configs(self.configs)
 
-        self._logger = structlog.get_logger(__name__)
-
-    def auto_create(
-        self, dry_run: bool = False, using: Optional[str] = None
+    def apply(
+        self,
+        no_delete: bool = False,
+        no_create: bool = False,
+        dry_run: bool = False,
+        using: Optional[str] = None,
     ) -> None:
-        """Automatically creates new partitions for the configuration
-        associated with the specified model.
+        """Applies the partitioning plan by computing which partitions to
+        create and which ones to delete.
 
         Arguments:
+            no_delete:
+                If set to True, no partitions will be marked
+                for deletion, regardless of the configuration.
+
+            no_create:
+                If set to True, no partitions will be marked
+                for creation, regardless of the configuration.
+
             dry_run:
-                When set to True, partitions won't actually be
-                created. This allows you to see what partitions
-                _would_ be created.
+                If set to True, the partitions will not be
+                created/deleted. The return value remains
+                the same.
+
+                Use this to discover what partitions would
+                be created/deleted.
 
             using:
-                Database connection name to use.
+                Name of the database connection to use.
+
+        Returns:
+            A plan of which partitons have been created/deleted
+            or will be created/deleted if dry_run=True.
         """
 
-        for config in self.configs:
-            self._auto_create(config, dry_run=dry_run, using=using)
-
-    def auto_delete(
-        self, dry_run: bool = False, using: Optional[str] = None
-    ) -> None:
-        """Automatically creates new partitions for the configuration
-        associated with the specified model.
-
-        Arguments:
-            dry_run:
-                When set to True, partitions won't actually be
-                created. This allows you to see what partitions
-                _would_ be created.
-
-            using:
-                Database connection name to use.
-        """
+        plans = []
 
         for config in self.configs:
-            self._auto_delete(config, dry_run=dry_run, using=using)
+            created_partitions = (
+                self._auto_create(config, dry_run=dry_run, using=using)
+                if not no_create
+                else []
+            )
+
+            deleted_partitions = (
+                self._auto_delete(config, dry_run=dry_run, using=using)
+                if not no_delete
+                else []
+            )
+
+            plans.append(
+                PostgresModelPartitionPlan(
+                    model=config.model,
+                    created_partitions=created_partitions,
+                    deleted_partitions=deleted_partitions,
+                )
+            )
+
+        return plans
 
     def find_by_model(
         self, model: PostgresPartitionedModel
@@ -78,22 +127,19 @@ class PostgresPartitioningManager:
         config: PostgresPartitioningConfig,
         dry_run: bool = False,
         using: Optional[str] = None,
-    ) -> None:
-        logger = self._logger.bind(dry_run=dry_run, using=using)
-
+    ) -> List[PostgresPartition]:
         connection = connections[using or "default"]
         table = self._get_partitioned_table(connection, config.model)
+
+        created_partitions = []
 
         with connection.schema_editor() as schema_editor:
             for partition in config.strategy.to_create():
                 if table.partition_by_name(name=partition.name()):
-                    logger.info(
-                        "Skipping creation of partition, already exists",
-                        name=partition.name(),
-                    )
                     continue
 
-                logger.info("Creating partition", name=partition.name())
+                created_partitions.append(partition)
+
                 if not dry_run:
                     partition.create(
                         config.model,
@@ -101,16 +147,17 @@ class PostgresPartitioningManager:
                         comment=self._partition_table_comment,
                     )
 
+        return created_partitions
+
     def _auto_delete(
         self,
         config: PostgresPartitioningConfig,
         dry_run: bool = False,
         using: Optional[str] = None,
-    ) -> None:
-        logger = self._logger.bind(dry_run=dry_run, using=using)
-
+    ) -> List[PostgresPartition]:
         connection = connections[using or "default"]
         table = self._get_partitioned_table(connection, config.model)
+        deleted_partitions = []
 
         with connection.schema_editor() as schema_editor:
             for partition in config.strategy.to_delete():
@@ -124,15 +171,13 @@ class PostgresPartitioningManager:
                     introspected_partition.comment
                     != self._partition_table_comment
                 ):
-                    logger.info(
-                        "Not deleting partition because it wasn't automatically created",
-                        name=partition.name(),
-                    )
                     continue
 
-                logger.info("Deleting partition", name=partition.name())
+                deleted_partitions.append(partition)
                 if not dry_run:
                     partition.delete(config.model, schema_editor)
+
+        return deleted_partitions
 
     @staticmethod
     def _get_partitioned_table(connection, model: PostgresPartitionedModel):

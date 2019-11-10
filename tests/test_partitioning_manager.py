@@ -22,7 +22,7 @@ def test_partitioning_manager_duplicate_model():
     )
 
     with pytest.raises(PostgresPartitioningError):
-        manager = PostgresPartitioningManager(
+        PostgresPartitioningManager(
             [
                 partition_by_time(
                     model, years=1, count=3, start_from=date(1337, 1, 1)
@@ -59,7 +59,7 @@ def test_partitioning_manager_find_by_model():
     assert manager.find_by_model(model2) == config2
 
 
-def test_partitioning_manager_auto_create_not_partitioned_model():
+def test_partitioning_manager_apply_not_partitioned_model():
     """Tests that the auto partitioner does not try to auto partition for non-
     partitioned models/tables."""
 
@@ -73,10 +73,10 @@ def test_partitioning_manager_auto_create_not_partitioned_model():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
 
-def test_partitioning_manager_auto_create_non_existent_model():
+def test_partitioning_manager_apply_non_existent_model():
     """Tests that the auto partitioner does not try to partition for non-
     existent partitioned tables."""
 
@@ -92,4 +92,4 @@ def test_partitioning_manager_auto_create_non_existent_model():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()

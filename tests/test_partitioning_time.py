@@ -23,7 +23,7 @@ def _get_partitioned_table(model):
     return db_introspection.get_partitioned_table(model._meta.db_table)
 
 
-def test_partitioning_time_yearly_auto_create():
+def test_partitioning_time_yearly_apply():
     """Tests whether automatically creating new partitions ahead yearly works
     as expected."""
 
@@ -42,7 +42,7 @@ def test_partitioning_time_yearly_auto_create():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 2
@@ -57,7 +57,7 @@ def test_partitioning_time_yearly_auto_create():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 3
@@ -66,7 +66,7 @@ def test_partitioning_time_yearly_auto_create():
     assert table.partitions[2].name == "2021"
 
 
-def test_partitioning_time_monthly_auto_create():
+def test_partitioning_time_monthly_apply():
     """Tests whether automatically creating new partitions ahead monthly works
     as expected."""
 
@@ -86,7 +86,7 @@ def test_partitioning_time_monthly_auto_create():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 12
@@ -112,7 +112,7 @@ def test_partitioning_time_monthly_auto_create():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 13
@@ -128,14 +128,14 @@ def test_partitioning_time_monthly_auto_create():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 14
     assert table.partitions[13].name == "2020_feb"
 
 
-def test_partitioning_time_weekly_auto_create():
+def test_partitioning_time_weekly_apply():
     """Tests whether automatically creating new partitions ahead weekly works
     as expected."""
 
@@ -155,7 +155,7 @@ def test_partitioning_time_weekly_auto_create():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 4
@@ -173,7 +173,7 @@ def test_partitioning_time_weekly_auto_create():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 5
@@ -188,7 +188,7 @@ def test_partitioning_time_weekly_auto_create():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 7
@@ -196,7 +196,7 @@ def test_partitioning_time_weekly_auto_create():
     assert table.partitions[6].name == "2019_week_23"
 
 
-def test_partitioning_time_daily_auto_create():
+def test_partitioning_time_daily_apply():
     """Tests whether automatically creating new partitions ahead daily works as
     expected."""
 
@@ -216,7 +216,7 @@ def test_partitioning_time_daily_auto_create():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 4
@@ -234,7 +234,7 @@ def test_partitioning_time_daily_auto_create():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 5
@@ -249,7 +249,7 @@ def test_partitioning_time_daily_auto_create():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 7
@@ -257,7 +257,7 @@ def test_partitioning_time_daily_auto_create():
     assert table.partitions[6].name == "2019_jun_04"
 
 
-def test_partitioning_time_monthly_auto_create_insert():
+def test_partitioning_time_monthly_apply_insert():
     """Tests whether automatically created monthly partitions line up
     perfectly."""
 
@@ -276,7 +276,7 @@ def test_partitioning_time_monthly_auto_create_insert():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     model.objects.create(timestamp=datetime.date(2019, 1, 1))
     model.objects.create(timestamp=datetime.date(2019, 1, 31))
@@ -295,13 +295,13 @@ def test_partitioning_time_monthly_auto_create_insert():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     model.objects.create(timestamp=datetime.date(2019, 3, 1))
     model.objects.create(timestamp=datetime.date(2019, 3, 2))
 
 
-def test_partitioning_time_weekly_auto_create_insert():
+def test_partitioning_time_weekly_apply_insert():
     """Tests whether automatically created weekly partitions line up
     perfectly."""
 
@@ -321,7 +321,7 @@ def test_partitioning_time_weekly_auto_create_insert():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 2
@@ -343,13 +343,13 @@ def test_partitioning_time_weekly_auto_create_insert():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     model.objects.create(timestamp=datetime.date(2019, 1, 21))
     model.objects.create(timestamp=datetime.date(2019, 1, 22))
 
 
-def test_partitioning_time_daily_auto_create_insert():
+def test_partitioning_time_daily_apply_insert():
     """Tests whether automatically created daily partitions line up
     perfectly."""
 
@@ -369,7 +369,7 @@ def test_partitioning_time_daily_auto_create_insert():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 2
@@ -390,7 +390,7 @@ def test_partitioning_time_daily_auto_create_insert():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     model.objects.create(timestamp=datetime.date(2019, 1, 9))
     model.objects.create(timestamp=datetime.date(2019, 1, 10))
@@ -413,7 +413,7 @@ def test_partitioning_time_switch_interval():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 1
@@ -430,7 +430,7 @@ def test_partitioning_time_switch_interval():
                         )
                     ]
                 )
-                manager.auto_create()
+                manager.apply()
 
         # try again, but specify a date to start from, end
         # of january... it'll skip creating any partitions
@@ -445,7 +445,7 @@ def test_partitioning_time_switch_interval():
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 2
@@ -478,7 +478,7 @@ def test_partitioning_time_multiple(kwargs, partition_names):
                 )
             ]
         )
-        manager.auto_create()
+        manager.apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 2
@@ -545,11 +545,11 @@ def test_partitioning_time_delete(kwargs, timepoints):
     )
 
     with freezegun.freeze_time(timepoints[0][0]):
-        manager.auto_create()
+        manager.apply()
 
     for index, (dt, partition_count) in enumerate(timepoints):
         with freezegun.freeze_time(dt):
-            manager.auto_delete()
+            manager.apply(no_create=True)
 
             table = _get_partitioned_table(model)
             assert len(table.partitions) == partition_count
@@ -575,7 +575,7 @@ def test_partitioning_time_delete_start_from():
     )
 
     with freezegun.freeze_time("2019-1-1"):
-        manager.auto_create()
+        manager.apply()
 
         table = _get_partitioned_table(model)
         assert len(table.partitions) == 2
@@ -596,15 +596,13 @@ def test_partitioning_time_delete_start_from():
     )
 
     with freezegun.freeze_time("2019-2-1"):
-        manager.auto_create()
-        manager.auto_delete()
+        manager.apply()
 
         table = _get_partitioned_table(model)
         assert len(table.partitions) == 2
 
     with freezegun.freeze_time("2020-1-1"):
-        manager.auto_create()
-        manager.auto_delete()
+        manager.apply()
 
         table = _get_partitioned_table(model)
         assert len(table.partitions) == 4
@@ -645,7 +643,7 @@ def test_partitioning_time_delete_ignore_manual():
     )
 
     with freezegun.freeze_time("2020-1-1"):
-        manager.auto_delete()
+        manager.apply(no_create=True)
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 1

@@ -42,5 +42,12 @@ class PostgresTimePartition(PostgresRangePartition):
 
         return self.start_datetime.strftime(name_format).lower()
 
+    def deconstruct(self) -> dict:
+        return {
+            **super().deconstruct(),
+            "size_unit": self.size.unit.value,
+            "size_value": self.size.value,
+        }
+
 
 __all__ = ["PostgresTimePartition"]

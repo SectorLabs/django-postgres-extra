@@ -14,6 +14,13 @@ class PostgresRangePartition(PostgresPartition):
         self.from_values = from_values
         self.to_values = to_values
 
+    def deconstruct(self) -> dict:
+        return {
+            **super().deconstruct(),
+            "from_values": self.from_values,
+            "to_values": self.to_values,
+        }
+
     def create(
         self,
         model: PostgresPartitionedModel,

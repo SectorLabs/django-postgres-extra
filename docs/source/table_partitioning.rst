@@ -307,7 +307,7 @@ Partitions will be named ``[table_name]_[3-letter month name]``.
       count=3,
       months=1,
    )
-   manager.auto_create()
+   manager.apply()
 
 
 Weekly partitioning
@@ -328,7 +328,7 @@ Partitions will be named ``[table_name]_week_[week number]``.
       count=4,
       weeks=1,
    )
-   manager.auto_create()
+   manager.apply()
 
 
    # 6 partitions ahead, each partition is 2 weeks
@@ -337,7 +337,7 @@ Partitions will be named ``[table_name]_week_[week number]``.
       count=6,
       weeks=2,
    )
-   manager.auto_create()
+   manager.apply()
 
 
 Switching partitioning strategies

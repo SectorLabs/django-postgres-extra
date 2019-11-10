@@ -17,4 +17,4 @@ class PostgresPartitioningStrategy:
         """Generates a list of partitions to be deleted."""
 
 
-__all__ = ["PostgresRangePartitioningStrategy"]
+__all__ = ["PostgresPartitioningStrategy"]
