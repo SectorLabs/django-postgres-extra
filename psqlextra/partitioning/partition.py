@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from typing import Optional
 
 from psqlextra.backend.schema import PostgresSchemaEditor
 from psqlextra.models import PostgresPartitionedModel
@@ -16,6 +17,7 @@ class PostgresPartition:
         self,
         model: PostgresPartitionedModel,
         schema_editor: PostgresSchemaEditor,
+        comment: Optional[str] = None,
     ) -> None:
         """Creates this partition in the database."""
 

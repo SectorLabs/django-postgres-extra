@@ -618,6 +618,39 @@ def test_partitioning_time_delete_start_from():
         assert table.partitions[3].name == "2020_week_01"
 
 
+def test_partitioning_time_delete_ignore_manual():
+    """Tests whether partitions that were created manually are ignored.
+
+    Partitions created automatically have a special comment attached to
+    them. Only partitions with this special comments would be deleted.
+    """
+
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    manager = PostgresPartitioningManager(
+        [
+            partition_by_time(
+                model, count=2, months=1, start_from=date(2019, 1, 1)
+            )
+        ]
+    )
+
+    schema_editor.add_range_partition(
+        model, "2019_jan", from_values="2019-1-1", to_values="2019-2-1"
+    )
+
+    with freezegun.freeze_time("2020-1-1"):
+        manager.auto_delete()
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 1
+
+
 def test_partitioning_time_no_size():
     """Tests whether an error is raised when size for the partitions is
     specified."""

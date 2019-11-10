@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional
 from unittest import mock
 
 from django.core.exceptions import (
@@ -45,6 +45,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         "CREATE TABLE %s PARTITION OF %s FOR VALUES IN (%s)"
     )
     sql_delete_partition = "DROP TABLE %s"
+    sql_table_comment = "COMMENT ON TABLE %s IS %s"
 
     side_effects = [
         HStoreUniqueSchemaEditorSideEffect(),
@@ -189,7 +190,12 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         return self.delete_model(model)
 
     def add_range_partition(
-        self, model: Model, name: str, from_values: Any, to_values: Any
+        self,
+        model: Model,
+        name: str,
+        from_values: Any,
+        to_values: Any,
+        comment: Optional[str] = None,
     ) -> None:
         """Creates a new range partition for the specified partitioned model.
 
@@ -210,22 +216,36 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
                 End of the partitioning key range of
                 values that need to be stored in this
                 partition.
+
+            comment:
+                Optionally, a comment to add on this
+                partition table.
         """
 
         # asserts the model is a model set up for partitioning
         self._partitioning_properties_for_model(model)
 
+        table_name = self.create_partition_table_name(model, name)
+
         sql = self.sql_add_range_partition % (
-            self.quote_name(self.create_partition_table_name(model, name)),
+            self.quote_name(table_name),
             self.quote_name(model._meta.db_table),
             "%s",
             "%s",
         )
 
-        self.execute(sql, (from_values, to_values))
+        with transaction.atomic():
+            self.execute(sql, (from_values, to_values))
+
+            if comment:
+                self.comment_on_table(table_name, comment)
 
     def add_list_partition(
-        self, model: Model, name: str, values: List[Any]
+        self,
+        model: Model,
+        name: str,
+        values: List[Any],
+        comment: Optional[str] = None,
     ) -> None:
         """Creates a new list partition for the specified partitioned model.
 
@@ -240,20 +260,32 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             values:
                 Partition key values that should be
                 stored in this partition.
+
+            comment:
+                Optionally, a comment to add on this
+                partition table.
         """
 
         # asserts the model is a model set up for partitioning
         self._partitioning_properties_for_model(model)
 
+        table_name = self.create_partition_table_name(model, name)
+
         sql = self.sql_add_list_partition % (
-            self.quote_name(self.create_partition_table_name(model, name)),
+            self.quote_name(table_name),
             self.quote_name(model._meta.db_table),
             ",".join(["%s" for _ in range(len(values))]),
         )
 
-        self.execute(sql, values)
+        with transaction.atomic():
+            self.execute(sql, values)
 
-    def add_default_partition(self, model: Model, name: str) -> None:
+            if comment:
+                self.comment_on_table(table_name, comment)
+
+    def add_default_partition(
+        self, model: Model, name: str, comment: Optional[str] = None
+    ) -> None:
         """Creates a new default partition for the specified partitioned model.
 
         A default partition is a partition where rows are routed to when
@@ -266,17 +298,27 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             name:
                 Name to give to the new partition.
                 Final name will be "{table_name}_{partition_name}"
+
+            comment:
+                Optionally, a comment to add on this
+                partition table.
         """
 
         # asserts the model is a model set up for partitioning
         self._partitioning_properties_for_model(model)
 
+        table_name = self.create_partition_table_name(model, name)
+
         sql = self.sql_add_default_partition % (
-            self.quote_name(self.create_partition_table_name(model, name)),
+            self.quote_name(table_name),
             self.quote_name(model._meta.db_table),
         )
 
-        self.execute(sql)
+        with transaction.atomic():
+            self.execute(sql)
+
+            if comment:
+                self.comment_on_table(table_name, comment)
 
     def delete_partition(self, model: Model, name: str) -> None:
         """Deletes the partition with the specified name."""
@@ -325,6 +367,12 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         for side_effect in self.side_effects:
             side_effect.alter_field(model, old_field, new_field, strict)
+
+    def comment_on_table(self, table_name: str, comment: str) -> None:
+        """Sets the comment on the specified table."""
+
+        sql = self.sql_table_comment % (self.quote_name(table_name), "%s")
+        self.execute(sql, (comment,))
 
     def _create_view_model(self, sql: str, model: Model) -> None:
         """Creates a new view model using the specified SQL query."""

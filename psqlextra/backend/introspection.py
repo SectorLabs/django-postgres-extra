@@ -12,6 +12,7 @@ class PostgresIntrospectedPartitionTable:
 
     name: str
     full_name: str
+    comment: Optional[str]
 
 
 @dataclass
@@ -92,7 +93,8 @@ class PostgresIntrospection(base_impl.introspection()):
 
         sql = """
             SELECT
-                child.relname
+                child.relname,
+                pg_description.description
             FROM pg_inherits
             JOIN
                 pg_class parent
@@ -110,6 +112,10 @@ class PostgresIntrospection(base_impl.introspection()):
                 pg_namespace nmsp_child
             ON
                 nmsp_child.oid = child.relnamespace
+            LEFT JOIN
+                pg_description
+            ON
+                pg_description.objoid = child.oid
             WHERE
                 parent.relname = %s
         """
@@ -118,7 +124,9 @@ class PostgresIntrospection(base_impl.introspection()):
 
         return [
             PostgresIntrospectedPartitionTable(
-                name=row[0].replace(f"{table_name}_", ""), full_name=row[0]
+                name=row[0].replace(f"{table_name}_", ""),
+                full_name=row[0],
+                comment=row[1] or None,
             )
             for row in cursor.fetchall()
         ]

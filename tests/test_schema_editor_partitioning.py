@@ -142,3 +142,96 @@ def test_schema_editor_create_partitioned_model_no_key():
 
     with pytest.raises(ImproperlyConfigured):
         schema_editor.create_partitioned_model(model)
+
+
+def test_schema_editor_add_range_partition():
+    """Tests whether adding a range partition works."""
+
+    model = define_fake_partitioned_model(
+        {"name": models.TextField(), "timestamp": models.DateTimeField()},
+        {"key": ["timestamp"]},
+    )
+
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.create_partitioned_model(model)
+
+    schema_editor.add_range_partition(
+        model,
+        name="mypartition",
+        from_values="2019-1-1",
+        to_values="2019-2-1",
+        comment="test",
+    )
+
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert len(table.partitions) == 1
+    assert table.partitions[0].name == "mypartition"
+    assert (
+        table.partitions[0].full_name == f"{model._meta.db_table}_mypartition"
+    )
+    assert table.partitions[0].comment == "test"
+
+    schema_editor.delete_partition(model, "mypartition")
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert len(table.partitions) == 0
+
+
+def test_schema_editor_add_list_partition():
+    """Tests whether adding a list partition works."""
+
+    model = define_fake_partitioned_model(
+        {"name": models.TextField()},
+        {"method": PostgresPartitioningMethod.LIST, "key": ["name"]},
+    )
+
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.create_partitioned_model(model)
+
+    schema_editor.add_list_partition(
+        model, name="mypartition", values=["1"], comment="test"
+    )
+
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert len(table.partitions) == 1
+    assert table.partitions[0].name == "mypartition"
+    assert (
+        table.partitions[0].full_name == f"{model._meta.db_table}_mypartition"
+    )
+    assert table.partitions[0].comment == "test"
+
+    schema_editor.delete_partition(model, "mypartition")
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert len(table.partitions) == 0
+
+
+@pytest.mark.parametrize(
+    "method,key",
+    [
+        (PostgresPartitioningMethod.RANGE, ["timestamp"]),
+        (PostgresPartitioningMethod.LIST, ["name"]),
+    ],
+)
+def test_schema_editor_add_default_partition(method, key):
+    model = define_fake_partitioned_model(
+        {"name": models.TextField(), "timestamp": models.DateTimeField()},
+        {"method": method, "key": key},
+    )
+
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.create_partitioned_model(model)
+
+    schema_editor.add_default_partition(
+        model, name="mypartition", comment="test"
+    )
+
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert len(table.partitions) == 1
+    assert table.partitions[0].name == "mypartition"
+    assert (
+        table.partitions[0].full_name == f"{model._meta.db_table}_mypartition"
+    )
+    assert table.partitions[0].comment == "test"
+
+    schema_editor.delete_partition(model, "mypartition")
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert len(table.partitions) == 0

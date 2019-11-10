@@ -14,6 +14,12 @@ class PostgresPartitioningManager:
     """Helps managing partitions by automatically creating new partitions and
     deleting old ones according to the configuration."""
 
+    # comment placed on partition tables created by the partitioner
+    # partition tables that do not have this comment will _never_
+    # be deleted by the partitioner, this is a safety mechanism so
+    # manually created partitions aren't accidently cleaned up
+    _partition_table_comment: str = "psqlextra_auto_partitioned"
+
     def __init__(self, configs: List[PostgresPartitioningConfig]) -> None:
         self.configs = configs
         self._validate_configs(self.configs)
@@ -89,7 +95,11 @@ class PostgresPartitioningManager:
 
                 logger.info("Creating partition", name=partition.name())
                 if not dry_run:
-                    partition.create(config.model, schema_editor)
+                    partition.create(
+                        config.model,
+                        schema_editor,
+                        comment=self._partition_table_comment,
+                    )
 
     def _auto_delete(
         self,
@@ -104,7 +114,20 @@ class PostgresPartitioningManager:
 
         with connection.schema_editor() as schema_editor:
             for partition in config.strategy.to_delete():
-                if not table.partition_by_name(name=partition.name()):
+                introspected_partition = table.partition_by_name(
+                    name=partition.name()
+                )
+                if not introspected_partition:
+                    continue
+
+                if (
+                    introspected_partition.comment
+                    != self._partition_table_comment
+                ):
+                    logger.info(
+                        "Not deleting partition because it wasn't automatically created",
+                        name=partition.name(),
+                    )
                     continue
 
                 logger.info("Deleting partition", name=partition.name())
