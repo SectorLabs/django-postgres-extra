@@ -67,6 +67,8 @@ class Command(BaseCommand):
         using: Optional[str],
         no_create: bool,
         no_delete: bool,
+        *args,
+        **kwargs,
     ):
         # disable coloring if no terminal is attached
         if not sys.stdout.isatty():
