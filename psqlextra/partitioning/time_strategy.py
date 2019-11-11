@@ -82,12 +82,7 @@ class PostgresTimePartitioningStrategy(PostgresRangePartitioningStrategy):
 
             start_datetime += self.size.as_delta()
 
-    def for_datetime(self, dt: datetime) -> PostgresTimePartition:
-        """Gets the definition of a partition in which the specified date/time
-        belongs."""
+    def is_start_of_partition(self, dt: datetime) -> bool:
+        """Gets whether the specified date/time is the start of a partition."""
 
-        start_datetime = self.size.start(dt)
-
-        return PostgresTimePartition(
-            start_datetime=start_datetime, size=self.size
-        )
+        return self.size.start(dt) == dt
