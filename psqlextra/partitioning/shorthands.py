@@ -9,7 +9,7 @@ from .current_time_strategy import PostgresCurrentTimePartitioningStrategy
 from .time_partition_size import PostgresTimePartitionSize
 
 
-def partition_by_time(
+def partition_by_current_time(
     model: PostgresPartitionedModel,
     count: int,
     years: Optional[int] = None,
@@ -62,4 +62,4 @@ def partition_by_time(
     )
 
 
-__all_ = ["partition_by_time"]
+__all_ = ["partition_by_current_time"]

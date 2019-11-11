@@ -298,7 +298,7 @@ Partitions will be named ``[table_name]_[3-letter month name]``.
 
    from psqlextra.partitioning import (
       PostgresPartitioningManager,
-      partition_by_time,
+      partition_by_current_time,
    )
 
    # 3 partitions ahead, each partition is one month
@@ -319,7 +319,7 @@ Partitions will be named ``[table_name]_week_[week number]``.
 
    from psqlextra.partitioning import (
       PostgresPartitioningManager,
-      partition_by_time,
+      partition_by_current_time,
    )
 
    # 4 partitions ahead, each partition is 1 week
