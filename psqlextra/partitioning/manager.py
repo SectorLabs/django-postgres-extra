@@ -23,18 +23,18 @@ class PostgresPartitioningManager:
 
     def plan(
         self,
-        no_create: bool = False,
-        no_delete: bool = False,
+        skip_create: bool = False,
+        skip_delete: bool = False,
         using: Optional[str] = None,
     ) -> PostgresPartitioningPlan:
         """Plans which partitions should be deleted/created.
 
         Arguments:
-            no_create:
+            skip_create:
                 If set to True, no partitions will be marked
                 for creation, regardless of the configuration.
 
-            no_delete:
+            skip_delete:
                 If set to True, no partitions will be marked
                 for deletion, regardless of the configuration.
 
@@ -50,7 +50,10 @@ class PostgresPartitioningManager:
 
         for config in self.configs:
             model_plan = self._plan_for_config(
-                config, no_create=no_create, no_delete=no_delete, using=using
+                config,
+                skip_create=skip_create,
+                skip_delete=skip_delete,
+                using=using,
             )
             if not model_plan:
                 continue
@@ -71,8 +74,8 @@ class PostgresPartitioningManager:
     def _plan_for_config(
         self,
         config: PostgresPartitioningConfig,
-        no_create: bool = False,
-        no_delete: bool = False,
+        skip_create: bool = False,
+        skip_delete: bool = False,
         using: Optional[str] = None,
     ) -> Optional[PostgresModelPartitioningPlan]:
         """Creates a partitioning plan for one partitioning config."""
@@ -82,14 +85,14 @@ class PostgresPartitioningManager:
 
         model_plan = PostgresModelPartitioningPlan(config)
 
-        if not no_create:
+        if not skip_create:
             for partition in config.strategy.to_create():
                 if table.partition_by_name(name=partition.name()):
                     continue
 
                 model_plan.creations.append(partition)
 
-        if not no_delete:
+        if not skip_delete:
             for partition in config.strategy.to_delete():
                 introspected_partition = table.partition_by_name(
                     name=partition.name()

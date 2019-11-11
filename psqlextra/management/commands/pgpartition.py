@@ -45,7 +45,7 @@ class Command(BaseCommand):
         )
 
         parser.add_argument(
-            "--no-create",
+            "--skip-create",
             action="store_true",
             help="Do not create partitions.",
             required=False,
@@ -53,7 +53,7 @@ class Command(BaseCommand):
         )
 
         parser.add_argument(
-            "--no-delete",
+            "--skip-delete",
             action="store_true",
             help="Do not delete partitions.",
             required=False,
@@ -65,8 +65,8 @@ class Command(BaseCommand):
         dry: bool,
         yes: bool,
         using: Optional[str],
-        no_create: bool,
-        no_delete: bool,
+        skip_create: bool,
+        skip_delete: bool,
         *args,
         **kwargs,
     ):
@@ -77,7 +77,7 @@ class Command(BaseCommand):
         partitioning_manager = self._partitioning_manager()
 
         plan = partitioning_manager.plan(
-            no_create=no_create, no_delete=no_delete, using=using
+            skip_create=skip_create, skip_delete=skip_delete, using=using
         )
 
         creations_count = len(plan.creations)

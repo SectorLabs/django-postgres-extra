@@ -453,7 +453,7 @@ def test_partitioning_time_delete(kwargs, timepoints):
 
     for index, (dt, partition_count) in enumerate(timepoints):
         with freezegun.freeze_time(dt):
-            manager.plan(no_create=True).apply()
+            manager.plan(skip_create=True).apply()
 
             table = _get_partitioned_table(model)
             assert len(table.partitions) == partition_count
@@ -482,7 +482,7 @@ def test_partitioning_time_delete_ignore_manual():
     )
 
     with freezegun.freeze_time("2020-1-1"):
-        manager.plan(no_create=True).apply()
+        manager.plan(skip_create=True).apply()
 
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 1
