@@ -145,6 +145,7 @@ setup(
                 ["python", "setup.py", "format_docstrings"],
                 ["python", "setup.py", "sort_imports"],
                 ["python", "setup.py", "lint_fix"],
+                ["python", "setup.py", "lint"],
             ],
         ),
         "verify": create_command(
