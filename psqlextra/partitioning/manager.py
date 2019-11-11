@@ -59,7 +59,7 @@ class PostgresPartitioningManager:
 
         return PostgresPartitioningPlan(model_plans)
 
-    def find_by_model(
+    def find_config_for_model(
         self, model: PostgresPartitionedModel
     ) -> Optional[PostgresPartitioningConfig]:
         """Finds the partitioning config for the specified model."""

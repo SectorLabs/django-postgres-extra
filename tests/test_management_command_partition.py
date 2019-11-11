@@ -100,7 +100,7 @@ def test_management_command_partition_dry_run(
     """Tests whether the --dry option actually makes it a dry run and does not
     create/delete partitions."""
 
-    config = fake_partitioning_manager.find_by_model(fake_model)
+    config = fake_partitioning_manager.find_config_for_model(fake_model)
     snapshot.assert_match(run(args))
 
     config.strategy.createable_partition.create.assert_not_called()
@@ -116,7 +116,7 @@ def test_management_command_partition_auto_confirm(
     """Tests whether the --yes option makes it not ask for confirmation before
     creating/deleting partitions."""
 
-    config = fake_partitioning_manager.find_by_model(fake_model)
+    config = fake_partitioning_manager.find_config_for_model(fake_model)
     snapshot.assert_match(run(args))
 
     config.strategy.createable_partition.create.assert_called_once()
@@ -132,7 +132,7 @@ def test_management_command_partition_confirm_yes(
     """Tests whether the --yes option makes it not ask for confirmation before
     creating/deleting partitions."""
 
-    config = fake_partitioning_manager.find_by_model(fake_model)
+    config = fake_partitioning_manager.find_config_for_model(fake_model)
 
     monkeypatch.setattr("builtins.input", lambda _: answer)
     snapshot.assert_match(run())
@@ -150,7 +150,7 @@ def test_management_command_partition_confirm_no(
     """Tests whether the --yes option makes it not ask for confirmation before
     creating/deleting partitions."""
 
-    config = fake_partitioning_manager.find_by_model(fake_model)
+    config = fake_partitioning_manager.find_config_for_model(fake_model)
 
     monkeypatch.setattr("builtins.input", lambda _: answer)
     snapshot.assert_match(run())

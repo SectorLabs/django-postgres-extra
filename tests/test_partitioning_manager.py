@@ -34,7 +34,7 @@ def test_partitioning_manager_duplicate_model():
         )
 
 
-def test_partitioning_manager_find_by_model():
+def test_partitioning_manager_find_config_for_model():
     """Tests that finding a partitioning config by the model works as
     expected."""
 
@@ -55,8 +55,8 @@ def test_partitioning_manager_find_by_model():
     )
 
     manager = PostgresPartitioningManager([config1, config2])
-    assert manager.find_by_model(model1) == config1
-    assert manager.find_by_model(model2) == config2
+    assert manager.find_config_for_model(model1) == config1
+    assert manager.find_config_for_model(model2) == config2
 
 
 def test_partitioning_manager_plan_not_partitioned_model():
