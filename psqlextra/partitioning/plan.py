@@ -22,9 +22,10 @@ class PostgresModelPartitioningPlan:
     deletions: List[PostgresPartition] = field(default_factory=list)
 
     def apply(self, using: Optional[str]) -> None:
-        """Applies this partitioning plan by creating.
+        """Applies this partitioning plan by creating and deleting the planned
+        partitions.
 
-        /deleting the planned partitions.
+        Applying the plan runs in a transaction.
 
         Arguments:
             using:

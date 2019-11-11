@@ -238,7 +238,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             self.execute(sql, (from_values, to_values))
 
             if comment:
-                self.comment_on_table(table_name, comment)
+                self.set_comment_on_table(table_name, comment)
 
     def add_list_partition(
         self,
@@ -281,7 +281,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             self.execute(sql, values)
 
             if comment:
-                self.comment_on_table(table_name, comment)
+                self.set_comment_on_table(table_name, comment)
 
     def add_default_partition(
         self, model: Model, name: str, comment: Optional[str] = None
@@ -318,7 +318,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             self.execute(sql)
 
             if comment:
-                self.comment_on_table(table_name, comment)
+                self.set_comment_on_table(table_name, comment)
 
     def delete_partition(self, model: Model, name: str) -> None:
         """Deletes the partition with the specified name."""
@@ -368,7 +368,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         for side_effect in self.side_effects:
             side_effect.alter_field(model, old_field, new_field, strict)
 
-    def comment_on_table(self, table_name: str, comment: str) -> None:
+    def set_comment_on_table(self, table_name: str, comment: str) -> None:
         """Sets the comment on the specified table."""
 
         sql = self.sql_table_comment % (self.quote_name(table_name), "%s")
