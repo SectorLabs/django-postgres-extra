@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Optional
 
 from dateutil.relativedelta import relativedelta
@@ -18,7 +17,6 @@ def partition_by_time(
     weeks: Optional[int] = None,
     days: Optional[int] = None,
     max_age: Optional[relativedelta] = None,
-    from_datetime: Optional[datetime] = None,
 ) -> PostgresPartitioningConfig:
     """Short-hand for generating a partitioning config that partitions the
     specified model by time.
@@ -50,21 +48,6 @@ def partition_by_time(
 
             Partitions older than this are deleted when running
             a delete/cleanup run.
-
-        from_datetime:
-            Skip creating any partitions that would
-            contain data _before_ this date.
-
-            Use this when switching partitioning
-            interval. Useful when you've already partitioned
-            ahead using the original interval and want
-            to avoid creating overlapping partitioninig.
-
-            Set this to the _end date_ for the
-            last partition that was created.
-
-            Only delete partitions newer than this
-            (but older than :paramref:max_age).
     """
 
     size = PostgresTimePartitionSize(
@@ -74,7 +57,7 @@ def partition_by_time(
     return PostgresPartitioningConfig(
         model=model,
         strategy=PostgresCurrentTimePartitioningStrategy(
-            size=size, count=count, max_age=max_age, from_datetime=from_datetime
+            size=size, count=count, max_age=max_age
         ),
     )
 

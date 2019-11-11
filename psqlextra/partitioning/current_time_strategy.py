@@ -24,7 +24,6 @@ class PostgresCurrentTimePartitioningStrategy(
         size: PostgresTimePartitionSize,
         count: int,
         max_age: Optional[relativedelta] = None,
-        from_datetime: Optional[datetime] = None,
     ) -> None:
         """Initializes a new instance of :see:PostgresTimePartitioningStrategy.
 
@@ -40,20 +39,14 @@ class PostgresCurrentTimePartitioningStrategy(
                 Maximum age of a partition. Partitions
                 older than this are deleted during
                 auto cleanup.
-
-            from_datetime:
-                Do not create partitions until this date.
         """
 
         self.size = size
         self.count = count
         self.max_age = max_age
-        self.from_datetime = from_datetime
 
     def to_create(self) -> Generator[PostgresTimePartition, None, None]:
-        current_datetime = self.size.start(
-            self.from_datetime or self.get_start_datetime()
-        )
+        current_datetime = self.size.start(self.get_start_datetime())
 
         for _ in range(self.count):
             yield PostgresTimePartition(

@@ -5,7 +5,7 @@ import pytest
 
 from dateutil.relativedelta import relativedelta
 from django.db import connection, models, transaction
-from django.db.utils import IntegrityError, ProgrammingError
+from django.db.utils import IntegrityError
 
 from psqlextra.partitioning import (
     PostgresPartitioningError,
@@ -324,55 +324,6 @@ def test_partitioning_time_daily_apply_insert():
 
     model.objects.create(timestamp=datetime.date(2019, 1, 9))
     model.objects.create(timestamp=datetime.date(2019, 1, 10))
-
-
-def test_partitioning_time_switch_interval():
-    model = define_fake_partitioned_model(
-        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
-    )
-
-    schema_editor = connection.schema_editor()
-    schema_editor.create_partitioned_model(model)
-
-    # create partition for january
-    with freezegun.freeze_time("2019-1-1"):
-        manager = PostgresPartitioningManager(
-            [partition_by_time(model, months=1, count=1)]
-        )
-        manager.plan().apply()
-
-    table = _get_partitioned_table(model)
-    assert len(table.partitions) == 1
-
-    # three weeks later, oh damn! many data, maybe weekly partitioning?
-    # suprise! won't work... now we overlapping partitions
-    with freezegun.freeze_time("2019-1-21"):
-        with pytest.raises(ProgrammingError):
-            with transaction.atomic():
-                manager = PostgresPartitioningManager(
-                    [partition_by_time(model, weeks=1, count=1)]
-                )
-                manager.plan().apply()
-
-        # try again, but specify a date to start from, end
-        # of january... it'll skip creating any partitions
-        # till that date..
-        manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model,
-                    weeks=1,
-                    count=1,
-                    from_datetime=datetime.date(2019, 2, 1),
-                )
-            ]
-        )
-        manager.plan().apply()
-
-    table = _get_partitioned_table(model)
-    assert len(table.partitions) == 2
-    assert table.partitions[0].name == "2019_jan"
-    assert table.partitions[1].name == "2019_week_04"
 
 
 @pytest.mark.parametrize(
