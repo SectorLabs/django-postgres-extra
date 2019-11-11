@@ -5,6 +5,7 @@ from django.db import connections
 from psqlextra.models import PostgresPartitionedModel
 
 from .config import PostgresPartitioningConfig
+from .constants import AUTO_PARTITIONED_COMMENT
 from .error import PostgresPartitioningError
 from .partition import PostgresPartition
 from .plan import PostgresModelPartitioningPlan, PostgresPartitioningPlan
@@ -15,12 +16,6 @@ PartitionList = List[Tuple[PostgresPartitionedModel, List[PostgresPartition]]]
 class PostgresPartitioningManager:
     """Helps managing partitions by automatically creating new partitions and
     deleting old ones according to the configuration."""
-
-    # comment placed on partition tables created by the partitioner
-    # partition tables that do not have this comment will _never_
-    # be deleted by the partitioner, this is a safety mechanism so
-    # manually created partitions aren't accidently cleaned up
-    _partition_table_comment: str = "psqlextra_auto_partitioned"
 
     def __init__(self, configs: List[PostgresPartitioningConfig]) -> None:
         self.configs = configs
@@ -105,7 +100,7 @@ class PostgresPartitioningManager:
 
                     if (
                         introspected_partition.comment
-                        != model_plan.PARTITION_COMMENT
+                        != AUTO_PARTITIONED_COMMENT
                     ):
                         continue
 

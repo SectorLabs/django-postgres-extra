@@ -5,6 +5,7 @@ from ansimarkup import ansiprint
 from django.db import connections, transaction
 
 from .config import PostgresPartitioningConfig
+from .constants import AUTO_PARTITIONED_COMMENT
 from .partition import PostgresPartition
 
 
@@ -15,8 +16,6 @@ class PostgresModelPartitioningPlan:
 
     A "partitioning config" applies to one model.
     """
-
-    PARTITION_COMMENT = "psqlextra_auto_partitioned"
 
     config: PostgresPartitioningConfig
     creations: List[PostgresPartition] = field(default_factory=list)
@@ -40,7 +39,7 @@ class PostgresModelPartitioningPlan:
                     partition.create(
                         self.config.model,
                         schema_editor,
-                        comment=self.PARTITION_COMMENT,
+                        comment=AUTO_PARTITIONED_COMMENT,
                     )
 
                 for partition in self.deletions:
