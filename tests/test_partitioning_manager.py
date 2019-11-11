@@ -59,7 +59,7 @@ def test_partitioning_manager_find_by_model():
     assert manager.find_by_model(model2) == config2
 
 
-def test_partitioning_manager_apply_not_partitioned_model():
+def test_partitioning_manager_plan_not_partitioned_model():
     """Tests that the auto partitioner does not try to auto partition for non-
     partitioned models/tables."""
 
@@ -73,10 +73,10 @@ def test_partitioning_manager_apply_not_partitioned_model():
                 )
             ]
         )
-        manager.apply()
+        manager.plan()
 
 
-def test_partitioning_manager_apply_non_existent_model():
+def test_partitioning_manager_plan_non_existent_model():
     """Tests that the auto partitioner does not try to partition for non-
     existent partitioned tables."""
 
@@ -92,4 +92,4 @@ def test_partitioning_manager_apply_non_existent_model():
                 )
             ]
         )
-        manager.apply()
+        manager.plan()

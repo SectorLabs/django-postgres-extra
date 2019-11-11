@@ -76,26 +76,17 @@ class Command(BaseCommand):
 
         partitioning_manager = self._partitioning_manager()
 
-        plans = partitioning_manager.apply(
-            dry_run=True, no_create=no_create, no_delete=no_delete, using=using
+        plan = partitioning_manager.plan(
+            no_create=no_create, no_delete=no_delete, using=using
         )
 
-        for plan in plans:
-            plan.print()
-            print("")
-
-        create_count = sum([len(plan.created_partitions) for plan in plans])
-        delete_count = sum([len(plan.deleted_partitions) for plan in plans])
-        if create_count == 0 and delete_count == 0:
+        creations_count = len(plan.creations)
+        deletions_count = len(plan.deletions)
+        if creations_count == 0 and deletions_count == 0:
             ansiprint("<b><white>Nothing to be done.</white></b>")
             return
 
-        ansiprint(
-            f"<b><red>{delete_count} partitions will be deleted</red></b>"
-        )
-        ansiprint(
-            f"<b><green>{create_count} partitions will be created</green></b>"
-        )
+        plan.print()
 
         if dry:
             return
@@ -111,9 +102,7 @@ class Command(BaseCommand):
                 ansiprint("<b><white>Operation aborted.</white></b>")
                 return
 
-        partitioning_manager.apply(
-            dry_run=False, no_create=no_create, no_delete=no_delete, using=using
-        )
+        plan.apply(using=using)
         ansiprint("<b><white>Operations applied.</white></b>")
 
     @staticmethod

@@ -1,7 +1,5 @@
-from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-from ansimarkup import ansiprint
 from django.db import connections
 
 from psqlextra.models import PostgresPartitionedModel
@@ -9,34 +7,9 @@ from psqlextra.models import PostgresPartitionedModel
 from .config import PostgresPartitioningConfig
 from .error import PostgresPartitioningError
 from .partition import PostgresPartition
+from .plan import PostgresModelPartitioningPlan, PostgresPartitioningPlan
 
 PartitionList = List[Tuple[PostgresPartitionedModel, List[PostgresPartition]]]
-
-
-@dataclass
-class PostgresModelPartitionPlan:
-    model: PostgresPartitionedModel
-    created_partitions: List[PostgresPartition]
-    deleted_partitions: List[PostgresPartition]
-
-    def print(self) -> None:
-        if (
-            len(self.created_partitions) == 0
-            and len(self.deleted_partitions) == 0
-        ):
-            return
-
-        ansiprint(f"<b><white>{self.model.__name__}:</white></b>")
-
-        for partition in self.deleted_partitions:
-            ansiprint("<b><red>  - %s</red></b>" % partition.name())
-            for key, value in partition.deconstruct().items():
-                ansiprint(f"<white>     <b>{key}</b>: {value}</white>")
-
-        for partition in self.created_partitions:
-            ansiprint("<b><green>  + %s</green></b>" % partition.name())
-            for key, value in partition.deconstruct().items():
-                ansiprint(f"<white>     <b>{key}</b>: {value}</white>")
 
 
 class PostgresPartitioningManager:
@@ -53,65 +26,43 @@ class PostgresPartitioningManager:
         self.configs = configs
         self._validate_configs(self.configs)
 
-    def apply(
+    def plan(
         self,
-        no_delete: bool = False,
         no_create: bool = False,
-        dry_run: bool = False,
+        no_delete: bool = False,
         using: Optional[str] = None,
-    ) -> None:
-        """Applies the partitioning plan by computing which partitions to
-        create and which ones to delete.
+    ) -> PostgresPartitioningPlan:
+        """Plans which partitions should be deleted/created.
 
         Arguments:
-            no_delete:
-                If set to True, no partitions will be marked
-                for deletion, regardless of the configuration.
-
             no_create:
                 If set to True, no partitions will be marked
                 for creation, regardless of the configuration.
 
-            dry_run:
-                If set to True, the partitions will not be
-                created/deleted. The return value remains
-                the same.
-
-                Use this to discover what partitions would
-                be created/deleted.
+            no_delete:
+                If set to True, no partitions will be marked
+                for deletion, regardless of the configuration.
 
             using:
                 Name of the database connection to use.
 
         Returns:
-            A plan of which partitons have been created/deleted
-            or will be created/deleted if dry_run=True.
+            A plan describing what partitions would be created
+            and deleted if the plan is applied.
         """
 
-        plans = []
+        model_plans = []
 
         for config in self.configs:
-            created_partitions = (
-                self._auto_create(config, dry_run=dry_run, using=using)
-                if not no_create
-                else []
+            model_plan = self._plan_for_config(
+                config, no_create=no_create, no_delete=no_delete, using=using
             )
+            if not model_plan:
+                continue
 
-            deleted_partitions = (
-                self._auto_delete(config, dry_run=dry_run, using=using)
-                if not no_delete
-                else []
-            )
+            model_plans.append(model_plan)
 
-            plans.append(
-                PostgresModelPartitionPlan(
-                    model=config.model,
-                    created_partitions=created_partitions,
-                    deleted_partitions=deleted_partitions,
-                )
-            )
-
-        return plans
+        return PostgresPartitioningPlan(model_plans)
 
     def find_by_model(
         self, model: PostgresPartitionedModel
@@ -122,62 +73,48 @@ class PostgresPartitioningManager:
             (config for config in self.configs if config.model == model), None
         )
 
-    def _auto_create(
+    def _plan_for_config(
         self,
         config: PostgresPartitioningConfig,
-        dry_run: bool = False,
+        no_create: bool = False,
+        no_delete: bool = False,
         using: Optional[str] = None,
-    ) -> List[PostgresPartition]:
+    ) -> Optional[PostgresModelPartitioningPlan]:
+        """Creates a partitioning plan for one partitioning config."""
+
         connection = connections[using or "default"]
         table = self._get_partitioned_table(connection, config.model)
 
-        created_partitions = []
+        model_plan = PostgresModelPartitioningPlan(config)
 
         with connection.schema_editor() as schema_editor:
-            for partition in config.strategy.to_create():
-                if table.partition_by_name(name=partition.name()):
-                    continue
+            if not no_create:
+                for partition in config.strategy.to_create():
+                    if table.partition_by_name(name=partition.name()):
+                        continue
 
-                created_partitions.append(partition)
+                    model_plan.creations.append(partition)
 
-                if not dry_run:
-                    partition.create(
-                        config.model,
-                        schema_editor,
-                        comment=self._partition_table_comment,
+            if not no_delete:
+                for partition in config.strategy.to_delete():
+                    introspected_partition = table.partition_by_name(
+                        name=partition.name()
                     )
+                    if not introspected_partition:
+                        continue
 
-        return created_partitions
+                    if (
+                        introspected_partition.comment
+                        != model_plan.PARTITION_COMMENT
+                    ):
+                        continue
 
-    def _auto_delete(
-        self,
-        config: PostgresPartitioningConfig,
-        dry_run: bool = False,
-        using: Optional[str] = None,
-    ) -> List[PostgresPartition]:
-        connection = connections[using or "default"]
-        table = self._get_partitioned_table(connection, config.model)
-        deleted_partitions = []
+                    model_plan.deletions.append(partition)
 
-        with connection.schema_editor() as schema_editor:
-            for partition in config.strategy.to_delete():
-                introspected_partition = table.partition_by_name(
-                    name=partition.name()
-                )
-                if not introspected_partition:
-                    continue
+        if len(model_plan.creations) == 0 and len(model_plan.deletions) == 0:
+            return None
 
-                if (
-                    introspected_partition.comment
-                    != self._partition_table_comment
-                ):
-                    continue
-
-                deleted_partitions.append(partition)
-                if not dry_run:
-                    partition.delete(config.model, schema_editor)
-
-        return deleted_partitions
+        return model_plan
 
     @staticmethod
     def _get_partitioned_table(connection, model: PostgresPartitionedModel):
