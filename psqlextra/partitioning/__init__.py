@@ -1,4 +1,5 @@
 from .config import PostgresPartitioningConfig
+from .current_time_strategy import PostgresCurrentTimePartitioningStrategy
 from .error import PostgresPartitioningError
 from .manager import PostgresPartitioningManager
 from .partition import PostgresPartition
@@ -21,6 +22,7 @@ __all__ = [
     "PostgresTimePartition",
     "PostgresPartitioningStrategy",
     "PostgresTimePartitioningStrategy",
+    "PostgresCurrentTimePartitioningStrategy",
     "PostgresRangePartitioningStrategy",
     "PostgresPartitioningConfig",
     "PostgresTimePartitionSize",

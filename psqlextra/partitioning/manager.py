@@ -95,7 +95,7 @@ class PostgresPartitioningManager:
                     name=partition.name()
                 )
                 if not introspected_partition:
-                    continue
+                    break
 
                 if introspected_partition.comment != AUTO_PARTITIONED_COMMENT:
                     continue

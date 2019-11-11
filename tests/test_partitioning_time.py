@@ -1,7 +1,5 @@
 import datetime
 
-from datetime import date
-
 import freezegun
 import pytest
 
@@ -36,11 +34,7 @@ def test_partitioning_time_yearly_apply():
 
     with freezegun.freeze_time("2019-1-1"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, years=1, count=2, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, years=1, count=2)]
         )
         manager.plan().apply()
 
@@ -51,11 +45,7 @@ def test_partitioning_time_yearly_apply():
 
     with freezegun.freeze_time("2019-12-30"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, years=1, count=3, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, years=1, count=3)]
         )
         manager.plan().apply()
 
@@ -80,11 +70,7 @@ def test_partitioning_time_monthly_apply():
     # create partitions for the next 12 months (including the current)
     with freezegun.freeze_time("2019-1-30"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, months=1, count=12, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, months=1, count=12)]
         )
         manager.plan().apply()
 
@@ -106,11 +92,7 @@ def test_partitioning_time_monthly_apply():
     # re-running it with 13, should just create one additional partition
     with freezegun.freeze_time("2019-1-30"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, months=1, count=13, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, months=1, count=13)]
         )
         manager.plan().apply()
 
@@ -122,11 +104,7 @@ def test_partitioning_time_monthly_apply():
     # so only one new partition should be created for february 1338
     with freezegun.freeze_time("2019-11-1"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, months=1, count=4, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, months=1, count=4)]
         )
         manager.plan().apply()
 
@@ -149,11 +127,7 @@ def test_partitioning_time_weekly_apply():
     # create partitions for the next 4 weeks (including the current)
     with freezegun.freeze_time("2019-1-23"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, weeks=1, count=4, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, weeks=1, count=4)]
         )
         manager.plan().apply()
 
@@ -167,11 +141,7 @@ def test_partitioning_time_weekly_apply():
     # re-running it with 5, should just create one additional partition
     with freezegun.freeze_time("2019-1-23"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, weeks=1, count=5, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, weeks=1, count=5)]
         )
         manager.plan().apply()
 
@@ -182,11 +152,7 @@ def test_partitioning_time_weekly_apply():
     # it's june now, we want to partition two weeks ahead
     with freezegun.freeze_time("2019-06-03"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, weeks=1, count=2, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, weeks=1, count=2)]
         )
         manager.plan().apply()
 
@@ -210,11 +176,7 @@ def test_partitioning_time_daily_apply():
     # create partitions for the next 4 days (including the current)
     with freezegun.freeze_time("2019-1-23"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, days=1, count=4, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, days=1, count=4)]
         )
         manager.plan().apply()
 
@@ -228,11 +190,7 @@ def test_partitioning_time_daily_apply():
     # re-running it with 5, should just create one additional partition
     with freezegun.freeze_time("2019-1-23"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, days=1, count=5, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, days=1, count=5)]
         )
         manager.plan().apply()
 
@@ -243,11 +201,7 @@ def test_partitioning_time_daily_apply():
     # it's june now, we want to partition two days ahead
     with freezegun.freeze_time("2019-06-03"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, days=1, count=2, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, days=1, count=2)]
         )
         manager.plan().apply()
 
@@ -270,11 +224,7 @@ def test_partitioning_time_monthly_apply_insert():
 
     with freezegun.freeze_time("2019-1-1"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, months=1, count=2, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, months=1, count=2)]
         )
         manager.plan().apply()
 
@@ -289,11 +239,7 @@ def test_partitioning_time_monthly_apply_insert():
 
     with freezegun.freeze_time("2019-1-1"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, months=1, count=3, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, months=1, count=3)]
         )
         manager.plan().apply()
 
@@ -315,11 +261,7 @@ def test_partitioning_time_weekly_apply_insert():
     # that's a monday
     with freezegun.freeze_time("2019-1-07"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, weeks=1, count=2, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, weeks=1, count=2)]
         )
         manager.plan().apply()
 
@@ -337,11 +279,7 @@ def test_partitioning_time_weekly_apply_insert():
 
     with freezegun.freeze_time("2019-1-07"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, weeks=1, count=3, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, weeks=1, count=3)]
         )
         manager.plan().apply()
 
@@ -363,11 +301,7 @@ def test_partitioning_time_daily_apply_insert():
     # that's a monday
     with freezegun.freeze_time("2019-1-07"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, days=1, count=2, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, days=1, count=2)]
         )
         manager.plan().apply()
 
@@ -384,11 +318,7 @@ def test_partitioning_time_daily_apply_insert():
 
     with freezegun.freeze_time("2019-1-07"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, days=1, count=4, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, days=1, count=4)]
         )
         manager.plan().apply()
 
@@ -407,11 +337,7 @@ def test_partitioning_time_switch_interval():
     # create partition for january
     with freezegun.freeze_time("2019-1-1"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, months=1, count=1, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, months=1, count=1)]
         )
         manager.plan().apply()
 
@@ -424,11 +350,7 @@ def test_partitioning_time_switch_interval():
         with pytest.raises(ProgrammingError):
             with transaction.atomic():
                 manager = PostgresPartitioningManager(
-                    [
-                        partition_by_time(
-                            model, weeks=1, count=1, start_from=date(2019, 1, 1)
-                        )
-                    ]
+                    [partition_by_time(model, weeks=1, count=1)]
                 )
                 manager.plan().apply()
 
@@ -440,8 +362,8 @@ def test_partitioning_time_switch_interval():
                 partition_by_time(
                     model,
                     weeks=1,
-                    count=3,
-                    start_from=datetime.date(2019, 1, 31),
+                    count=1,
+                    from_datetime=datetime.date(2019, 2, 1),
                 )
             ]
         )
@@ -450,7 +372,7 @@ def test_partitioning_time_switch_interval():
     table = _get_partitioned_table(model)
     assert len(table.partitions) == 2
     assert table.partitions[0].name == "2019_jan"
-    assert table.partitions[1].name == "2019_week_05"
+    assert table.partitions[1].name == "2019_week_04"
 
 
 @pytest.mark.parametrize(
@@ -472,11 +394,7 @@ def test_partitioning_time_multiple(kwargs, partition_names):
 
     with freezegun.freeze_time("2019-1-1"):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, **kwargs, count=2, start_from=date(2019, 1, 1)
-                )
-            ]
+            [partition_by_time(model, **kwargs, count=2)]
         )
         manager.plan().apply()
 
@@ -502,15 +420,6 @@ def test_partitioning_time_multiple(kwargs, partition_names):
             ],
         ),
         (
-            dict(weeks=2, max_age=relativedelta(weeks=8)),
-            [
-                ("2019-1-1", 6),
-                ("2019-2-20", 6),
-                ("2019-3-1", 5),
-                ("2019-4-1", 3),
-            ],
-        ),
-        (
             dict(days=7, max_age=relativedelta(weeks=1)),
             [
                 ("2019-1-1", 6),
@@ -533,12 +442,7 @@ def test_partitioning_time_delete(kwargs, timepoints):
     schema_editor = connection.schema_editor()
     schema_editor.create_partitioned_model(model)
 
-    partition_kwargs = {
-        "model": model,
-        "count": 6,
-        "start_from": date(2019, 1, 1),
-        **kwargs,
-    }
+    partition_kwargs = {"model": model, "count": 6, **kwargs}
 
     manager = PostgresPartitioningManager(
         [partition_by_time(**partition_kwargs)]
@@ -553,67 +457,6 @@ def test_partitioning_time_delete(kwargs, timepoints):
 
             table = _get_partitioned_table(model)
             assert len(table.partitions) == partition_count
-
-
-def test_partitioning_time_delete_start_from():
-    """Tests whether partitions created before the specified start date/time
-    are not deleted even if they're older than max_age."""
-
-    model = define_fake_partitioned_model(
-        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
-    )
-
-    schema_editor = connection.schema_editor()
-    schema_editor.create_partitioned_model(model)
-
-    manager = PostgresPartitioningManager(
-        [
-            partition_by_time(
-                model, count=2, months=1, start_from=date(2019, 1, 1)
-            )
-        ]
-    )
-
-    with freezegun.freeze_time("2019-1-1"):
-        manager.plan().apply()
-
-        table = _get_partitioned_table(model)
-        assert len(table.partitions) == 2
-
-    # switching from monthly to weekly, we start creating new
-    # weekly partitions from 2019-3-1 so that we don't create
-    # partitions that overlap with already existing monthly partitions
-    manager = PostgresPartitioningManager(
-        [
-            partition_by_time(
-                model,
-                count=2,
-                weeks=1,
-                start_from=date(2019, 3, 1),
-                max_age=relativedelta(weeks=1),
-            )
-        ]
-    )
-
-    with freezegun.freeze_time("2019-2-1"):
-        manager.plan().apply()
-
-        table = _get_partitioned_table(model)
-        assert len(table.partitions) == 2
-
-    with freezegun.freeze_time("2020-1-1"):
-        manager.plan().apply()
-
-        table = _get_partitioned_table(model)
-        assert len(table.partitions) == 4
-
-        # we switched partitioning config and the deleter
-        # should not touch these very old partitions because
-        # they were created before start_from=2019-3-1
-        assert table.partitions[0].name == "2019_jan"
-        assert table.partitions[1].name == "2019_feb"
-        assert table.partitions[2].name == "2020_week_00"
-        assert table.partitions[3].name == "2020_week_01"
 
 
 def test_partitioning_time_delete_ignore_manual():
@@ -631,11 +474,7 @@ def test_partitioning_time_delete_ignore_manual():
     schema_editor.create_partitioned_model(model)
 
     manager = PostgresPartitioningManager(
-        [
-            partition_by_time(
-                model, count=2, months=1, start_from=date(2019, 1, 1)
-            )
-        ]
+        [partition_by_time(model, count=2, months=1)]
     )
 
     schema_editor.add_range_partition(
@@ -658,7 +497,7 @@ def test_partitioning_time_no_size():
     )
 
     with pytest.raises(PostgresPartitioningError):
-        partition_by_time(model, count=1, start_from=date(2019, 1, 1))
+        partition_by_time(model, count=1)
 
 
 def test_partitioning_time_multiple_sizes():
@@ -670,6 +509,4 @@ def test_partitioning_time_multiple_sizes():
     )
 
     with pytest.raises(PostgresPartitioningError):
-        partition_by_time(
-            model, weeks=1, months=2, count=1, start_from=date(2019, 1, 1)
-        )
+        partition_by_time(model, weeks=1, months=2, count=1)

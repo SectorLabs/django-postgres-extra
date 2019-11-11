@@ -1,4 +1,3 @@
-from datetime import date
 
 import pytest
 
@@ -24,12 +23,8 @@ def test_partitioning_manager_duplicate_model():
     with pytest.raises(PostgresPartitioningError):
         PostgresPartitioningManager(
             [
-                partition_by_time(
-                    model, years=1, count=3, start_from=date(1337, 1, 1)
-                ),
-                partition_by_time(
-                    model, years=1, count=3, start_from=date(1337, 1, 1)
-                ),
+                partition_by_time(model, years=1, count=3),
+                partition_by_time(model, years=1, count=3),
             ]
         )
 
@@ -42,17 +37,13 @@ def test_partitioning_manager_find_config_for_model():
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
     )
 
-    config1 = partition_by_time(
-        model1, years=1, count=3, start_from=date(1337, 1, 1)
-    )
+    config1 = partition_by_time(model1, years=1, count=3)
 
     model2 = define_fake_partitioned_model(
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
     )
 
-    config2 = partition_by_time(
-        model2, months=1, count=2, start_from=date(1337, 1, 1)
-    )
+    config2 = partition_by_time(model2, months=1, count=2)
 
     manager = PostgresPartitioningManager([config1, config2])
     assert manager.find_config_for_model(model1) == config1
@@ -67,11 +58,7 @@ def test_partitioning_manager_plan_not_partitioned_model():
 
     with pytest.raises(PostgresPartitioningError):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, months=1, count=2, start_from=date(1337, 1, 1)
-                )
-            ]
+            [partition_by_time(model, months=1, count=2)]
         )
         manager.plan()
 
@@ -86,10 +73,6 @@ def test_partitioning_manager_plan_non_existent_model():
 
     with pytest.raises(PostgresPartitioningError):
         manager = PostgresPartitioningManager(
-            [
-                partition_by_time(
-                    model, months=1, count=2, start_from=date(1337, 1, 1)
-                )
-            ]
+            [partition_by_time(model, months=1, count=2)]
         )
         manager.plan()
