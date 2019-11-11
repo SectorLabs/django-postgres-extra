@@ -82,29 +82,25 @@ class PostgresPartitioningManager:
 
         model_plan = PostgresModelPartitioningPlan(config)
 
-        with connection.schema_editor() as schema_editor:
-            if not no_create:
-                for partition in config.strategy.to_create():
-                    if table.partition_by_name(name=partition.name()):
-                        continue
+        if not no_create:
+            for partition in config.strategy.to_create():
+                if table.partition_by_name(name=partition.name()):
+                    continue
 
-                    model_plan.creations.append(partition)
+                model_plan.creations.append(partition)
 
-            if not no_delete:
-                for partition in config.strategy.to_delete():
-                    introspected_partition = table.partition_by_name(
-                        name=partition.name()
-                    )
-                    if not introspected_partition:
-                        continue
+        if not no_delete:
+            for partition in config.strategy.to_delete():
+                introspected_partition = table.partition_by_name(
+                    name=partition.name()
+                )
+                if not introspected_partition:
+                    continue
 
-                    if (
-                        introspected_partition.comment
-                        != AUTO_PARTITIONED_COMMENT
-                    ):
-                        continue
+                if introspected_partition.comment != AUTO_PARTITIONED_COMMENT:
+                    continue
 
-                    model_plan.deletions.append(partition)
+                model_plan.deletions.append(partition)
 
         if len(model_plan.creations) == 0 and len(model_plan.deletions) == 0:
             return None
