@@ -80,7 +80,7 @@ class PostgresTimePartitionSize:
             return self._ensure_datetime(dt.replace(day=1))
 
         if self.unit == PostgresTimePartitionUnit.WEEKS:
-            return self._ensure_datetime(dt - relativedelta(dt.weekday()))
+            return self._ensure_datetime(dt - relativedelta(days=dt.weekday()))
 
         return self._ensure_datetime(dt)
 

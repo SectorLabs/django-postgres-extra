@@ -259,7 +259,7 @@ def test_partitioning_time_weekly_apply_insert():
     schema_editor.create_partitioned_model(model)
 
     # that's a monday
-    with freezegun.freeze_time("2019-1-07"):
+    with freezegun.freeze_time("2019-1-08"):
         manager = PostgresPartitioningManager(
             [partition_by_current_time(model, weeks=1, count=2)]
         )
@@ -330,7 +330,7 @@ def test_partitioning_time_daily_apply_insert():
     "kwargs,partition_names",
     [
         (dict(days=2), ["2019_jan_01", "2019_jan_03"]),
-        (dict(weeks=2), ["2019_week_00", "2019_week_02"]),
+        (dict(weeks=2), ["2018_week_53", "2019_week_02"]),
         (dict(months=2), ["2019_jan", "2019_mar"]),
         (dict(years=2), ["2019", "2021"]),
     ],
