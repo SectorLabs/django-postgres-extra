@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Generator, Optional
 
 from dateutil.relativedelta import relativedelta
@@ -71,4 +71,4 @@ class PostgresCurrentTimePartitioningStrategy(
             current_datetime -= self.size.as_delta()
 
     def get_start_datetime(self) -> datetime:
-        return datetime.now()
+        return datetime.now(timezone.utc)
