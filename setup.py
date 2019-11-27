@@ -36,7 +36,7 @@ with open(
 
 setup(
     name="django-postgres-extra",
-    version="2.0a12",
+    version="2.0a13",
     packages=find_packages(),
     include_package_data=True,
     license="MIT License",
