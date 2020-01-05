@@ -31,7 +31,7 @@ Breaking changes
 
 * Removes support for ``psqlextra.signals``. Switch to standard Django signals.
 * Inserts with ``ConflictAction.NOTHING`` only returns new rows. Conflicting rows are not returned.
-* Drop support for Python 3.5 and 3.6.
+* Drop support for Python 3.5.
 * Drop support for Django 1.x.
 * Removes ``psqlextra.expressions.Min``, ``psqlextra.expressions.Max``, these are natively supported by Django.
 
@@ -57,9 +57,9 @@ FAQ
     To avoid further confusion, ``ConflictAction.NOTHING`` now follows standard PostgresQL behavior.
 
 
-3. Why was support dropped for Python 3.5 and 3.6?
+3. Why was support dropped for Python 3.5?
 
-    Python 3.7 added support for type annotations on variables. Older versions only supported this by addinig type annotations as comments.
+    Python 3.6 added support for dataclasses.
 
 
 4. Why was support dropped for Django 1.x?

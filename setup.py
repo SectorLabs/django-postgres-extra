@@ -54,11 +54,11 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.6",
     install_requires=[
         "Django>=2.0",
         "enforce==0.3.4",
@@ -67,6 +67,7 @@ setup(
         "ansimarkup==1.4.0",
     ],
     extras_require={
+        ':python_version <= "3.6"': ["dataclasses"],
         "docs": ["Sphinx==2.2.0", "sphinx-rtd-theme==0.4.3"],
         "test": [
             "psycopg2==2.8.4",
