@@ -79,6 +79,37 @@ jobs:
                 name: Upload coverage report
                 command: coveralls
 
+    test-python39:
+        docker:
+            - image: python:3.9-rc-alpine3.10
+            - image: postgres:11.0
+              environment:
+                  POSTGRES_DB: 'psqlextra'
+                  POSTGRES_USER: 'psqlextra'
+                  POSTGRES_PASSWORD: 'psqlextra'
+        steps:
+            - checkout
+            - run:
+                name: Install packages
+                command: apk add postgresql-libs gcc musl-dev postgresql-dev git
+
+            - run:
+                name: Install Python packages
+                command: pip install --progress-bar off .[test]
+
+            - run:
+                name: Run tests
+                command: tox -e 'py39-dj{20,21,22}'
+                environment:
+                    DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
+
+            - store_test_results:
+                path: reports
+
+            - run:
+                name: Upload coverage report
+                command: coveralls
+
     analysis:
         docker:
             - image: python:3.7-alpine
@@ -104,4 +135,5 @@ workflows:
             - test-python36
             - test-python37
             - test-python38
+            - test-python39
             - analysis
