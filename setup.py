@@ -72,9 +72,9 @@ setup(
         "test": [
             "psycopg2==2.8.4",
             "dj-database-url==0.5.0",
-            "pytest==5.2.2",
+            "pytest==5.3.2",
             "pytest-benchmark==3.2.2",
-            "pytest-django==3.6.0",
+            "pytest-django==3.7.0",
             "pytest-cov==2.8.1",
             "tox==3.14.0",
             "freezegun==0.3.12",
