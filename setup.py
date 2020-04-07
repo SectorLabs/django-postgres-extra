@@ -63,7 +63,7 @@ setup(
         "Django>=2.0",
         "enforce==0.3.4",
         "python-dateutil==2.8.0",
-        "structlog==19.1.0",
+        "structlog==20.1.0",
         "ansimarkup==1.4.0",
     ],
     extras_require={
