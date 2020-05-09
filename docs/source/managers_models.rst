@@ -2,7 +2,7 @@
 
 .. _managers_models:
 
-Manages & Models
+Managers & Models
 ================
 
 :class:`~psqlextra.manager.PostgresManager` exposes a lot of functionality. Your model must use this manager in order to use most of this package's functionality.
