@@ -43,6 +43,24 @@ def test_query_annotate_rename():
     assert obj.title == "swen"
 
 
+def test_query_annotate_rename_chain():
+    """Tests whether annotations are behaving correctly after a QuerySet
+    chain."""
+
+    model = get_fake_model(
+        {
+            "name": models.CharField(max_length=10),
+            "value": models.IntegerField(),
+        }
+    )
+
+    model.objects.create(name="test", value=23)
+
+    obj = model.objects.values("name").annotate(value=F("value"))[:1]
+    assert "value" in obj[0]
+    assert obj[0]["value"] == 23
+
+
 def test_query_hstore_value_update_f_ref():
     """Tests whether F(..) expressions can be used in hstore values when
     performing update queries."""

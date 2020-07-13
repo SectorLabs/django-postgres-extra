@@ -55,6 +55,10 @@ class PostgresQuery(sql.Query):
             self.annotations[new_name] = annotation
             del self.annotations[old_name]
 
+            if self.annotation_select_mask:
+                self.annotation_select_mask.discard(old_name)
+                self.annotation_select_mask.add(new_name)
+
     def add_fields(self, field_names: List[str], *args, **kwargs) -> bool:
         """Adds the given (model) fields to the select set.
 
