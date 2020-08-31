@@ -68,7 +68,7 @@ class PostgresModelState(ModelState):
                 "Cannot resolve one or more bases from %r" % (self.bases,)
             )
 
-        fields = {name: field.clone() for name, field in self.fields}
+        fields = {name: field.clone() for name, field in self.fields.items()}
         meta = type(
             "Meta",
             (),
