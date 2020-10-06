@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Type
 
 from django.db.migrations.state import ModelState
@@ -68,7 +69,12 @@ class PostgresModelState(ModelState):
                 "Cannot resolve one or more bases from %r" % (self.bases,)
             )
 
-        fields = {name: field.clone() for name, field in self.fields}
+        if isinstance(self.fields, Mapping):
+            # In Django 3.1 `self.fields` became a `dict`
+            fields = {name: field.clone() for name, field in self.fields.items()}
+        else:
+            # In Django < 3.1 `self.fields` is a list of (name, field) tuples
+            fields = {name: field.clone() for name, field in self.fields}
         meta = type(
             "Meta",
             (),
