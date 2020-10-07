@@ -22,7 +22,7 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 
 ---
 
-:warning: **This README is for v2 which is currently under development. See the `v1` branch for v1.x.**
+:warning: **This README is for v2. See the `v1` branch for v1.x.**
 
 ---
 
