@@ -81,7 +81,7 @@ jobs:
 
     test-python39:
         docker:
-            - image: python:3.9-rc-alpine3.10
+            - image: python:3.9-alpine
             - image: postgres:11.0
               environment:
                   POSTGRES_DB: 'psqlextra'
