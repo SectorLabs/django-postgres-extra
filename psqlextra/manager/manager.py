@@ -18,17 +18,22 @@ class PostgresManager(Manager.from_queryset(PostgresQuerySet)):
 
         super().__init__(*args, **kwargs)
 
-        # make sure our back-end is set and refuse to proceed
+        # make sure our back-end is set in at least one db and refuse to proceed
         # if it's not set
-        db_backend = settings.DATABASES["default"]["ENGINE"]
-        if "psqlextra" not in db_backend:
+        def has_pqlextra_backend():
+            for db_alias, db_settings in settings.DATABASES.items():
+                db_backend = db_settings['ENGINE']
+                if "psqlextra" in db_backend:
+                    return True
+            return False
+
+        if not has_pqlextra_backend():
             raise ImproperlyConfigured(
                 (
-                    "'%s' is not the 'psqlextra.backend'. "
+                    "Could not locate the 'psqlextra.backend'. "
                     "django-postgres-extra cannot function without "
                     "the 'psqlextra.backend'. Set DATABASES.ENGINE."
                 )
-                % db_backend
             )
 
     def truncate(
