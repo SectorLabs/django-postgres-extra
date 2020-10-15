@@ -19,15 +19,15 @@ class PostgresManager(Manager.from_queryset(PostgresQuerySet)):
         super().__init__(*args, **kwargs)
 
         # make sure our back-end is set in at least one db and refuse to proceed
-        # if it's not set
-        def has_pqlextra_backend():
-            for db_alias, db_settings in settings.DATABASES.items():
-                db_backend = db_settings['ENGINE']
-                if "psqlextra" in db_backend:
-                    return True
-            return False
+        has_psqlextra_backend = any(
+            [
+                db_settings
+                for db_settings in settings.DATABASES.values()
+                if "psqlextra" in db_settings["ENGINE"]
+            ]
+        )
 
-        if not has_pqlextra_backend():
+        if not has_psqlextra_backend:
             raise ImproperlyConfigured(
                 (
                     "Could not locate the 'psqlextra.backend'. "
