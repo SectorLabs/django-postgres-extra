@@ -61,6 +61,20 @@ def test_query_annotate_rename_chain():
     assert obj[0]["value"] == 23
 
 
+def test_query_annotate_rename_order():
+    """Tests whether annotation order is preserved after a rename."""
+
+    model = get_fake_model(
+        {
+            "name": models.CharField(max_length=10),
+            "value": models.IntegerField(),
+        }
+    )
+
+    qs = model.objects.annotate(value=F("value"), value_2=F("value"))
+    assert list(qs.query.annotations.keys()) == ["value", "value_2"]
+
+
 def test_query_hstore_value_update_f_ref():
     """Tests whether F(..) expressions can be used in hstore values when
     performing update queries."""
