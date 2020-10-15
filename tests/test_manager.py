@@ -1,10 +1,49 @@
 import pytest
 
+from django.core.exceptions import ImproperlyConfigured
 from django.db import models
+from django.test import override_settings
 
+from psqlextra.manager import PostgresManager
 from psqlextra.models import PostgresModel
 
 from .fake_model import get_fake_model
+
+
+@pytest.mark.parametrize(
+    "databases",
+    [
+        {"default": {"ENGINE": "psqlextra.backend"}},
+        {
+            "default": {"ENGINE": "django.db.backends.postgresql"},
+            "other": {"ENGINE": "psqlextra.backend"},
+        },
+        {
+            "default": {"ENGINE": "psqlextra.backend"},
+            "other": {"ENGINE": "psqlextra.backend"},
+        },
+    ],
+)
+def test_manager_backend_set(databases):
+    """Tests that creating a new instance of :see:PostgresManager succeseeds
+    without any errors if one or more databases are configured with
+    `psqlextra.backend` as its ENGINE."""
+
+    with override_settings(DATABASES=databases):
+        assert PostgresManager()
+
+
+def test_manager_backend_not_set():
+    """Tests whether creating a new instance of
+    :see:PostgresManager fails if no database
+    has `psqlextra.backend` configured
+    as its ENGINE."""
+
+    with override_settings(
+        DATABASES={"default": {"ENGINE": "django.db.backends.postgresql"}}
+    ):
+        with pytest.raises(ImproperlyConfigured):
+            PostgresManager()
 
 
 def test_manager_truncate():
