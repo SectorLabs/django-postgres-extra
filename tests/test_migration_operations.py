@@ -127,6 +127,53 @@ def test_migration_operations_delete_partitioned_table(method, create_model):
 
 
 @pytest.mark.parametrize(
+    "method,add_partition_operation",
+    [
+        (
+            PostgresPartitioningMethod.LIST,
+            operations.PostgresAddDefaultPartition(
+                model_name="test", name="pt1"
+            ),
+        ),
+        (
+            PostgresPartitioningMethod.RANGE,
+            operations.PostgresAddRangePartition(
+                model_name="test",
+                name="pt1",
+                from_values="2019-01-01",
+                to_values="2019-02-01",
+            ),
+        ),
+        (
+            PostgresPartitioningMethod.LIST,
+            operations.PostgresAddListPartition(
+                model_name="test", name="pt1", values=["car", "boat"]
+            ),
+        ),
+    ],
+)
+def test_migration_operations_add_partition(
+    method, add_partition_operation, create_model
+):
+    """Tests whether adding partitions and then rolling them back works as
+    expected."""
+
+    create_operation = create_model(method)
+    state = migrations.state.ProjectState.from_apps(apps)
+
+    # migrate forwards
+    apply_migration([create_operation, add_partition_operation], state)
+    assert _partition_exists(create_operation, add_partition_operation)
+
+    # rollback
+    apply_migration(
+        [create_operation, add_partition_operation], state, backwards=True
+    )
+
+    assert not _partition_exists(create_operation, add_partition_operation)
+
+
+@pytest.mark.parametrize(
     "method,add_partition_operation,delete_partition_operation",
     [
         (
