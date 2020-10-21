@@ -363,4 +363,4 @@ You can look at :class:`psqlextra.partitioning.PostgresCurrentTimePartitioningSt
 Switching partitioning strategies
 *********************************
 
-When switching partitioning strategies, you might encounter the problem that partitions for part of a particular range already exist. In order to combat this, you can specify the ``start_from`` parameter to not create partitions for a date/time earlier than specified.
+When switching partitioning strategies, you might encounter the problem that partitions for part of a particular range already exist. In order to combat this, you can use the :class:`psqlextra.partitioning.PostgresTimePartitioningStrategy` and specify the `start_datetime` parameter. As a result, no partitions will be created before the given date/time.
