@@ -289,55 +289,75 @@ Partitioning strategies
 ***********************
 
 
-Monthly partitioning
-~~~~~~~~~~~~~~~~~~~~
-
-Partitions will be named ``[table_name]_[3-letter month name]``.
+Time-based partitioning
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
-   from psqlextra.partitioning import (
-      PostgresPartitioningManager,
-      partition_by_current_time,
-   )
-
-   # 3 partitions ahead, each partition is one month
-   manager = PostgresPartitioningManager(
-      model=MyPartitionedModel,
-      count=3,
-      months=1,
-   )
-   manager.apply()
-
-
-Weekly partitioning
-~~~~~~~~~~~~~~~~~~~
-
-Partitions will be named ``[table_name]_week_[week number]``.
-
-.. code-block:: python
+   from dateutil.relativedelta import relativedelta
 
    from psqlextra.partitioning import (
-      PostgresPartitioningManager,
-      partition_by_current_time,
+       PostgresPartitioningManager,
+       PostgresCurrentTimePartitioningStrategy,
+       PostgresTimePartitionSize,
+       partition_by_current_time,
    )
 
-   # 4 partitions ahead, each partition is 1 week
-   manager = PostgresPartitioningManager(
-      model=MyPartitionedModel,
-      count=4,
-      weeks=1,
+   manager = PostgresPartitioningManager([
+       # 3 partitions ahead, each partition is one month
+       # delete partitions older than 6 months
+       # partitions will be named `[table_name]_[year]_[3-letter month name]`.
+       PostgresPartitioningConfig(
+           model=MyPartitionedModel,
+           strategy=PostgresCurrentTimePartitioningStrategy(
+               size=PostgresTimePartitionSize(months=1),
+               count=3,
+               max_age=relativedelta(months=6),
+           ),
+       ),
+       # 6 partitions ahead, each partition is two weeks
+       # delete partitions older than 8 months
+       # partitions will be named `[table_name]_[year]_week_[week number]`.
+       PostgresPartitioningConfig(
+           model=MyPartitionedModel,
+           strategy=PostgresCurrentTimePartitioningStrategy(
+               size=PostgresTimePartitionSize(weeks=2),
+               count=6,
+               max_age=relativedelta(weeks=8),
+           ),
+       ),
+       # 12 partitions ahead, each partition is 5 days
+       # old partitions are never deleted, `max_age` is not set
+       # partitions will be named `[table_name]_[year]_[month]_[month day number]`.
+       PostgresPartitioningConfig(
+           model=MyPartitionedModel,
+           strategy=PostgresCurrentTimePartitioningStrategy(
+               size=PostgresTimePartitionSize(wdyas=5),
+               count=12,
+           ),
+       ),
+   ])
+
+   # these are the default arguments
+   partioning_plan = manager.plan(
+       skip_create=False,
+       skip_delete=False,
+       using='default'
    )
-   manager.apply()
+
+   # prints a list of partitions to be created/deleted
+   partitioning_plan.print()
+
+   # apply the plan
+   partitioning_plan.apply(using='default');
 
 
-   # 6 partitions ahead, each partition is 2 weeks
-   manager = PostgresPartitioningManager(
-      model=MyPartitionedModel,
-      count=6,
-      weeks=2,
-   )
-   manager.apply()
+Custom strategy
+~~~~~~~~~~~~~~~
+
+You can create a custom partitioning strategy by implementing the :class:`psqlextra.partitioning.PostgresPartitioningStrategy` interface.
+
+You can look at :class:`psqlextra.partitioning.PostgresCurrentTimePartitioningStrategy` as an example.
 
 
 Switching partitioning strategies
