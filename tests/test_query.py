@@ -1,10 +1,18 @@
+import uuid
+
+from datetime import datetime
+
+import freezegun
+
+from dateutil.relativedelta import relativedelta
 from django.db import models
-from django.db.models import F
+from django.db.models import F, Sum
 
 from psqlextra.expressions import HStoreRef
 from psqlextra.fields import HStoreField
+from psqlextra.types import PostgresPartitioningMethod
 
-from .fake_model import get_fake_model
+from .fake_model import get_fake_model, get_fake_partitioned_model
 
 
 def test_query_annotate_hstore_key_ref():
@@ -114,3 +122,64 @@ def test_query_hstore_value_update_escape():
 
     inst = model.objects.all().first()
     assert inst.title.get("en") == "console.log('test')"
+
+
+@freezegun.freeze_time("2020-10-23")
+def test_query_annotate_rename_fail_for_warmwaffles():
+    Account = get_fake_model(
+        {"id": models.UUIDField(primary_key=True, default=uuid.uuid4)}
+    )
+
+    AmsCampaignReport = get_fake_partitioned_model(
+        {
+            "id": models.UUIDField(primary_key=True, default=uuid.uuid4),
+            "account": models.ForeignKey(
+                to=Account, on_delete=models.DO_NOTHING
+            ),
+            "report_date": models.DateField(),
+            "metric": models.IntegerField(),
+        },
+        {"method": PostgresPartitioningMethod.RANGE, "key": ["report_date"]},
+    )
+
+    account1 = Account.objects.create()
+    account2 = Account.objects.create()
+    AmsCampaignReport.objects.create(
+        account=account1, report_date=datetime.now().date(), metric=2
+    )
+    AmsCampaignReport.objects.create(
+        account=account1, report_date=datetime.now().date(), metric=4
+    )
+    AmsCampaignReport.objects.create(
+        account=account2, report_date=datetime.now().date(), metric=7
+    )
+    AmsCampaignReport.objects.create(
+        account=account2, report_date=datetime.now().date(), metric=3
+    )
+
+    result = list(
+        AmsCampaignReport.objects.filter(
+            account__in=[account1, account2],
+            report_date__range=(
+                datetime.now() - relativedelta(days=1),
+                datetime.now(),
+            ),
+        )
+        .values("account_id", date=F("report_date"))
+        .annotate(total_metric=Sum(F("metric")))
+        .order_by("total_metric")
+        .all()
+    )
+
+    assert result == [
+        {
+            "account_id": account1.id,
+            "date": datetime.now().date(),
+            "total_metric": 6,
+        },
+        {
+            "account_id": account2.id,
+            "date": datetime.now().date(),
+            "total_metric": 10,
+        },
+    ]

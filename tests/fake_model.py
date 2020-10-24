@@ -89,6 +89,21 @@ def define_fake_partitioned_model(
     return model
 
 
+def get_fake_partitioned_model(
+    fields=None, partitioning_options={}, meta_options={}
+):
+    """Defines a fake partitioned model and creates it in the database."""
+
+    model = define_fake_partitioned_model(
+        fields, partitioning_options, meta_options
+    )
+
+    with connection.schema_editor() as schema_editor:
+        schema_editor.create_model(model)
+
+    return model
+
+
 def get_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
     """Defines a fake model and creates it in the database."""
 
