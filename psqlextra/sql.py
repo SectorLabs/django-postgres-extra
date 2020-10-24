@@ -41,9 +41,10 @@ class PostgresQuery(sql.Query):
                 old name to the new name.
         """
 
+        # safety check only, make sure there are no renames
+        # left that cannot be mapped back to the original name
         for old_name, new_name in annotations.items():
             annotation = self.annotations.get(old_name)
-
             if not annotation:
                 raise SuspiciousOperation(
                     (
@@ -52,12 +53,18 @@ class PostgresQuery(sql.Query):
                     ).format(old_name=old_name, new_name=new_name)
                 )
 
-            self.annotations[new_name] = annotation
-            del self.annotations[old_name]
+        # rebuild the annotations according to the original order
+        new_annotations = dict()
+        for old_name, annotation in self.annotations.items():
+            new_name = annotations.get(old_name)
+            new_annotations[new_name or old_name] = annotation
 
-            if self.annotation_select_mask:
+            if new_name and self.annotation_select_mask:
                 self.annotation_select_mask.discard(old_name)
                 self.annotation_select_mask.add(new_name)
+
+        self.annotations.clear()
+        self.annotations.update(new_annotations)
 
     def add_fields(self, field_names: List[str], *args, **kwargs) -> bool:
         """Adds the given (model) fields to the select set.

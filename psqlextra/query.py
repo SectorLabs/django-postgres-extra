@@ -40,12 +40,19 @@ class PostgresQuerySet(models.QuerySet):
         the annotations are stored in an OrderedDict. Renaming only the
         conflicts will mess up the order.
         """
+        fields = {field.name: field for field in self.model._meta.get_fields()}
+
         new_annotations = OrderedDict()
+
         renames = {}
+
         for name, value in annotations.items():
-            new_name = "%s_new" % name
-            new_annotations[new_name] = value
-            renames[new_name] = name
+            if name in fields:
+                new_name = "%s_new" % name
+                new_annotations[new_name] = value
+                renames[new_name] = name
+            else:
+                new_annotations[name] = value
 
         # run the base class's annotate function
         result = super().annotate(**new_annotations)

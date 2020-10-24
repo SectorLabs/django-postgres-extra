@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import F
+from django.db.models import Case, F, Q, Value, When
 
 from psqlextra.expressions import HStoreRef
 from psqlextra.fields import HStoreField
@@ -73,6 +73,26 @@ def test_query_annotate_rename_order():
 
     qs = model.objects.annotate(value=F("value"), value_2=F("value"))
     assert list(qs.query.annotations.keys()) == ["value", "value_2"]
+
+
+def test_query_annotate_in_expression():
+    """Tests whether annotations can be used in expressions."""
+
+    model = get_fake_model({"name": models.CharField(max_length=10)})
+
+    model.objects.create(name="henk")
+
+    result = model.objects.annotate(
+        real_name=F("name"),
+        is_he_henk=Case(
+            When(Q(real_name="henk"), then=Value("really henk")),
+            default=Value("definitely not henk"),
+            output_field=models.CharField(),
+        ),
+    ).first()
+
+    assert result.real_name == "henk"
+    assert result.is_he_henk == "really henk"
 
 
 def test_query_hstore_value_update_f_ref():
