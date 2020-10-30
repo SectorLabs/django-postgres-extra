@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from typing import List, Optional, Tuple
 
 import django
@@ -54,7 +55,7 @@ class PostgresQuery(sql.Query):
                 )
 
         # rebuild the annotations according to the original order
-        new_annotations = dict()
+        new_annotations = OrderedDict()
         for old_name, annotation in self.annotations.items():
             new_name = annotations.get(old_name)
             new_annotations[new_name or old_name] = annotation
