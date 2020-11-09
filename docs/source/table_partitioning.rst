@@ -323,7 +323,7 @@ Time-based partitioning
            strategy=PostgresCurrentTimePartitioningStrategy(
                size=PostgresTimePartitionSize(weeks=2),
                count=6,
-               max_age=relativedelta(weeks=8),
+               max_age=relativedelta(months=8),
            ),
        ),
        # 12 partitions ahead, each partition is 5 days
