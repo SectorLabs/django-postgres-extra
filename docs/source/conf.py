@@ -22,5 +22,5 @@ templates_path = ["_templates"]
 exclude_patterns = []
 html_theme = "sphinx_rtd_theme"
 intersphinx_mapping = {
-    "django": ("https://docs.djangoproject.com/en/2.2/", "https://docs.djangoproject.com/en/2.2/_objects/"),
+    "django": ("https://docs.djangoproject.com/en/stable/", "https://docs.djangoproject.com/en/stable/_objects/"),
 }
