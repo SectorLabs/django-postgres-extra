@@ -9,7 +9,7 @@ import django
 django.setup()
 
 project = "django-postgres-extra"
-copyright = "2019, Sector Labs"
+copyright = "2019-2020, Sector Labs"
 author = "Sector Labs"
 extensions = [
     "sphinx_rtd_theme",
