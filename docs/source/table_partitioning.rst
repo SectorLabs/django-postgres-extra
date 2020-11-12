@@ -66,7 +66,7 @@ Run the following command to automatically generate a migration:
 
    python manage.py pgmakemigrations
 
-This will generate migrationt that creates the partitioned table with a default partition.
+This will generate a migration that creates the partitioned table with a default partition.
 
 
 Adding/removing partitions manually
