@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Union
 
-from psqlextra.types import PostgresPartitioningMethod, SQLWithParams
+from psqlextra.types import SQL, PostgresPartitioningMethod, SQLWithParams
 
 
 class PostgresPartitionedModelOptions:
@@ -26,8 +26,11 @@ class PostgresViewOptions:
     held.
     """
 
-    def __init__(self, query: Optional[SQLWithParams]):
+    def __init__(
+        self, query: Optional[SQLWithParams], unique_constraint: Optional[SQL]
+    ):
         self.query = query
-        self.original_attrs: Dict[str, Optional[SQLWithParams]] = dict(
-            query=self.query
-        )
+        self.unique_constraint = unique_constraint
+        self.original_attrs: Dict[
+            str, Union[Optional[SQLWithParams], Optional[SQL]]
+        ] = dict(query=self.query, unique_constraint=self.unique_constraint)

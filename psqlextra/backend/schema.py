@@ -384,6 +384,10 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         self.execute(sql % (self.quote_name(model._meta.db_table), view_sql))
 
+        # execute `create unique index` if it was provided in the model
+        if getattr(meta, "unique_constraint"):
+            self.execute(meta.unique_constraint)
+
     def _extract_sql(self, method, *args):
         """Calls the specified method with the specified arguments and
         intercepts the SQL statement it WOULD execute.

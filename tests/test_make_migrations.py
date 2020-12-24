@@ -4,6 +4,7 @@ from django.apps import apps
 from django.db import models
 from django.db.migrations import AddField, AlterField, RemoveField
 from django.db.migrations.state import ProjectState
+from django.db.models.constraints import UniqueConstraint
 
 from psqlextra.backend.migrations import operations, postgres_patched_migrations
 from psqlextra.models import (
@@ -182,3 +183,37 @@ def test_make_migration_field_operations_view_models(
     )
     assert isinstance(migration.operations[0], operations.ApplyState)
     assert isinstance(migration.operations[0].state_operation, RemoveField)
+
+
+@postgres_patched_migrations()
+def test_make_migration_create_materialized_view_model_with_unique_constraint(
+    fake_app
+):
+    """Tests whether the right operations are generated when creating a new
+    materialized view model that has unique constraint."""
+
+    underlying_model = get_fake_model({"name": models.TextField()})
+
+    model = define_fake_materialized_view_model(
+        fields={"name": models.TextField()},
+        view_options=dict(
+            query=underlying_model.objects.all(),
+            unique_constraint=UniqueConstraint(
+                fields=["name"], name="unique_constraint"
+            ),
+        ),
+        meta_options=dict(app_label=fake_app.name),
+    )
+
+    migration = make_migration(model._meta.app_label)
+    ops = migration.operations
+
+    assert len(ops) == 1
+    assert isinstance(ops[0], operations.PostgresCreateMaterializedViewModel)
+
+    # make sure the base is set correctly
+    assert len(ops[0].bases) == 1
+    assert issubclass(ops[0].bases[0], PostgresMaterializedViewModel)
+
+    # make sure the view options got copied correctly
+    assert ops[0].view_options == model._view_meta.original_attrs

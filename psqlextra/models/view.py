@@ -4,9 +4,15 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import connections
 from django.db.models import Model
 from django.db.models.base import ModelBase
+from django.db.models.constraints import UniqueConstraint
 from django.db.models.query import QuerySet
 
-from psqlextra.type_assertions import is_query_set, is_sql, is_sql_with_params
+from psqlextra.type_assertions import (
+    is_query_set,
+    is_sql,
+    is_sql_with_params,
+    is_unique_constraint,
+)
 from psqlextra.types import SQL, SQLWithParams
 
 from .base import PostgresModel
@@ -34,7 +40,14 @@ class PostgresViewModelMeta(ModelBase):
             new_class, view_query
         )
 
-        view_meta = PostgresViewOptions(query=sql_with_params)
+        view_unique_constraint = getattr(meta_class, "unique_constraint", None)
+        unique_constraints_sql = cls._view_unique_constraints_as_sql(
+            new_class, view_unique_constraint
+        )
+
+        view_meta = PostgresViewOptions(
+            query=sql_with_params, unique_constraint=unique_constraints_sql
+        )
         new_class.add_to_class("_view_meta", view_meta)
         return new_class
 
@@ -89,6 +102,48 @@ class PostgresViewModelMeta(ModelBase):
             return view_query
 
         return view_query, tuple()
+
+    @staticmethod
+    def _view_unique_constraints_as_sql(
+        model: Model, view_unique_constraint: UniqueConstraint
+    ) -> Optional[SQL]:
+        """Gets the unique constraint associated with the view as a
+        `django.db.models.constraints.UniqueConstraint`.
+
+        The unique constraint must be specified as `django.db.models.constraints.UniqueConstraint`.
+
+        When copying the meta options from the model, we convert any
+        from the above to a raw SQL query. We do this is because it is
+        what the SQL driver understands and we can easily serialize it
+        into a migration.
+        """
+        # check if unique constraint was provided.
+        if not view_unique_constraint:
+            return None
+
+        if not (
+            is_unique_constraint(view_unique_constraint)
+            or is_sql(view_unique_constraint)
+        ):
+            raise ImproperlyConfigured(
+                (
+                    "Model '%s' is not properly configured to be a view."
+                    " Set the `constraints` attribute on the `ViewMeta` class"
+                    " to be a valid `django.db.models.constraints.UniqueConstraint`."
+                )
+                % (model.__name__)
+            )
+
+        # query was already specified in the target format
+        if is_sql(view_unique_constraint):
+            return view_unique_constraint
+
+        # interpolate provided values to a valid `CREATE UNIQUE INDEX` sql query
+        return "CREATE UNIQUE INDEX {view_name}_{index_name} ON {view_name} ({fields})".format(
+            view_name=model._meta.db_table,
+            index_name=view_unique_constraint.name,
+            fields=",".join(view_unique_constraint.fields),
+        )
 
 
 class PostgresViewModel(PostgresModel, metaclass=PostgresViewModelMeta):

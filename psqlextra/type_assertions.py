@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from typing import Any
 
+from django.db.models.constraints import UniqueConstraint
 from django.db.models.query import QuerySet
 
 
@@ -27,3 +28,8 @@ def is_sql_with_params(value: Any) -> bool:
         and isinstance(value[1], Iterable)
         and not isinstance(value[1], (str, bytes, bytearray))
     )
+
+
+def is_unique_constraint(value: Any) -> bool:
+    """Gets whether the specified value is a :see:UniqueConstraint."""
+    return isinstance(value, UniqueConstraint)
