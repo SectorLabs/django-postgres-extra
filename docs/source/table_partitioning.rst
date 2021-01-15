@@ -118,7 +118,7 @@ Use the :class:`~psqlextra.migrations.operations.PostgresAddListPartition` opera
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresAddRangePartition
+   from psqlextra.migrations.operations import PostgresAddListPartition
 
    class Migration(migrations.Migration):
        operations = [
