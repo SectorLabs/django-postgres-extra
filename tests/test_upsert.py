@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.expressions import CombinedExpression, Value
 
 from psqlextra.fields import HStoreField
 
@@ -74,6 +75,35 @@ def test_upsert_explicit_pk():
     assert obj1.cookies == "second-boo"
     assert obj2.name == "the-object"
     assert obj2.cookies == "second-boo"
+
+
+def test_upsert_with_update_condition():
+    """Tests that a custom expression can be passed as an update condition."""
+
+    model = get_fake_model(
+        {
+            "name": models.TextField(unique=True),
+            "priority": models.IntegerField(),
+            "active": models.BooleanField(),
+        }
+    )
+
+    obj1 = model.objects.create(name="joe", priority=1, active=False)
+
+    model.objects.upsert(
+        conflict_target=["name"],
+        update_condition=CombinedExpression(
+            model._meta.get_field("active").get_col(model._meta.db_table),
+            "=",
+            Value(True),
+        ),
+        fields=dict(name="joe", priority=2, active=True),
+    )
+
+    obj1.refresh_from_db()
+
+    assert obj1.priority == 1
+    assert not obj1.active
 
 
 def test_upsert_bulk():

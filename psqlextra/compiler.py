@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 
 from django.core.exceptions import SuspiciousOperation
-from django.db.models import Model
+from django.db.models import Expression, Model
 from django.db.models.fields.related import RelatedField
 from django.db.models.sql.compiler import SQLInsertCompiler, SQLUpdateCompiler
 from django.db.utils import ProgrammingError
@@ -150,30 +150,31 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         # for conflicts
         conflict_target = self._build_conflict_target()
         index_predicate = self.query.index_predicate
+        update_condition = self.query.conflict_update_condition
 
-        sql_template = (
-            "{insert} ON CONFLICT {conflict_target} DO {conflict_action}"
-        )
+        rewritten_sql = f"{sql} ON CONFLICT {conflict_target}"
 
         if index_predicate:
-            sql_template = "{insert} ON CONFLICT {conflict_target} WHERE {index_predicate} DO {conflict_action}"
+            if isinstance(index_predicate, Expression):
+                expr_sql, expr_params = self.compile(index_predicate)
+                rewritten_sql += f" WHERE {expr_sql}"
+                params += tuple(expr_params)
+            else:
+                rewritten_sql += f" WHERE {index_predicate}"
+
+        rewritten_sql += f" DO {conflict_action}"
 
         if conflict_action == "UPDATE":
-            sql_template += " SET {update_columns}"
+            rewritten_sql += f" SET {update_columns}"
 
-        sql_template += " RETURNING {returning}"
+            if update_condition:
+                expr_sql, expr_params = self.compile(update_condition)
+                rewritten_sql += f" WHERE {expr_sql}"
+                params += tuple(expr_params)
 
-        return (
-            sql_template.format(
-                insert=sql,
-                conflict_target=conflict_target,
-                conflict_action=conflict_action,
-                update_columns=update_columns,
-                returning=returning,
-                index_predicate=index_predicate,
-            ),
-            params,
-        )
+        rewritten_sql += f" RETURNING {returning}"
+
+        return (rewritten_sql, params)
 
     def _build_conflict_target(self):
         """Builds the `conflict_target` for the ON CONFLICT clause."""

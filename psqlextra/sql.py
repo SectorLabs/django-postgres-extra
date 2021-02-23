@@ -145,6 +145,8 @@ class PostgresInsertQuery(sql.InsertQuery):
 
         self.conflict_target = []
         self.conflict_action = ConflictAction.UPDATE
+        self.conflict_update_condition = None
+        self.index_predicate = None
 
         self.update_fields = []
 

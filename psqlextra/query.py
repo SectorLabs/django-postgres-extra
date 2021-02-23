@@ -4,6 +4,7 @@ from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 from django.core.exceptions import SuspiciousOperation
 from django.db import models, router
+from django.db.models import Expression
 from django.db.models.fields import NOT_PROVIDED
 
 from .sql import PostgresInsertQuery, PostgresQuery
@@ -24,6 +25,7 @@ class PostgresQuerySet(models.QuerySet):
 
         self.conflict_target = None
         self.conflict_action = None
+        self.conflict_update_condition = None
         self.index_predicate = None
 
     def annotate(self, **annotations):
@@ -80,7 +82,8 @@ class PostgresQuerySet(models.QuerySet):
         self,
         fields: ConflictTarget,
         action: ConflictAction,
-        index_predicate: Optional[str] = None,
+        index_predicate: Optional[Union[Expression, str]] = None,
+        update_condition: Optional[Expression] = None,
     ):
         """Sets the action to take when conflicts arise when attempting to
         insert/create a new row.
@@ -95,10 +98,14 @@ class PostgresQuerySet(models.QuerySet):
             index_predicate:
                 The index predicate to satisfy an arbiter partial index (i.e. what partial index to use for checking
                 conflicts)
+
+            update_condition:
+                Only update if this SQL expression evaluates to true.
         """
 
         self.conflict_target = fields
         self.conflict_action = action
+        self.conflict_update_condition = update_condition
         self.index_predicate = index_predicate
 
         return self
@@ -250,8 +257,9 @@ class PostgresQuerySet(models.QuerySet):
         self,
         conflict_target: ConflictTarget,
         fields: dict,
-        index_predicate: Optional[str] = None,
+        index_predicate: Optional[Union[Expression, str]] = None,
         using: Optional[str] = None,
+        update_condition: Optional[Expression] = None,
     ) -> int:
         """Creates a new record or updates the existing one with the specified
         data.
@@ -271,12 +279,18 @@ class PostgresQuerySet(models.QuerySet):
                 The name of the database connection to
                 use for this query.
 
+            update_condition:
+                Only update if this SQL expression evaluates to true.
+
         Returns:
             The primary key of the row that was created/updated.
         """
 
         self.on_conflict(
-            conflict_target, ConflictAction.UPDATE, index_predicate
+            conflict_target,
+            ConflictAction.UPDATE,
+            index_predicate=index_predicate,
+            update_condition=update_condition,
         )
         return self.insert(**fields, using=using)
 
@@ -284,8 +298,9 @@ class PostgresQuerySet(models.QuerySet):
         self,
         conflict_target: ConflictTarget,
         fields: dict,
-        index_predicate: Optional[str] = None,
+        index_predicate: Optional[Union[Expression, str]] = None,
         using: Optional[str] = None,
+        update_condition: Optional[Expression] = None,
     ):
         """Creates a new record or updates the existing one with the specified
         data and then gets the row.
@@ -305,13 +320,19 @@ class PostgresQuerySet(models.QuerySet):
                 The name of the database connection to
                 use for this query.
 
+            update_condition:
+                Only update if this SQL expression evaluates to true.
+
         Returns:
             The model instance representing the row
             that was created/updated.
         """
 
         self.on_conflict(
-            conflict_target, ConflictAction.UPDATE, index_predicate
+            conflict_target,
+            ConflictAction.UPDATE,
+            index_predicate=index_predicate,
+            update_condition=update_condition,
         )
         return self.insert_and_get(**fields, using=using)
 
@@ -319,9 +340,10 @@ class PostgresQuerySet(models.QuerySet):
         self,
         conflict_target: ConflictTarget,
         rows: Iterable[Dict],
-        index_predicate: str = None,
+        index_predicate: Optional[Union[Expression, str]] = None,
         return_model: bool = False,
         using: Optional[str] = None,
+        update_condition: Optional[Expression] = None,
     ):
         """Creates a set of new records or updates the existing ones with the
         specified data.
@@ -345,6 +367,9 @@ class PostgresQuerySet(models.QuerySet):
                 The name of the database connection to use
                 for this query.
 
+            update_condition:
+                Only update if this SQL expression evaluates to true.
+
         Returns:
             A list of either the dicts of the rows upserted, including the pk or
             the models of the rows upserted
@@ -357,7 +382,10 @@ class PostgresQuerySet(models.QuerySet):
             return []
 
         self.on_conflict(
-            conflict_target, ConflictAction.UPDATE, index_predicate
+            conflict_target,
+            ConflictAction.UPDATE,
+            index_predicate=index_predicate,
+            update_condition=update_condition,
         )
         return self.bulk_insert(rows, return_model, using=using)
 
@@ -425,6 +453,7 @@ class PostgresQuerySet(models.QuerySet):
         query = PostgresInsertQuery(self.model)
         query.conflict_action = self.conflict_action
         query.conflict_target = self.conflict_target
+        query.conflict_update_condition = self.conflict_update_condition
         query.index_predicate = self.index_predicate
         query.values(objs, insert_fields, update_fields)
 
