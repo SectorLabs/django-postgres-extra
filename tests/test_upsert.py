@@ -106,6 +106,22 @@ def test_upsert_with_update_condition():
     assert not obj1.active
 
 
+def test_upsert_and_get_applies_converters():
+    """Tests that converters are properly applied when using upsert_and_get."""
+
+    class MyCustomField(models.TextField):
+        def from_db_value(self, value, expression, connection):
+            return value.replace("hello", "bye")
+
+    model = get_fake_model({"title": MyCustomField(unique=True)})
+
+    obj = model.objects.upsert_and_get(
+        conflict_target=["title"], fields=dict(title="hello")
+    )
+
+    assert obj.title == "bye"
+
+
 def test_upsert_bulk():
     """Tests whether bulk_upsert works properly."""
 

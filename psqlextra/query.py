@@ -3,7 +3,7 @@ from itertools import chain
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 from django.core.exceptions import SuspiciousOperation
-from django.db import models, router
+from django.db import connections, models, router
 from django.db.models import Expression
 from django.db.models.fields import NOT_PROVIDED
 
@@ -389,14 +389,36 @@ class PostgresQuerySet(models.QuerySet):
         )
         return self.bulk_insert(rows, return_model, using=using)
 
-    def _create_model_instance(self, field_values, using: Optional[str] = None):
+    def _create_model_instance(
+        self, field_values: dict, using: str, apply_converters: bool = True
+    ):
         """Creates a new instance of the model with the specified field.
 
         Use this after the row was inserted into the database. The new
         instance will marked as "saved".
         """
 
-        instance = self.model(**field_values)
+        converted_field_values = field_values.copy()
+
+        if apply_converters:
+            connection = connections[using]
+
+            for field in self.model._meta.local_concrete_fields:
+                if field.attname not in converted_field_values:
+                    continue
+
+                # converters can be defined on the field, or by
+                # the database back-end we're using
+                converters = field.get_db_converters(
+                    connection
+                ) + connection.ops.get_db_converters(field)
+
+                for converter in converters:
+                    converted_field_values[field.attname] = converter(
+                        converted_field_values[field.attname], field, connection
+                    )
+
+        instance = self.model(**converted_field_values)
         instance._state.db = using
         instance._state.adding = False
 
@@ -444,7 +466,9 @@ class PostgresQuerySet(models.QuerySet):
                     ).format(index)
                 )
 
-            objs.append(self._create_model_instance(row, using))
+            objs.append(
+                self._create_model_instance(row, using, apply_converters=False)
+            )
 
         # get the fields to be used during update/insert
         insert_fields, update_fields = self._get_upsert_fields(first_row)
