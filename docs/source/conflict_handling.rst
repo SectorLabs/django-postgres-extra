@@ -170,7 +170,7 @@ A row level lock is acquired before evaluating the condition and proceeding with
 
         .. code-block:: python
 
-            RawSQL("name != + henk, tuple())
+            RawSQL("name != " + henk, tuple())
 
 
 .. code-block:: python
