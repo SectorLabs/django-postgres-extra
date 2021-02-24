@@ -6,7 +6,7 @@
 HStore
 ======
 
-:class:`psqlextra.fields.HStoreField` is based on Django's :class:`~django:django.contrib.postgres.fields.HStoreField` and therefor supports everything Django does natively and more.
+:class:`psqlextra.fields.HStoreField` is based on Django's :class:`~django:django.contrib.postgres.fields.HStoreField` and therefore supports everything Django does natively and more.
 
 
 Constraints
