@@ -148,11 +148,29 @@ Optionally, a condition can be added. PostgreSQL will then only apply the update
 
 A row level lock is acquired before evaluating the condition and proceeding with the update.
 
-.. warning::
+.. note::
 
     The update condition is translated as a condition for `ON CONFLICT`_. The PostgreSQL documentation states the following:
 
         An expression that returns a value of type boolean. Only rows for which this expression returns true will be updated, although all rows will be locked when the ON CONFLICT DO UPDATE action is taken. Note that condition is evaluated last, after a conflict has been identified as a candidate to update.
+
+
+.. warning::
+
+    Always parameterize the input to avoid SQL injections.
+
+    Do:
+
+        .. code-block:: python
+
+            my_name = 'henk'
+            RawSQL("name != %s", (my_name,))
+
+    Not:
+
+        .. code-block:: python
+
+            RawSQL("name != + henk, tuple())
 
 
 .. code-block:: python
@@ -177,6 +195,13 @@ A row level lock is acquired before evaluating the condition and proceeding with
         print('update applied or inserted')
     else:
         print('condition was false-ish and no changes were made')
+
+
+When writing expressions, refer to the data you're trying to upsert with ``EXCLUDED``. Refer to the existing row by prefixing the name of the table:
+
+    .. code-block:: python
+
+        RawSQL(MyModel._meta.db_table + '.mycolumn = EXCLUDED.mycolumn')
 
 
 
