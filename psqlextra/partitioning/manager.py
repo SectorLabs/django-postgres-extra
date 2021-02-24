@@ -120,7 +120,7 @@ class PostgresPartitioningManager:
         if not table:
             raise PostgresPartitioningError(
                 f"Model {model.__name__}, with table "
-                "{model._meta.db_table} does not exists in the "
+                f"{model._meta.db_table} does not exists in the "
                 "database. Did you run `python manage.py migrate`?"
             )
 
