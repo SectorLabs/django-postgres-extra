@@ -40,7 +40,7 @@ By default, Postgres will raise an error if any other table is referencing one o
 
 
    class MyModel2(PostgresModel):
-       mymodel1 = models.ForeignKey(Model1, on_delete=models.CASCAD)
+       mymodel1 = models.ForeignKey(Model1, on_delete=models.CASCADE)
 
    obj1 = MyModel1.objects.create(myfield="1")
    MyModel2.objects.create(mymodel1=obj1)
