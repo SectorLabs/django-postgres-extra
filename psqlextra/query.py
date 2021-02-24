@@ -409,13 +409,16 @@ class PostgresQuerySet(models.QuerySet):
 
                 # converters can be defined on the field, or by
                 # the database back-end we're using
+                field_column = field.get_col(self.model._meta.db_table)
                 converters = field.get_db_converters(
                     connection
-                ) + connection.ops.get_db_converters(field)
+                ) + connection.ops.get_db_converters(field_column)
 
                 for converter in converters:
                     converted_field_values[field.attname] = converter(
-                        converted_field_values[field.attname], field, connection
+                        converted_field_values[field.attname],
+                        field_column,
+                        connection,
                     )
 
         instance = self.model(**converted_field_values)
