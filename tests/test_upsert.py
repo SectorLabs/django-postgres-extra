@@ -90,7 +90,8 @@ def test_upsert_with_update_condition():
 
     obj1 = model.objects.create(name="joe", priority=1, active=False)
 
-    model.objects.upsert(
+    # should not return anything because no rows were affected
+    assert not model.objects.upsert(
         conflict_target=["name"],
         update_condition=CombinedExpression(
             model._meta.get_field("active").get_col(model._meta.db_table),
@@ -101,9 +102,24 @@ def test_upsert_with_update_condition():
     )
 
     obj1.refresh_from_db()
-
     assert obj1.priority == 1
     assert not obj1.active
+
+    # should return something because one row was affected
+    obj1_pk = model.objects.upsert(
+        conflict_target=["name"],
+        update_condition=CombinedExpression(
+            model._meta.get_field("active").get_col(model._meta.db_table),
+            "=",
+            Value(False),
+        ),
+        fields=dict(name="joe", priority=2, active=True),
+    )
+
+    obj1.refresh_from_db()
+    assert obj1.pk == obj1_pk
+    assert obj1.priority == 2
+    assert obj1.active
 
 
 def test_upsert_and_get_applies_converters():
