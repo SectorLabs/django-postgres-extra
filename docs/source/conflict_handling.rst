@@ -199,10 +199,28 @@ A row level lock is acquired before evaluating the condition and proceeding with
 
 When writing expressions, refer to the data you're trying to upsert with ``EXCLUDED``. Refer to the existing row by prefixing the name of the table:
 
-    .. code-block:: python
+.. code-block:: python
 
-        RawSQL(MyModel._meta.db_table + '.mycolumn = EXCLUDED.mycolumn')
+    RawSQL(MyModel._meta.db_table + '.mycolumn = EXCLUDED.mycolumn')
 
+You can use :meth:`~django:django.db.models.expressions.CombinedExpression` to build simple comparion expressions:
+
+
+.. code-block:: python
+
+    from django.db.models import CombinedExpression, Col, Value
+
+    CombinedExpression(
+        MyModel._meta.get_field('name').get_col(MyModel._meta.db_table)
+        '=',
+        Col('EXCLUDED', 'name'),
+    )
+
+    CombinedExpression(
+        MyModel._meta.get_field('active').get_col(MyModel._meta.db_table)
+        '=',
+        Value(True),
+    )
 
 
 ConflictAction.NOTHING
