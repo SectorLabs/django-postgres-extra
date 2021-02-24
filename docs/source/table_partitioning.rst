@@ -6,7 +6,7 @@
 
    We HIGHLY RECOMMEND you only use this feature if you're already deeply familiar with table partitioning and aware of its advantages and disadvantages.
 
-   Do study the PostgreSQL documentation carefuly.
+   Do study the PostgreSQL documentation carefully.
 
 .. _table_partitioning_page:
 
@@ -16,7 +16,7 @@ Table partitioning
 
 :class:`~psqlextra.models.PostgresPartitionedModel` adds support for `PostgreSQL Declarative Table Partitioning`_.
 
-The following partitioning method are available:
+The following partitioning methods are available:
 
 * ``PARTITION BY RANGE``
 * ``PARTITION BY LIST``
@@ -66,13 +66,13 @@ Run the following command to automatically generate a migration:
 
    python manage.py pgmakemigrations
 
-This will generate migrationt that creates the partitioned table with a default partition.
+This will generate a migration that creates the partitioned table with a default partition.
 
 
 Adding/removing partitions manually
 -----------------------------------
 
-Postgres does not have support for automatically creating new partitions as needed. Therefor, one must manually add new partitions. Depending on the partitioning method you have chosen, the partition has to be created differently.
+Postgres does not have support for automatically creating new partitions as needed. Therefore, one must manually add new partitions. Depending on the partitioning method you have chosen, the partition has to be created differently.
 
 Partitions are tables. Each partition must be given a unique name. :class:`~psqlextra.models.PostgresPartitionedModel` does not require you to create a model for each partition because you are not supposed to query partitions directly.
 
@@ -323,7 +323,7 @@ Time-based partitioning
            strategy=PostgresCurrentTimePartitioningStrategy(
                size=PostgresTimePartitionSize(weeks=2),
                count=6,
-               max_age=relativedelta(weeks=8),
+               max_age=relativedelta(months=8),
            ),
        ),
        # 12 partitions ahead, each partition is 5 days
