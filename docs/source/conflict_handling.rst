@@ -141,6 +141,44 @@ ConflictAction.UPDATE
 
 This is also known as a "upsert".
 
+Condition
+"""""""""
+
+Optionally, a condition can be added. PostgreSQL will then only apply the update if the condition holds true. A condition is specified as a custom expression.
+
+A row level lock is acquired before evaluating the condition and proceeding with the update.
+
+.. warning::
+
+    The update condition is translated as a condition for `ON CONFLICT`_. The PostgreSQL documentation states the following:
+
+        An expression that returns a value of type boolean. Only rows for which this expression returns true will be updated, although all rows will be locked when the ON CONFLICT DO UPDATE action is taken. Note that condition is evaluated last, after a conflict has been identified as a candidate to update.
+
+
+.. code-block:: python
+
+    from django.db.models.expressions import RawSQL
+
+    pk = (
+        MyModel
+        .objects
+        .on_conflict(
+            ['name'],
+            ConflictAction.UPDATE,
+            update_condition=RawSQL("priority >= EXCLUDED.priority"),
+        )
+        .insert(
+            name='henk',
+            priority=1,
+        )
+    )
+
+    if pk:
+        print('update applied or inserted')
+    else:
+        print('condition was false-ish and no changes were made')
+
+
 
 ConflictAction.NOTHING
 **********************
