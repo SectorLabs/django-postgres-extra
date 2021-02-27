@@ -35,6 +35,10 @@ Conditional Unique Index
 The :class:`~psqlextra.indexes.ConditionalUniqueIndex` lets you create partial unique indexes in case you ever need :attr:`~django:django.db.models.Options.unique_together` constraints
 on nullable columns.
 
+.. warning::
+
+    In Django 3.1 or newer, you might want to use :attr:`~django.db.models.indexes.condition` instead.
+
 Before:
 
 .. code-block:: python
