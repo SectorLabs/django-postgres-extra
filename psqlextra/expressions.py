@@ -204,3 +204,18 @@ def IsNotNone(*fields, default=None):
         default=expressions.Value(default),
         output_field=CharField(),
     )
+
+
+class ExcludedCol(expressions.Expression):
+    """References a column in PostgreSQL's special EXCLUDED column, which is
+    used in upserts to refer to the data about to be inserted/updated.
+
+    See: https://www.postgresql.org/docs/9.5/sql-insert.html#SQL-ON-CONFLICT
+    """
+
+    def __init__(self, name: str):
+        self.name = name
+
+    def as_sql(self, compiler, connection):
+        quoted_name = connection.ops.quote_name(self.name)
+        return f"EXCLUDED.{quoted_name}", tuple()

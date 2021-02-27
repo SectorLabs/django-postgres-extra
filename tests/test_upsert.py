@@ -1,6 +1,11 @@
+import django
+import pytest
+
 from django.db import models
+from django.db.models import Q
 from django.db.models.expressions import CombinedExpression, Value
 
+from psqlextra.expressions import ExcludedCol
 from psqlextra.fields import HStoreField
 
 from .fake_model import get_fake_model
@@ -78,7 +83,7 @@ def test_upsert_explicit_pk():
 
 
 def test_upsert_with_update_condition():
-    """Tests that a custom expression can be passed as an update condition."""
+    """Tests that an expression can be used as an upsert update condition."""
 
     model = get_fake_model(
         {
@@ -96,7 +101,7 @@ def test_upsert_with_update_condition():
         update_condition=CombinedExpression(
             model._meta.get_field("active").get_col(model._meta.db_table),
             "=",
-            Value(True),
+            ExcludedCol("active"),
         ),
         fields=dict(name="joe", priority=2, active=True),
     )
@@ -113,6 +118,46 @@ def test_upsert_with_update_condition():
             "=",
             Value(False),
         ),
+        fields=dict(name="joe", priority=2, active=True),
+    )
+
+    obj1.refresh_from_db()
+    assert obj1.pk == obj1_pk
+    assert obj1.priority == 2
+    assert obj1.active
+
+
+@pytest.mark.skipif(
+    django.VERSION < (3, 1), reason="requires django 3.1 or newer"
+)
+def test_upsert_with_update_condition_with_q_object():
+    """Tests that :see:Q objects can be used as an upsert update condition."""
+
+    model = get_fake_model(
+        {
+            "name": models.TextField(unique=True),
+            "priority": models.IntegerField(),
+            "active": models.BooleanField(),
+        }
+    )
+
+    obj1 = model.objects.create(name="joe", priority=1, active=False)
+
+    # should not return anything because no rows were affected
+    assert not model.objects.upsert(
+        conflict_target=["name"],
+        update_condition=Q(active=ExcludedCol("active")),
+        fields=dict(name="joe", priority=2, active=True),
+    )
+
+    obj1.refresh_from_db()
+    assert obj1.priority == 1
+    assert not obj1.active
+
+    # should return something because one row was affected
+    obj1_pk = model.objects.upsert(
+        conflict_target=["name"],
+        update_condition=Q(active=Value(False)),
         fields=dict(name="joe", priority=2, active=True),
     )
 

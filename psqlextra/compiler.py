@@ -1,7 +1,10 @@
 from collections.abc import Iterable
+from typing import Tuple, Union
+
+import django
 
 from django.core.exceptions import SuspiciousOperation
-from django.db.models import Expression, Model
+from django.db.models import Expression, Model, Q
 from django.db.models.fields.related import RelatedField
 from django.db.models.sql.compiler import SQLInsertCompiler, SQLUpdateCompiler
 from django.db.utils import ProgrammingError
@@ -155,12 +158,9 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         rewritten_sql = f"{sql} ON CONFLICT {conflict_target}"
 
         if index_predicate:
-            if isinstance(index_predicate, Expression):
-                expr_sql, expr_params = self.compile(index_predicate)
-                rewritten_sql += f" WHERE {expr_sql}"
-                params += tuple(expr_params)
-            else:
-                rewritten_sql += f" WHERE {index_predicate}"
+            expr_sql, expr_params = self._compile_expression(index_predicate)
+            rewritten_sql += f" WHERE {expr_sql}"
+            params += tuple(expr_params)
 
         rewritten_sql += f" DO {conflict_action}"
 
@@ -168,7 +168,9 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             rewritten_sql += f" SET {update_columns}"
 
             if update_condition:
-                expr_sql, expr_params = self.compile(update_condition)
+                expr_sql, expr_params = self._compile_expression(
+                    update_condition
+                )
                 rewritten_sql += f" WHERE {expr_sql}"
                 params += tuple(expr_params)
 
@@ -318,6 +320,27 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             # the opportunity to save out their data.
             value,
         )
+
+    def _compile_expression(
+        self, expression: Union[Expression, Q, str]
+    ) -> Tuple[str, tuple]:
+        """Compiles an expression, Q object or raw SQL string into SQL and
+        tuple of parameters."""
+
+        if isinstance(expression, Q):
+            if django.VERSION < (3, 1):
+                raise SuspiciousOperation(
+                    "Q objects in psqlextra can only be used with Django 3.1 and newer"
+                )
+
+            return self.query.build_where(expression).as_sql(
+                self, self.connection
+            )
+
+        elif isinstance(expression, Expression):
+            return self.compile(expression)
+
+        return expression, tuple()
 
     def _assert_valid_field(self, field_name: str):
         """Asserts that a field with the specified name exists on the model and

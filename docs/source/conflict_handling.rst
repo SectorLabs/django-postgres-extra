@@ -155,27 +155,9 @@ A row level lock is acquired before evaluating the condition and proceeding with
         An expression that returns a value of type boolean. Only rows for which this expression returns true will be updated, although all rows will be locked when the ON CONFLICT DO UPDATE action is taken. Note that condition is evaluated last, after a conflict has been identified as a candidate to update.
 
 
-.. warning::
-
-    Always parameterize the input to avoid SQL injections.
-
-    Do:
-
-        .. code-block:: python
-
-            my_name = 'henk'
-            RawSQL("name != %s", (my_name,))
-
-    Not:
-
-        .. code-block:: python
-
-            RawSQL("name != " + henk, tuple())
-
-
 .. code-block:: python
 
-    from django.db.models.expressions import RawSQL
+    from psqlextra.expressions import CombinedExpression, ExcludedCol
 
     pk = (
         MyModel
@@ -183,7 +165,11 @@ A row level lock is acquired before evaluating the condition and proceeding with
         .on_conflict(
             ['name'],
             ConflictAction.UPDATE,
-            update_condition=RawSQL("priority >= EXCLUDED.priority"),
+            update_condition=CombinedExpression(
+                MyModel._meta.get_field('priority').get_col(MyModel._meta.db_table),
+                '>',
+                ExcludedCol('priority'),
+            )
         )
         .insert(
             name='henk',
@@ -197,30 +183,18 @@ A row level lock is acquired before evaluating the condition and proceeding with
         print('condition was false-ish and no changes were made')
 
 
-When writing expressions, refer to the data you're trying to upsert with ``EXCLUDED``. Refer to the existing row by prefixing the name of the table:
+When writing expressions, refer to the data you're trying to upsert with the :class:`psqlextra.expressions.ExcludedCol` expression.
+
+Alternatively, with Django 3.1, :class:`~django:django.db.models.Q` objects can be used instead:
 
 .. code-block:: python
 
-    RawSQL(MyModel._meta.db_table + '.mycolumn = EXCLUDED.mycolumn')
+    from django.db.models import Q
+    from psqlextra.expressions import ExcludedCol
 
-You can use :meth:`~django:django.db.models.expressions.CombinedExpression` to build simple comparion expressions:
-
-
-.. code-block:: python
-
-    from django.db.models import CombinedExpression, Col, Value
-
-    CombinedExpression(
-        MyModel._meta.get_field('name').get_col(MyModel._meta.db_table)
-        '=',
-        Col('EXCLUDED', 'name'),
-    )
-
-    CombinedExpression(
-        MyModel._meta.get_field('active').get_col(MyModel._meta.db_table)
-        '=',
-        Value(True),
-    )
+    Q(name=ExcludedCol('name'))
+    Q(name__isnull=True)
+    Q(name__gt=ExcludedCol('priority'))
 
 
 ConflictAction.NOTHING

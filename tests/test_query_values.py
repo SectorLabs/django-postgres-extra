@@ -51,6 +51,9 @@ def test_query_values_list_hstore_key(model, modelobj):
     assert result[1] == modelobj.title["ar"]
 
 
+@pytest.mark.skipif(
+    django.VERSION < (2, 1), reason="requires django 2.1 or newer"
+)
 def test_query_values_hstore_key_through_fk():
     """Tests whether selecting a single key from a :see:HStoreField using the
     query set's .values() works properly when there's a foreign key
@@ -58,8 +61,6 @@ def test_query_values_hstore_key_through_fk():
 
     # this starting working in django 2.1
     # see: https://github.com/django/django/commit/20bab2cf9d02a5c6477d8aac066a635986e0d3f3
-    if django.VERSION < (2, 1):
-        return
 
     fmodel = get_fake_model({"name": HStoreField()})
 

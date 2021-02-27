@@ -29,8 +29,11 @@ API Reference
 
    .. autoclass:: DateTimeEpoch
 
+   .. autoclass:: ExcludedCol
+
 .. automodule:: psqlextra.indexes
 
+   .. autoclass:: UniqueIndex
    .. autoclass:: ConditionalUniqueIndex
    .. autoclass:: CaseInsensitiveUniqueIndex
 

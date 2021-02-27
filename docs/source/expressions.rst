@@ -89,3 +89,31 @@ Use the :class:`~psqlextra.expressions.IsNotNone` expression to perform somethin
       .values_list('name', flat=True)
       .first()
    )
+
+
+Excluded column
+---------------
+
+Use the :class:`~psqlextra.expressions.ExcludedCol` expression when performing an upsert using `ON CONFLICT`_ to refer to a column/field in the data is about to be upserted.
+
+PostgreSQL keeps that data to be upserted in a special table named `EXCLUDED`. This expression is used to refer to a column in that table.
+
+.. code-block:: python
+
+    from django.db.models import Q
+    from psqlextra.expressions import ExcludedCol
+
+    (
+        MyModel
+        .objects
+        .on_conflict(
+            ['name'],
+            ConflictAction.UPDATE,
+            # translates to `priority > EXCLUDED.priority`
+            update_condition=Q(priority__gt=ExcludedCol('priority')),
+        )
+        .insert(
+            name='henk',
+            priority=1,
+        )
+    )
