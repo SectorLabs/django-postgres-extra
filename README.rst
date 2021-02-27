@@ -15,8 +15,8 @@
 **Python versions**   3.5, 3.6, 3.7, 3.8
 ====================  ============================
 
-.. |TestsPassing| image:: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master.svg?style=svg
-.. _TestsPassing: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master
+.. |TestsPassing| image:: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/v1.svg?style=svg
+.. _TestsPassing: https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/v1
 
 .. |LicenseBadge| image:: https://img.shields.io/:license-mit-blue.svg
 .. _LicenseBadge: http://doge.mit-license.org
@@ -34,11 +34,11 @@ Documentation
 
 * **ReadTheDocs HTML**
 
-  http://django-postgres-extra.readthedocs.io
+  https://django-postgres-extra.readthedocs.io/en/v1/
 
 * **Plain MarkDown**
 
-  https://github.com/SectorLabs/django-postgres-extra/tree/master/docs
+  https://github.com/SectorLabs/django-postgres-extra/tree/v1.22/docs
 
 Compatibility
 -------------
