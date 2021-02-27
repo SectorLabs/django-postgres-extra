@@ -69,22 +69,21 @@ Run the following command to automatically generate a migration:
 This will generate a migration that creates the partitioned table with a default partition.
 
 
+.. warning::
+
+    Always use ``python manage.py pgmakemigrations`` for partitioned models.
+
+    The model must be created by the :class:`~psqlextra.migrations.operations.PostgresCreatePartitionedModel` operation.
+
+    Do not use the standard ``python manage.py makemigrations`` command for partitioned models. Django will issue a standard :class:`~django:django.db.migrations.operations.CreateModel` operation. Doing this will not create a partitioned table and all subsequent operations will fail.
+
+
 Adding/removing partitions manually
 -----------------------------------
 
 Postgres does not have support for automatically creating new partitions as needed. Therefore, one must manually add new partitions. Depending on the partitioning method you have chosen, the partition has to be created differently.
 
 Partitions are tables. Each partition must be given a unique name. :class:`~psqlextra.models.PostgresPartitionedModel` does not require you to create a model for each partition because you are not supposed to query partitions directly.
-
-
-Using migrations
-****************
-
-Migrations for the creation and deletion of partitioned models can be handled automatically using the special `pgmakemigrations` command:
-
-.. code-block:: bash
-
-   python manage.py pgmakemigrations
 
 
 Adding a range partition
