@@ -3,6 +3,31 @@
 Indexes
 =======
 
+.. _unique_index_page:
+
+Unique Index
+-----------------------------
+The :class:`~psqlextra.indexes.UniqueIndex` lets you create a unique index. Normally Django only allows you to create unique indexes by specifying ``unique=True`` on the model field.
+
+Although it can be used on any Django model, it is most useful on views and materialized views where ``unique=True`` does not work.
+
+.. code-block:: python
+
+   from django.db import models
+   from psqlextra.indexes import UniqueIndex
+
+   class Model(models.Model):
+       class Meta:
+           indexes = [
+               UniqueIndex(fields=['name']),
+           ]
+
+       name = models.CharField(max_length=255)
+
+   Model.objects.create(name='henk')
+   Model.objects.create(name='Henk') # raises IntegrityError
+
+
 .. _conditional_unique_index_page:
 
 Conditional Unique Index
