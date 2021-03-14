@@ -280,6 +280,7 @@ def test_bulk_upsert_accepts_getitem_iterable():
         conflict_target=["name"], rows=rows, return_model=True
     )
 
+    assert len(objs) == 2
     for index, obj in enumerate(objs, 1):
         assert isinstance(obj, model)
         assert obj.id == index
@@ -309,6 +310,31 @@ def test_bulk_upsert_accepts_iter_iterable():
         conflict_target=["name"], rows=rows, return_model=True
     )
 
+    assert len(objs) == 2
+    for index, obj in enumerate(objs, 1):
+        assert isinstance(obj, model)
+        assert obj.id == index
+
+
+def test_bulk_upsert_accepts_generator():
+    """Tests whether a generator works correctly."""
+
+    model = get_fake_model(
+        {
+            "id": models.BigAutoField(primary_key=True),
+            "name": models.CharField(max_length=255, unique=True),
+        }
+    )
+
+    def rows():
+        yield dict(name="John Smith")
+        yield dict(name="Jane Doe")
+
+    objs = model.objects.bulk_upsert(
+        conflict_target=["name"], rows=rows(), return_model=True
+    )
+
+    assert len(objs) == 2
     for index, obj in enumerate(objs, 1):
         assert isinstance(obj, model)
         assert obj.id == index

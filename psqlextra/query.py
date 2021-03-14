@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import Iterator, OrderedDict
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
@@ -112,7 +112,7 @@ class PostgresQuerySet(models.QuerySet):
 
     def bulk_insert(
         self,
-        rows: List[dict],
+        rows: Iterable[Dict],
         return_model: bool = False,
         using: Optional[str] = None,
     ):
@@ -138,7 +138,7 @@ class PostgresQuerySet(models.QuerySet):
             A list of either the dicts of the rows inserted, including the pk or
             the models of the rows inserted with defaults for any fields not specified
         """
-
+        rows = _resolve_iterator_to_list(rows)
         if not self.conflict_target and not self.conflict_action:
             # no special action required, use the standard Django bulk_create(..)
             return super().bulk_create(
@@ -374,10 +374,8 @@ class PostgresQuerySet(models.QuerySet):
             A list of either the dicts of the rows upserted, including the pk or
             the models of the rows upserted
         """
-
-        def is_empty(r):
-            return all([False for _ in r])
-
+        rows = _resolve_iterator_to_list(rows)
+        is_empty = lambda r: all(False for _ in iter(r))
         if not rows or is_empty(rows):
             return []
 
@@ -574,3 +572,9 @@ class PostgresQuerySet(models.QuerySet):
                 update_fields.append(field)
 
         return insert_fields, update_fields
+
+
+def _resolve_iterator_to_list(rows: Iterable[Dict]):
+    if isinstance(rows, Iterator):
+        return list(rows)
+    return rows
