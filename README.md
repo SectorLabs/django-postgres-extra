@@ -1,7 +1,7 @@
 <h1 align="center">
   <img width="400" src="https://i.imgur.com/79S6OVM.png" alt="django-postgres-extra">
 </h1>
-  
+
 |  |  |  |
 |--------------------|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | :white_check_mark: | **Tests** | [![CircleCI](https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master.svg?style=svg)](https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master) |
@@ -17,7 +17,7 @@
 | :droplet: | **Future enhancements** | [Potential features](https://github.com/SectorLabs/django-postgres-extra/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement) |
 
 `django-postgres-extra` aims to make all of PostgreSQL's awesome features available through the Django ORM. We do this by taking care of all the hassle. As opposed to the many small packages that are available to try to bring a single feature to Django with minimal effort. ``django-postgres-extra`` goes the extra mile, with well tested implementations, seamless migrations and much more.
- 
+
 With seamless we mean that any features we add will work truly seamlessly. You should not have to manually modify your migrations to work with fields and objects provided by this package.
 
 ---
@@ -59,7 +59,7 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 ### Prerequisites
 
 * PostgreSQL 10 or newer.
-* Django 2.0 or newer (including 3.0, 3.1).
+* Django 2.0 or newer (including 3.0, 3.1, 3.2).
 * Python 3.6 or newer.
 
 ### Getting started
