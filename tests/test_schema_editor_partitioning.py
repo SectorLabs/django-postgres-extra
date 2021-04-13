@@ -10,6 +10,7 @@ from . import db_introspection
 from .fake_model import define_fake_partitioned_model
 
 
+@pytest.mark.postgres_version(lt=110000)
 def test_schema_editor_create_delete_partitioned_model_range():
     """Tests whether creating a partitioned model and adding a list partition
     to it using the :see:PostgresSchemaEditor works."""
@@ -42,6 +43,7 @@ def test_schema_editor_create_delete_partitioned_model_range():
     assert len(partitions) == 0
 
 
+@pytest.mark.postgres_version(lt=110000)
 def test_schema_editor_create_delete_partitioned_model_list():
     """Tests whether creating a partitioned model and adding a range partition
     to it using the :see:PostgresSchemaEditor works."""
@@ -74,6 +76,7 @@ def test_schema_editor_create_delete_partitioned_model_list():
     assert len(partitions) == 0
 
 
+@pytest.mark.postgres_version(lt=110000)
 def test_schema_editor_create_delete_partitioned_model_default():
     """Tests whether creating a partitioned model and adding a default
     partition to it using the :see:PostgresSchemaEditor works."""
@@ -106,6 +109,7 @@ def test_schema_editor_create_delete_partitioned_model_default():
     assert len(partitions) == 0
 
 
+@pytest.mark.postgres_version(lt=110000)
 def test_schema_editor_create_partitioned_model_no_method():
     """Tests whether its possible to create a partitioned model without
     explicitly setting a partitioning method.
@@ -144,6 +148,7 @@ def test_schema_editor_create_partitioned_model_no_key():
         schema_editor.create_partitioned_model(model)
 
 
+@pytest.mark.postgres_version(lt=110000)
 def test_schema_editor_add_range_partition():
     """Tests whether adding a range partition works."""
 
@@ -176,6 +181,7 @@ def test_schema_editor_add_range_partition():
     assert len(table.partitions) == 0
 
 
+@pytest.mark.postgres_version(lt=110000)
 def test_schema_editor_add_list_partition():
     """Tests whether adding a list partition works."""
 
@@ -204,6 +210,7 @@ def test_schema_editor_add_list_partition():
     assert len(table.partitions) == 0
 
 
+@pytest.mark.postgres_version(lt=110000)
 @pytest.mark.parametrize(
     "method,key",
     [

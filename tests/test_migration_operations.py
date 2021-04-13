@@ -83,6 +83,7 @@ def create_model():
     return _create_model
 
 
+@pytest.mark.postgres_version(lt=110000)
 @pytest.mark.parametrize("method", PostgresPartitioningMethod.all())
 def test_migration_operations_create_partitioned_table(method, create_model):
     """Tests whether the see :PostgresCreatePartitionedModel operation works as
@@ -100,6 +101,7 @@ def test_migration_operations_create_partitioned_table(method, create_model):
     assert not _partitioned_table_exists(create_operation)
 
 
+@pytest.mark.postgres_version(lt=110000)
 @pytest.mark.parametrize("method", PostgresPartitioningMethod.all())
 def test_migration_operations_delete_partitioned_table(method, create_model):
     """Tests whether the see :PostgresDeletePartitionedModel operation works as
@@ -131,6 +133,7 @@ def test_migration_operations_delete_partitioned_table(method, create_model):
     assert _partitioned_table_exists(create_operation)
 
 
+@pytest.mark.postgres_version(lt=110000)
 @pytest.mark.parametrize(
     "method,add_partition_operation",
     [
@@ -184,6 +187,7 @@ def test_migration_operations_add_partition(
     assert not _partition_exists(create_operation, add_partition_operation)
 
 
+@pytest.mark.postgres_version(lt=110000)
 @pytest.mark.parametrize(
     "method,add_partition_operation,delete_partition_operation",
     [
