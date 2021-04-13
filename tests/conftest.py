@@ -23,3 +23,25 @@ def fake_app():
 
     with define_fake_app() as fake_app:
         yield fake_app
+
+
+@pytest.fixture
+def server_version(db):
+    """ Provide Postgres server version number. """
+    return connection.cursor().connection.server_version
+
+
+@pytest.fixture(autouse=True)
+def skip_by_pg_version(request, server_version):
+    """
+    Skip tests based on Postgres server version number marker condition.
+    """
+    marker = request.node.get_closest_marker('skip_pg_version')
+    if not marker: return
+    if 'lt' in marker.kwargs:
+        target_version = marker.kwargs['lt']
+        if server_version < target_version:
+            pytest.skip(
+                f"Server version is {server_version}, the test needs "
+                f"{target_version} or higher"
+            )

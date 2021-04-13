@@ -21,6 +21,7 @@ def _get_partitioned_table(model):
     return db_introspection.get_partitioned_table(model._meta.db_table)
 
 
+@pytest.mark.skip_pg_version(lt=110000)
 def test_partitioning_time_yearly_apply():
     """Tests whether automatically creating new partitions ahead yearly works
     as expected."""
@@ -56,6 +57,7 @@ def test_partitioning_time_yearly_apply():
     assert table.partitions[2].name == "2021"
 
 
+@pytest.mark.skip_pg_version(lt=110000)
 def test_partitioning_time_monthly_apply():
     """Tests whether automatically creating new partitions ahead monthly works
     as expected."""
@@ -113,6 +115,7 @@ def test_partitioning_time_monthly_apply():
     assert table.partitions[13].name == "2020_feb"
 
 
+@pytest.mark.skip_pg_version(lt=110000)
 def test_partitioning_time_weekly_apply():
     """Tests whether automatically creating new partitions ahead weekly works
     as expected."""
@@ -162,6 +165,7 @@ def test_partitioning_time_weekly_apply():
     assert table.partitions[6].name == "2019_week_23"
 
 
+@pytest.mark.skip_pg_version(lt=110000)
 def test_partitioning_time_daily_apply():
     """Tests whether automatically creating new partitions ahead daily works as
     expected."""
@@ -211,6 +215,7 @@ def test_partitioning_time_daily_apply():
     assert table.partitions[6].name == "2019_jun_04"
 
 
+@pytest.mark.skip_pg_version(lt=110000)
 def test_partitioning_time_monthly_apply_insert():
     """Tests whether automatically created monthly partitions line up
     perfectly."""
@@ -247,6 +252,7 @@ def test_partitioning_time_monthly_apply_insert():
     model.objects.create(timestamp=datetime.date(2019, 3, 2))
 
 
+@pytest.mark.skip_pg_version(lt=110000)
 def test_partitioning_time_weekly_apply_insert():
     """Tests whether automatically created weekly partitions line up
     perfectly."""
@@ -287,6 +293,7 @@ def test_partitioning_time_weekly_apply_insert():
     model.objects.create(timestamp=datetime.date(2019, 1, 22))
 
 
+@pytest.mark.skip_pg_version(lt=110000)
 def test_partitioning_time_daily_apply_insert():
     """Tests whether automatically created daily partitions line up
     perfectly."""
@@ -326,6 +333,7 @@ def test_partitioning_time_daily_apply_insert():
     model.objects.create(timestamp=datetime.date(2019, 1, 10))
 
 
+@pytest.mark.skip_pg_version(lt=110000)
 @pytest.mark.parametrize(
     "kwargs,partition_names",
     [
@@ -354,6 +362,7 @@ def test_partitioning_time_multiple(kwargs, partition_names):
     assert partition_names == [par.name for par in table.partitions]
 
 
+@pytest.mark.skip_pg_version(lt=110000)
 @pytest.mark.parametrize(
     "kwargs,timepoints",
     [
@@ -410,6 +419,7 @@ def test_partitioning_time_delete(kwargs, timepoints):
             assert len(table.partitions) == partition_count
 
 
+@pytest.mark.skip_pg_version(lt=110000)
 def test_partitioning_time_delete_ignore_manual():
     """Tests whether partitions that were created manually are ignored.
 
