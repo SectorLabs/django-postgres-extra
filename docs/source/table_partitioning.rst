@@ -73,7 +73,7 @@ This will generate a migration that creates the partitioned table with a default
 
     Always use ``python manage.py pgmakemigrations`` for partitioned models.
 
-    The model must be created by the :class:`~psqlextra.migrations.operations.PostgresCreatePartitionedModel` operation.
+    The model must be created by the :class:`~psqlextra.backend.migrations.operations.PostgresCreatePartitionedModel` operation.
 
     Do not use the standard ``python manage.py makemigrations`` command for partitioned models. Django will issue a standard :class:`~django:django.db.migrations.operations.CreateModel` operation. Doing this will not create a partitioned table and all subsequent operations will fail.
 
@@ -89,13 +89,13 @@ Partitions are tables. Each partition must be given a unique name. :class:`~psql
 Adding a range partition
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the :class:`~psqlextra.migrations.operations.PostgresAddRangePartition` operation to add a new range partition. Only use this operation when your partitioned model uses the :attr:`psqlextra.types.PostgresPartitioningMethod.RANGE`.
+Use the :class:`~psqlextra.backend.migrations.operations.PostgresAddRangePartition` operation to add a new range partition. Only use this operation when your partitioned model uses the :attr:`psqlextra.types.PostgresPartitioningMethod.RANGE`.
 
 .. code-block:: python
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresAddRangePartition
+   from psqlextra.backend.migrations.operations import PostgresAddRangePartition
 
    class Migration(migrations.Migration):
        operations = [
@@ -111,13 +111,13 @@ Use the :class:`~psqlextra.migrations.operations.PostgresAddRangePartition` oper
 Adding a list partition
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the :class:`~psqlextra.migrations.operations.PostgresAddListPartition` operation to add a new list partition. Only use this operation when your partitioned model uses the :attr:`psqlextra.types.PostgresPartitioningMethod.LIST`.
+Use the :class:`~psqlextra.backend.migrations.operations.PostgresAddListPartition` operation to add a new list partition. Only use this operation when your partitioned model uses the :attr:`psqlextra.types.PostgresPartitioningMethod.LIST`.
 
 .. code-block:: python
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresAddListPartition
+   from psqlextra.backend.migrations.operations import PostgresAddListPartition
 
    class Migration(migrations.Migration):
        operations = [
@@ -132,7 +132,7 @@ Use the :class:`~psqlextra.migrations.operations.PostgresAddListPartition` opera
 Adding a default partition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the :class:`~psqlextra.migrations.operations.PostgresAddDefaultPartition` operation to add a new default partition. A default partition is the partition where records get saved that couldn't fit in any other partition.
+Use the :class:`~psqlextra.backend.migrations.operations.PostgresAddDefaultPartition` operation to add a new default partition. A default partition is the partition where records get saved that couldn't fit in any other partition.
 
 Note that you can only have one default partition per partitioned table/model.
 
@@ -140,7 +140,7 @@ Note that you can only have one default partition per partitioned table/model.
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresAddDefaultPartition
+   from psqlextra.backend.migrations.operations import PostgresAddDefaultPartition
 
    class Migration(migrations.Migration):
        operations = [
@@ -154,13 +154,13 @@ Note that you can only have one default partition per partitioned table/model.
 Deleting a default partition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the :class:`~psqlextra.migrations.operations.PostgresDeleteDefaultPartition` operation to delete an existing default partition.
+Use the :class:`~psqlextra.backend.migrations.operations.PostgresDeleteDefaultPartition` operation to delete an existing default partition.
 
 .. code-block:: python
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresDeleteDefaultPartition
+   from psqlextra.backend.migrations.operations import PostgresDeleteDefaultPartition
 
    class Migration(migrations.Migration):
        operations = [
@@ -174,13 +174,13 @@ Use the :class:`~psqlextra.migrations.operations.PostgresDeleteDefaultPartition`
 Deleting a range partition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the :class:`psqlextra.migrations.operations.PostgresDeleteRangePartition` operation to delete an existing range partition.
+Use the :class:`psqlextra.backend.migrations.operations.PostgresDeleteRangePartition` operation to delete an existing range partition.
 
 .. code-block:: python
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresDeleteRangePartition
+   from psqlextra.backend.migrations.operations import PostgresDeleteRangePartition
 
    class Migration(migrations.Migration):
        operations = [
@@ -194,13 +194,13 @@ Use the :class:`psqlextra.migrations.operations.PostgresDeleteRangePartition` op
 Deleting a list partition
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the :class:`~psqlextra.migrations.operations.PostgresDeleteListPartition` operation to delete an existing list partition.
+Use the :class:`~psqlextra.backend.migrations.operations.PostgresDeleteListPartition` operation to delete an existing list partition.
 
 .. code-block:: python
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresDeleteListPartition
+   from psqlextra.backend.migrations.operations import PostgresDeleteListPartition
 
    class Migration(migrations.Migration):
        operations = [
