@@ -73,7 +73,7 @@ This will generate a migration that creates the partitioned table with a default
 
     Always use ``python manage.py pgmakemigrations`` for partitioned models.
 
-    The model must be created by the :class:`~psqlextra.migrations.operations.PostgresCreatePartitionedModel` operation.
+    The model must be created by the :class:`~psqlextra.backend.migrations.operations.PostgresCreatePartitionedModel` operation.
 
     Do not use the standard ``python manage.py makemigrations`` command for partitioned models. Django will issue a standard :class:`~django:django.db.migrations.operations.CreateModel` operation. Doing this will not create a partitioned table and all subsequent operations will fail.
 
