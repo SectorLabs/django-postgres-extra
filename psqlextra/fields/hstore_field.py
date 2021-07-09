@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 from django.contrib.postgres.fields import HStoreField as DjangoHStoreField
 from django.db.models.expressions import Expression
@@ -17,8 +17,8 @@ class HStoreField(DjangoHStoreField):
     def __init__(
         self,
         *args,
-        uniqueness: List[Union[str, Tuple[str, ...]]] = None,
-        required: List[str] = None,
+        uniqueness: Optional[List[Union[str, Tuple[str, ...]]]] = None,
+        required: Optional[List[str]] = None,
         **kwargs
     ):
         """Initializes a new instance of :see:HStoreField.
