@@ -9,7 +9,7 @@ Installation
 
         $ pip install django-postgres-extra
 
-2. Add ``django.contrib.postgres`` and `psqlextra`` to your ``INSTALLED_APPS``:
+2. Add ``django.contrib.postgres`` and ``psqlextra`` to your ``INSTALLED_APPS``:
 
     .. code-block:: python
 
