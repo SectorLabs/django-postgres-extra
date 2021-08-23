@@ -37,6 +37,12 @@ from .migrations import apply_migration, make_migration
                 method=PostgresPartitioningMethod.RANGE, key="timestamp"
             ),
         ),
+        dict(
+            fields={"artist_id": models.IntegerField()},
+            partitioning_options=dict(
+                method=PostgresPartitioningMethod.HASH, key="artist_id"
+            )
+        )
     ],
 )
 @postgres_patched_migrations()

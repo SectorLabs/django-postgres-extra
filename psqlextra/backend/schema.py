@@ -38,6 +38,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     )
     sql_partition_by = " PARTITION BY %s (%s)"
     sql_add_default_partition = "CREATE TABLE %s PARTITION OF %s DEFAULT"
+    sql_add_hash_partition = "CREATE TABLE %s PARTITION OF %s FOR VALUES WITH (MODULUS %s, REMAINDER %s)"
     sql_add_range_partition = (
         "CREATE TABLE %s PARTITION OF %s FOR VALUES FROM (%s) TO (%s)"
     )
@@ -279,6 +280,52 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         with transaction.atomic():
             self.execute(sql, values)
+
+            if comment:
+                self.set_comment_on_table(table_name, comment)
+
+    def add_hash_partition(
+        self,
+        model: Model,
+        name: str,
+        modulus: int,
+        remainder: int,
+        comment: Optional[str] = None,
+    ) -> None:
+        """Creates a new hash partition for the specified partitioned model.
+
+        Arguments:
+            model:
+                Partitioned model to create a partition for.
+
+            name:
+                Name to give to the new partition.
+                Final name will be "{table_name}_{partition_name}"
+
+            modulus:
+                Integer value by which the key is divided.
+
+            remainder:
+                The remainder of the hash value when divided by modulus.
+
+            comment:
+                Optionally, a comment to add on this partition table.
+        """
+
+        # asserts the model is a model set up for partitioning
+        self._partitioning_properties_for_model(model)
+
+        table_name = self.create_partition_table_name(model, name)
+
+        sql = self.sql_add_hash_partition % (
+            self.quote_name(table_name),
+            self.quote_name(model._meta.db_table),
+            "%s",
+            "%s",
+        )
+
+        with transaction.atomic():
+            self.execute(sql, (modulus, remainder))
 
             if comment:
                 self.set_comment_on_table(table_name, comment)

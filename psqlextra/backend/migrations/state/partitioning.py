@@ -38,6 +38,24 @@ class PostgresListPartitionState(PostgresPartitionState):
         self.values = values
 
 
+class PostgresHashPartitionState(PostgresPartitionState):
+    """Represents the state of a hash partition for a
+    :see:PostgresPartitionedModel during a migration."""
+
+    def __init__(
+        self,
+        app_label: str,
+        model_name: str,
+        name: str,
+        modulus: int,
+        remainder: int,
+    ):
+        super().__init__(app_label, model_name, name)
+
+        self.modulus = modulus
+        self.remainder = remainder
+
+
 class PostgresPartitionedModelState(PostgresModelState):
     """Represents the state of a :see:PostgresPartitionedModel in the
     migrations."""
