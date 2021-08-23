@@ -20,6 +20,7 @@ The following partitioning methods are available:
 
 * ``PARTITION BY RANGE``
 * ``PARTITION BY LIST``
+* ``PARTITION BY HASH``
 
 .. note::
 

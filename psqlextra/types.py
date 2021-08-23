@@ -35,3 +35,4 @@ class PostgresPartitioningMethod(StrEnum):
 
     RANGE = "range"
     LIST = "list"
+    HASH = "hash"

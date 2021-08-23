@@ -63,9 +63,14 @@ def create_model():
         if method == PostgresPartitioningMethod.RANGE:
             key.append("timestamp")
             fields.append(("timestamp", models.DateTimeField()))
-        else:
+        elif method == PostgresPartitioningMethod.LIST:
             key.append("category")
             fields.append(("category", models.TextField()))
+        elif method == PostgresPartitioningMethod.HASH:
+            key.append("artist_id")
+            fields.append(("artist_id", models.IntegerField()))
+        else:
+            raise NotImplementedError
 
         return operations.PostgresCreatePartitionedModel(
             "test",
@@ -150,6 +155,12 @@ def test_migration_operations_delete_partitioned_table(method, create_model):
                 model_name="test", name="pt1", values=["car", "boat"]
             ),
         ),
+        (
+            PostgresPartitioningMethod.HASH,
+            operations.PostgresAddHashPartition(
+                model_name="test", name="pt1", modulus=3, remainder=0
+            ),
+        ),
     ],
 )
 def test_migration_operations_add_partition(
@@ -198,11 +209,11 @@ def test_migration_operations_add_partition(
             ),
         ),
         (
-            PostgresPartitioningMethod.LIST,
-            operations.PostgresAddListPartition(
-                model_name="test", name="pt1", values=["car", "boat"]
+            PostgresPartitioningMethod.HASH,
+            operations.PostgresAddHashPartition(
+                model_name="test", name="pt1", modulus=3, remainder=0
             ),
-            operations.PostgresDeleteListPartition(
+            operations.PostgresDeleteHashPartition(
                 model_name="test", name="pt1"
             ),
         ),

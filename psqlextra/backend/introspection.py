@@ -5,6 +5,11 @@ from psqlextra.types import PostgresPartitioningMethod
 
 from . import base_impl
 
+PARTITIONING_STRATEGY_TO_METHOD = {
+    "r": PostgresPartitioningMethod.RANGE,
+    "l": PostgresPartitioningMethod.LIST,
+    "h": PostgresPartitioningMethod.HASH,
+}
 
 @dataclass
 class PostgresIntrospectedPartitionTable:
@@ -64,9 +69,7 @@ class PostgresIntrospection(base_impl.introspection()):
         return [
             PostgresIntrospectedPartitonedTable(
                 name=row[0],
-                method=PostgresPartitioningMethod.RANGE
-                if row[1] == "r"
-                else PostgresPartitioningMethod.LIST,
+                method=PARTITIONING_STRATEGY_TO_METHOD[row[1]],
                 key=self.get_partition_key(cursor, row[0]),
                 partitions=self.get_partitions(cursor, row[0]),
             )
