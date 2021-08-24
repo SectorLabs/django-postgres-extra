@@ -42,6 +42,7 @@ Inherit your model from :class:`psqlextra.models.PostgresPartitionedModel` and d
 
 * Use :attr:`psqlextra.types.PostgresPartitioningMethod.RANGE` to ``PARTITION BY RANGE``
 * Use :attr:`psqlextra.types.PostgresPartitioningMethod.LIST` to ``PARTITION BY LIST``
+* Use :attr:`psqlextra.types.PostgresPartitioningMethod.HASH` to ``PARTITION BY HASH``
 
 .. code-block:: python
 
