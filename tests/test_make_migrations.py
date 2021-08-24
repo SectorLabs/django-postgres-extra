@@ -57,11 +57,21 @@ def test_make_migration_create_partitioned_model(fake_app, model_config):
     migration = make_migration(model._meta.app_label)
     ops = migration.operations
 
-    # should have one operation to create the partitioned model
-    # and one more to add a default partition
-    assert len(ops) == 2
-    assert isinstance(ops[0], operations.PostgresCreatePartitionedModel)
-    assert isinstance(ops[1], operations.PostgresAddDefaultPartition)
+    if model_config["partitioning_options"]["method"] == PostgresPartitioningMethod.HASH:
+        # should have one operation to create the partitioned model
+        # and no default partition
+        assert len(ops) == 1
+        assert isinstance(ops[0], operations.PostgresCreatePartitionedModel)
+    else:
+        # should have one operation to create the partitioned model
+        # and one more to add a default partition
+        assert len(ops) == 2
+        assert isinstance(ops[0], operations.PostgresCreatePartitionedModel)
+        assert isinstance(ops[1], operations.PostgresAddDefaultPartition)
+
+        # make sure the default partition is named "default"
+        assert ops[1].model_name == model.__name__
+        assert ops[1].name == "default"
 
     # make sure the base is set correctly
     assert len(ops[0].bases) == 1
@@ -69,10 +79,6 @@ def test_make_migration_create_partitioned_model(fake_app, model_config):
 
     # make sure the partitioning options got copied correctly
     assert ops[0].partitioning_options == model_config["partitioning_options"]
-
-    # make sure the default partition is named "default"
-    assert ops[1].model_name == model.__name__
-    assert ops[1].name == "default"
 
 
 @postgres_patched_migrations()

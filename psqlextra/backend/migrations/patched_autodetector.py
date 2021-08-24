@@ -8,7 +8,6 @@ from django.db.migrations import (
     DeleteModel,
     RemoveField,
     RenameField,
-    RunSQL,
 )
 from django.db.migrations.autodetector import MigrationAutodetector
 from django.db.migrations.operations.base import Operation
@@ -19,6 +18,7 @@ from psqlextra.models import (
     PostgresPartitionedModel,
     PostgresViewModel,
 )
+from psqlextra.types import PostgresPartitioningMethod
 
 from . import operations
 
@@ -140,11 +140,12 @@ class AddOperationHandler:
         partitioning_options = model._partitioning_meta.original_attrs
         _, args, kwargs = operation.deconstruct()
 
-        self.add(
-            operations.PostgresAddDefaultPartition(
-                model_name=model.__name__, name="default"
+        if partitioning_options["method"] != PostgresPartitioningMethod.HASH:
+            self.add(
+                operations.PostgresAddDefaultPartition(
+                    model_name=model.__name__, name="default"
+                )
             )
-        )
 
         self.add(
             operations.PostgresCreatePartitionedModel(
