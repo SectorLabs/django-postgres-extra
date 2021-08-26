@@ -69,3 +69,19 @@ class PostgresCreatePartitionedModel(CreateModel):
         description = super().describe()
         description = description.replace("model", "partitioned model")
         return description
+
+    def reduce(self, *args, **kwargs):
+        result = super().reduce(*args, **kwargs)
+
+        # replace CreateModel operation with PostgresCreatePartitionedModel
+        if isinstance(result, list) and result:
+            for i, op in enumerate(result):
+                if isinstance(op, CreateModel):
+                    _, args, kwargs = op.deconstruct()
+                    result[i] = PostgresCreatePartitionedModel(
+                        *args,
+                        **kwargs,
+                        partitioning_options=self.partitioning_options
+                    )
+
+        return result
