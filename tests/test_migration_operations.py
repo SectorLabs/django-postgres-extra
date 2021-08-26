@@ -209,6 +209,15 @@ def test_migration_operations_add_partition(
             ),
         ),
         (
+            PostgresPartitioningMethod.LIST,
+            operations.PostgresAddListPartition(
+                model_name="test", name="pt1", values=["car", "boat"]
+            ),
+            operations.PostgresDeleteListPartition(
+                model_name="test", name="pt1"
+            ),
+        ),
+        (
             PostgresPartitioningMethod.HASH,
             operations.PostgresAddHashPartition(
                 model_name="test", name="pt1", modulus=3, remainder=0
