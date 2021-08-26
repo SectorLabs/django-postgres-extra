@@ -11,6 +11,7 @@ PARTITIONING_STRATEGY_TO_METHOD = {
     "h": PostgresPartitioningMethod.HASH,
 }
 
+
 @dataclass
 class PostgresIntrospectedPartitionTable:
     """Data container for information about a partition."""
@@ -151,6 +152,7 @@ class PostgresIntrospection(base_impl.introspection()):
                         CASE partstrat
                             WHEN 'l' THEN 'list'
                             WHEN 'r' THEN 'range'
+                            WHEN 'h' THEN 'hash'
                         END AS partition_strategy,
                         Unnest(partattrs) column_index
                  FROM pg_partitioned_table) pt

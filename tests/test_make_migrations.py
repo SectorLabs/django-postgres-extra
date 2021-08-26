@@ -1,3 +1,4 @@
+import django
 import pytest
 
 from django.apps import apps
@@ -15,6 +16,7 @@ from psqlextra.types import PostgresPartitioningMethod
 
 from .fake_model import (
     define_fake_materialized_view_model,
+    define_fake_model,
     define_fake_partitioned_model,
     define_fake_view_model,
     get_fake_model,
@@ -41,8 +43,8 @@ from .migrations import apply_migration, make_migration
             fields={"artist_id": models.IntegerField()},
             partitioning_options=dict(
                 method=PostgresPartitioningMethod.HASH, key="artist_id"
-            )
-        )
+            ),
+        ),
     ],
 )
 @postgres_patched_migrations()
@@ -54,10 +56,11 @@ def test_make_migration_create_partitioned_model(fake_app, model_config):
         **model_config, meta_options=dict(app_label=fake_app.name)
     )
 
-    migration = make_migration(model._meta.app_label)
+    migration = make_migration(fake_app.name)
     ops = migration.operations
+    method = model_config["partitioning_options"]["method"]
 
-    if model_config["partitioning_options"]["method"] == PostgresPartitioningMethod.HASH:
+    if method == PostgresPartitioningMethod.HASH:
         # should have one operation to create the partitioned model
         # and no default partition
         assert len(ops) == 1
@@ -194,3 +197,47 @@ def test_make_migration_field_operations_view_models(
     )
     assert isinstance(migration.operations[0], operations.ApplyState)
     assert isinstance(migration.operations[0].state_operation, RemoveField)
+
+
+@pytest.mark.skipif(
+    django.VERSION < (2, 2),
+    reason="Django < 2.2 doesn't implement left-to-right migration optimizations",
+)
+@pytest.mark.parametrize("method", PostgresPartitioningMethod.all())
+@postgres_patched_migrations()
+def test_autodetect_fk_issue(fake_app, method):
+    """Test whether Django can perform ForeignKey optimization.
+
+    Fixes https://github.com/SectorLabs/django-postgres-extra/issues/123 for Django >= 2.2
+    """
+    meta_options = {"app_label": fake_app.name}
+    partitioning_options = {"method": method, "key": "artist_id"}
+
+    artist_model_fields = {"name": models.TextField()}
+    Artist = define_fake_model(artist_model_fields, meta_options=meta_options)
+
+    from_state = ProjectState.from_apps(apps)
+
+    album_model_fields = {
+        "name": models.TextField(),
+        "artist": models.ForeignKey(
+            to=Artist.__name__, on_delete=models.CASCADE
+        ),
+    }
+
+    define_fake_partitioned_model(
+        album_model_fields,
+        partitioning_options=partitioning_options,
+        meta_options=meta_options,
+    )
+
+    migration = make_migration(fake_app.name, from_state=from_state)
+    ops = migration.operations
+
+    if method == PostgresPartitioningMethod.HASH:
+        assert len(ops) == 1
+        assert isinstance(ops[0], operations.PostgresCreatePartitionedModel)
+    else:
+        assert len(ops) == 2
+        assert isinstance(ops[0], operations.PostgresCreatePartitionedModel)
+        assert isinstance(ops[1], operations.PostgresAddDefaultPartition)

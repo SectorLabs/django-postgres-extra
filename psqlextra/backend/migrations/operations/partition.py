@@ -26,3 +26,7 @@ class PostgresPartitionOperation(Operation):
 
     def state_backwards(self, *args, **kwargs):
         pass
+
+    def reduce(self, *args, **kwargs):
+        # PartitionOperation doesn't break migrations optimizations
+        return True

@@ -4,13 +4,16 @@ from .partition import PostgresPartitionOperation
 
 
 class PostgresAddHashPartition(PostgresPartitionOperation):
-    """
-    Adds a new hash partition to a :see:PartitionedPostgresModel.
-    Each partition will hold the rows for which the hash value of the partition
-    key divided by the specified modulus will produce the specified remainder.
+    """Adds a new hash partition to a :see:PartitionedPostgresModel.
+
+    Each partition will hold the rows for which the hash value of the
+    partition key divided by the specified modulus will produce the
+    specified remainder.
     """
 
-    def __init__(self, model_name: str, name: str, modulus: int, remainder: int):
+    def __init__(
+        self, model_name: str, name: str, modulus: int, remainder: int
+    ):
         """Initializes new instance of :see:AddHashPartition.
         Arguments:
             model_name:
