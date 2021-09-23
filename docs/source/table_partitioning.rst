@@ -89,13 +89,13 @@ Partitions are tables. Each partition must be given a unique name. :class:`~psql
 Adding a range partition
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the :class:`~psqlextra.migrations.operations.PostgresAddRangePartition` operation to add a new range partition. Only use this operation when your partitioned model uses the :attr:`psqlextra.types.PostgresPartitioningMethod.RANGE`.
+Use the :class:`~psqlextra.backend.migrations.operations.PostgresAddRangePartition` operation to add a new range partition. Only use this operation when your partitioned model uses the :attr:`psqlextra.types.PostgresPartitioningMethod.RANGE`.
 
 .. code-block:: python
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresAddRangePartition
+   from psqlextra.backend.migrations.operations import PostgresAddRangePartition
 
    class Migration(migrations.Migration):
        operations = [
@@ -111,13 +111,13 @@ Use the :class:`~psqlextra.migrations.operations.PostgresAddRangePartition` oper
 Adding a list partition
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the :class:`~psqlextra.migrations.operations.PostgresAddListPartition` operation to add a new list partition. Only use this operation when your partitioned model uses the :attr:`psqlextra.types.PostgresPartitioningMethod.LIST`.
+Use the :class:`~psqlextra.backend.migrations.operations.PostgresAddListPartition` operation to add a new list partition. Only use this operation when your partitioned model uses the :attr:`psqlextra.types.PostgresPartitioningMethod.LIST`.
 
 .. code-block:: python
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresAddListPartition
+   from psqlextra.backend.migrations.operations import PostgresAddListPartition
 
    class Migration(migrations.Migration):
        operations = [
@@ -132,7 +132,7 @@ Use the :class:`~psqlextra.migrations.operations.PostgresAddListPartition` opera
 Adding a default partition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the :class:`~psqlextra.migrations.operations.PostgresAddDefaultPartition` operation to add a new default partition. A default partition is the partition where records get saved that couldn't fit in any other partition.
+Use the :class:`~psqlextra.backend.migrations.operations.PostgresAddDefaultPartition` operation to add a new default partition. A default partition is the partition where records get saved that couldn't fit in any other partition.
 
 Note that you can only have one default partition per partitioned table/model.
 
@@ -140,7 +140,7 @@ Note that you can only have one default partition per partitioned table/model.
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresAddDefaultPartition
+   from psqlextra.backend.migrations.operations import PostgresAddDefaultPartition
 
    class Migration(migrations.Migration):
        operations = [
@@ -154,13 +154,13 @@ Note that you can only have one default partition per partitioned table/model.
 Deleting a default partition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the :class:`~psqlextra.migrations.operations.PostgresDeleteDefaultPartition` operation to delete an existing default partition.
+Use the :class:`~psqlextra.backend.migrations.operations.PostgresDeleteDefaultPartition` operation to delete an existing default partition.
 
 .. code-block:: python
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresDeleteDefaultPartition
+   from psqlextra.backend.migrations.operations import PostgresDeleteDefaultPartition
 
    class Migration(migrations.Migration):
        operations = [
@@ -174,13 +174,13 @@ Use the :class:`~psqlextra.migrations.operations.PostgresDeleteDefaultPartition`
 Deleting a range partition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the :class:`psqlextra.migrations.operations.PostgresDeleteRangePartition` operation to delete an existing range partition.
+Use the :class:`psqlextra.backend.migrations.operations.PostgresDeleteRangePartition` operation to delete an existing range partition.
 
 .. code-block:: python
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresDeleteRangePartition
+   from psqlextra.backend.migrations.operations import PostgresDeleteRangePartition
 
    class Migration(migrations.Migration):
        operations = [
@@ -194,13 +194,13 @@ Use the :class:`psqlextra.migrations.operations.PostgresDeleteRangePartition` op
 Deleting a list partition
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the :class:`~psqlextra.migrations.operations.PostgresDeleteListPartition` operation to delete an existing list partition.
+Use the :class:`~psqlextra.backend.migrations.operations.PostgresDeleteListPartition` operation to delete an existing list partition.
 
 .. code-block:: python
 
    from django.db import migrations, models
 
-   from psqlextra.migrations.operations import PostgresDeleteListPartition
+   from psqlextra.backend.migrations.operations import PostgresDeleteListPartition
 
    class Migration(migrations.Migration):
        operations = [
@@ -224,7 +224,7 @@ Adding a range partition
 
    from django.db import connection
 
-   connection.schema_editor.add_range_partition(
+   connection.schema_editor().add_range_partition(
        model=MyPartitionedModel,
        name="pt1",
        from_values="2019-01-01",
@@ -239,7 +239,7 @@ Adding a list partition
 
    from django.db import connection
 
-   connection.schema_editor.add_list_partition(
+   connection.schema_editor().add_list_partition(
        model=MyPartitionedModel,
        name="pt1",
        values=["car", "boat"],
@@ -253,7 +253,7 @@ Adding a default partition
 
    from django.db import connection
 
-   connection.schema_editor.add_default_partition(
+   connection.schema_editor().add_default_partition(
        model=MyPartitionedModel,
        name="default",
    )
@@ -266,7 +266,7 @@ Deleting a partition
 
    from django.db import connection
 
-   connection.schema_editor.delete_partition(
+   connection.schema_editor().delete_partition(
        model=MyPartitionedModel,
        name="default",
    )
