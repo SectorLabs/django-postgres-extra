@@ -28,7 +28,7 @@ Installation
             "default": {
                 ...
                 "ENGINE": "psqlextra.backend",
-            ],
+            },
         }
 
     .. note::
