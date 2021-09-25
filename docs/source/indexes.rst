@@ -25,7 +25,7 @@ Although it can be used on any Django model, it is most useful on views and mate
        name = models.CharField(max_length=255)
 
    Model.objects.create(name='henk')
-   Model.objects.create(name='Henk') # raises IntegrityError
+   Model.objects.create(name='henk') # raises IntegrityError
 
 
 .. _conditional_unique_index_page:
