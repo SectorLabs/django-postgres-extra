@@ -36,7 +36,7 @@ with open(
 
 setup(
     name="django-postgres-extra",
-    version="2.0.3rc3",
+    version="2.0.3rc4",
     packages=find_packages(),
     include_package_data=True,
     license="MIT License",
@@ -60,7 +60,7 @@ setup(
     ],
     python_requires=">=3.6",
     install_requires=[
-        "Django>=2.0",
+        "Django>=2.0,<4.0.0",
         "enforce>=0.3.4,<=1.0.0",
         "python-dateutil>=2.8.0,<=3.0.0",
         "structlog>=19,<=20.1.0",
@@ -70,7 +70,7 @@ setup(
         ':python_version <= "3.6"': ["dataclasses"],
         "docs": ["Sphinx==2.2.0", "sphinx-rtd-theme==0.4.3"],
         "test": [
-            "psycopg2==2.8.4",
+            "psycopg2>=2.8.4,<3.0.0",
             "dj-database-url==0.5.0",
             "pytest==5.3.2",
             "pytest-benchmark==3.2.2",
