@@ -70,7 +70,7 @@ setup(
         ':python_version <= "3.6"': ["dataclasses"],
         "docs": ["Sphinx==2.2.0", "sphinx-rtd-theme==0.4.3", "docutils<0.18"],
         "test": [
-            "psycopg2==2.8.4",
+            "psycopg2>=2.8.4,<3.0.0",
             "dj-database-url==0.5.0",
             "pytest==5.3.2",
             "pytest-benchmark==3.2.2",
