@@ -119,7 +119,7 @@ def get_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
 def define_fake_app():
     """Creates and registers a fake Django app."""
 
-    name = 'app_' + str(uuid.uuid4()).replace("-", "")[:8]
+    name = "app_" + str(uuid.uuid4()).replace("-", "")[:8]
 
     app_config_cls = type(
         name + "Config",
