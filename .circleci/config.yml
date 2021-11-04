@@ -91,6 +91,18 @@ jobs:
       - run-tests:
           pyversion: 39
           djversions: 21,22,30,31,32
+
+  test-python310:
+    executor:
+      name: python
+      version: "3.10"
+    steps:
+      - checkout
+      - install-dependencies:
+          extra: test
+      - run-tests:
+          pyversion: 310
+          djversions: 21,22,30,31,32
       - store_test_results:
           path: reports
       - run:
@@ -118,4 +130,5 @@ workflows:
       - test-python37
       - test-python38
       - test-python39
+      - test-python310
       - analysis
