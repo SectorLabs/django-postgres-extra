@@ -48,53 +48,49 @@ jobs:
     executor:
       name: python
       version: "3.6"
-
     steps:
       - checkout
       - install-dependencies:
           extra: test
       - run-tests:
           pyversion: 36
-          djversions: 20,21,22,30,31
+          djversions: 20,21,22,30,31,32
 
   test-python37:
     executor:
       name: python
       version: "3.7"
-
     steps:
       - checkout
       - install-dependencies:
           extra: test
       - run-tests:
           pyversion: 37
-          djversions: 20,21,22,30,31
+          djversions: 20,21,22,30,31,32
 
   test-python38:
     executor:
       name: python
       version: "3.8"
-
     steps:
       - checkout
       - install-dependencies:
           extra: test
       - run-tests:
           pyversion: 38
-          djversions: 20,21,22,30,31
+          djversions: 20,21,22,30,31,32
 
   test-python39:
     executor:
       name: python
       version: "3.9"
-
     steps:
       - checkout
       - install-dependencies:
           extra: test
       - run-tests:
           pyversion: 39
-          djversions: 21,22,30,31
+          djversions: 21,22,30,31,32
       - store_test_results:
           path: reports
       - run:
@@ -102,8 +98,9 @@ jobs:
           command: coveralls
 
   analysis:
-    docker:
-        - image: python:3.8-alpine
+    executor:
+      name: python
+      version: "3.9"
     steps:
       - checkout
       - install-dependencies:

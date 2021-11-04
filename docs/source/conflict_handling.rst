@@ -185,7 +185,7 @@ A row level lock is acquired before evaluating the condition and proceeding with
 
 When writing expressions, refer to the data you're trying to upsert with the :class:`psqlextra.expressions.ExcludedCol` expression.
 
-Alternatively, with Django 3.1, :class:`~django:django.db.models.Q` objects can be used instead:
+Alternatively, with Django 3.1 or newer, :class:`~django:django.db.models.Q` objects can be used instead:
 
 .. code-block:: python
 
