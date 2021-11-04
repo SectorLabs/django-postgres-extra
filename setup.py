@@ -37,7 +37,7 @@ with open(
 setup(
     name="django-postgres-extra",
     version="2.0.4rc1",
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests"]),
     include_package_data=True,
     license="MIT License",
     description="Bringing all of PostgreSQL's awesomeness to Django.",
