@@ -1,5 +1,3 @@
-.. include:: ./snippets/django_doc_links.rst
-
 .. _managers_models:
 
 Managers & Models
