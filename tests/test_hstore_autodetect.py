@@ -34,9 +34,12 @@ def _assert_autodetector(changes, expected):
     for i, expected_operation in enumerate(expected):
         real_operation = operations[i]
         _, _, real_args, real_kwargs = real_operation.field.deconstruct()
-        _, _, expected_args, expected_kwargs = (
-            expected_operation.field.deconstruct()
-        )
+        (
+            _,
+            _,
+            expected_args,
+            expected_kwargs,
+        ) = expected_operation.field.deconstruct()
 
         assert real_args == expected_args
         assert real_kwargs == expected_kwargs

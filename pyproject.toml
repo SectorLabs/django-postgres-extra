@@ -1,2 +1,12 @@
 [tool.black]
 line-length = 80
+exclude = '''
+(
+  /(
+    | .env
+    | env
+    | venv
+    | tests/snapshots
+  )/
+)
+'''

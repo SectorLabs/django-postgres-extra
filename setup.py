@@ -83,12 +83,12 @@ setup(
             "snapshottest==0.6.0",
         ],
         "analysis": [
-            "black==19.3b0",
-            "flake8==3.7.7",
-            "autoflake==1.3",
-            "autopep8==1.4.4",
-            "isort==4.3.20",
-            "sl-docformatter==1.4",
+            "black==21.10b0",
+            "flake8==4.0.1",
+            "autoflake==1.4",
+            "autopep8==1.6.0",
+            "isort==5.10.0",
+            "docformatter==1.4",
         ],
     },
     cmdclass={
@@ -100,7 +100,7 @@ setup(
             [
                 [
                     "autoflake",
-                    "--remove-all-unused-imports",
+                    "--remove-all",
                     "-i",
                     "-r",
                     "setup.py",
@@ -128,16 +128,16 @@ setup(
             "Automatically sorts imports",
             [
                 ["isort", "setup.py"],
-                ["isort", "-rc", "psqlextra"],
-                ["isort", "-rc", "tests"],
+                ["isort", "psqlextra"],
+                ["isort", "tests"],
             ],
         ),
         "sort_imports_verify": create_command(
             "Verifies all imports are properly sorted.",
             [
                 ["isort", "-c", "setup.py"],
-                ["isort", "-c", "-rc", "psqlextra"],
-                ["isort", "-c", "-rc", "tests"],
+                ["isort", "-c", "psqlextra"],
+                ["isort", "-c", "tests"],
             ],
         ),
         "fix": create_command(
