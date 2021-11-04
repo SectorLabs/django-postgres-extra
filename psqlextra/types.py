@@ -7,7 +7,7 @@ SQLWithParams = Tuple[str, Union[Tuple[Any, ...], Dict[str, Any]]]
 
 class StrEnum(str, Enum):
     @classmethod
-    def all(cls) -> List["PostgresPartitioningMethod"]:
+    def all(cls) -> List["StrEnum"]:
         return [choice for choice in cls]
 
     @classmethod

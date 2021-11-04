@@ -137,10 +137,12 @@ class HStoreRef(expressions.F):
         super().__init__(name)
         self.key = key
 
-    def resolve_expression(self, *args, **kwargs) -> HStoreColumn:
+    def resolve_expression(self, *args, **kwargs):
         """Resolves the expression into a :see:HStoreColumn expression."""
 
-        original_expression = super().resolve_expression(*args, **kwargs)
+        original_expression: expressions.Col = super().resolve_expression(
+            *args, **kwargs
+        )
         expression = HStoreColumn(
             original_expression.alias, original_expression.target, self.key
         )

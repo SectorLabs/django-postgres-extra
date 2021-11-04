@@ -67,7 +67,7 @@ class PostgresQuery(sql.Query):
         self.annotations.clear()
         self.annotations.update(new_annotations)
 
-    def add_fields(self, field_names: List[str], *args, **kwargs) -> bool:
+    def add_fields(self, field_names: List[str], *args, **kwargs) -> None:
         """Adds the given (model) fields to the select set.
 
         The field names are added in the order specified. This overrides

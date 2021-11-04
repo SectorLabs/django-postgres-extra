@@ -323,7 +323,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
 
     def _compile_expression(
         self, expression: Union[Expression, Q, str]
-    ) -> Tuple[str, tuple]:
+    ) -> Tuple[str, Union[tuple, list]]:
         """Compiles an expression, Q object or raw SQL string into SQL and
         tuple of parameters."""
 
