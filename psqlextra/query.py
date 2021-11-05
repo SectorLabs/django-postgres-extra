@@ -168,7 +168,9 @@ class PostgresQuerySet(models.QuerySet):
         objs = compiler.execute_sql(return_id=True)
         if return_model:
             return [
-                self._create_model_instance(dict(row, **obj), compiler.using)
+                self._create_model_instance(
+                    dict(row, **obj), compiler.using, apply_converters=False
+                )
                 for row, obj in zip(deduped_rows, objs)
             ]
         else:
