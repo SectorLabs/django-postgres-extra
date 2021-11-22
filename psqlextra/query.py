@@ -165,14 +165,14 @@ class PostgresQuerySet(models.QuerySet):
                 deduped_rows.append(row)
 
         compiler = self._build_insert_compiler(deduped_rows, using=using)
-        objs = compiler.execute_sql(return_id=True)
+        objs = compiler.execute_sql(return_id=not return_model)
         if return_model:
             return [
                 self._create_model_instance(dict(row, **obj), compiler.using)
                 for row, obj in zip(deduped_rows, objs)
             ]
-        else:
-            return [dict(row, **obj) for row, obj in zip(deduped_rows, objs)]
+
+        return [dict(row, **obj) for row, obj in zip(deduped_rows, objs)]
 
     def insert(self, using: Optional[str] = None, **fields):
         """Creates a new record in the database.

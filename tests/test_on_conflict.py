@@ -1,7 +1,9 @@
+import django
 import pytest
 
 from django.core.exceptions import SuspiciousOperation
 from django.db import connection, models
+from django.utils import timezone
 
 from psqlextra.fields import HStoreField
 from psqlextra.models import PostgresModel
@@ -412,3 +414,39 @@ def test_bulk_return_models(conflict_action):
     for index, obj in enumerate(objs, 1):
         assert isinstance(obj, model)
         assert obj.id == index
+
+
+@pytest.mark.skipif(
+    django.VERSION < (3, 1),
+    reason="Django < 3.1 doesn't implement JSONField",
+)
+@pytest.mark.parametrize("conflict_action", ConflictAction.all())
+def test_bulk_return_models_converters(conflict_action):
+    """Tests whether converters are properly applied when using
+    return_model=True."""
+
+    model = get_fake_model(
+        {
+            "name": models.TextField(unique=True),
+            "data": models.JSONField(unique=True),
+            "updated_at": models.DateTimeField(),
+        }
+    )
+
+    now = timezone.now()
+
+    rows = [
+        dict(name="John Smith", data={"a": 1}, updated_at=now.isoformat()),
+        dict(name="Jane Doe", data={"b": 2}, updated_at=now),
+    ]
+
+    objs = model.objects.on_conflict(["name"], conflict_action).bulk_insert(
+        rows, return_model=True
+    )
+
+    for index, (obj, row) in enumerate(zip(objs, rows), 1):
+        assert isinstance(obj, model)
+        assert obj.id == index
+        assert obj.name == row["name"]
+        assert obj.data == row["data"]
+        assert obj.updated_at == now
