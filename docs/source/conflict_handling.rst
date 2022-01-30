@@ -219,7 +219,7 @@ This is preferable when the data you're about to insert is the same as the one t
       # obj2 is none! object alreaddy exists
       obj2 = MyModel.objects.on_conflict(['name'], ConflictAction.NOTHING).insert(name="me")
 
-This applies to both :meth:`~psqlextra.query.PostgresQuerySet.insert` and :meth:`~psqlextra.query.PostgresQuerySet.bulk_insert`
+   This applies to both :meth:`~psqlextra.query.PostgresQuerySet.insert` and :meth:`~psqlextra.query.PostgresQuerySet.bulk_insert`
 
 
 Bulk
