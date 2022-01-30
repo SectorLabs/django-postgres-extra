@@ -6,7 +6,7 @@ executors:
       version:
         type: string
     docker:
-      - image: python:<< parameters.version >>-alpine
+      - image: python:<< parameters.version >>-buster
       - image: postgres:11.0
         environment:
           POSTGRES_DB: 'psqlextra'
@@ -22,11 +22,11 @@ commands:
     steps:
       - run:
           name: Install packages
-          command: apk add postgresql-libs gcc musl-dev postgresql-dev git
+          command: apt-get update && apt-get install -y --no-install-recommends postgresql-client-11 libpq-dev build-essential git
 
       - run:
           name: Install Python packages
-          command: pip install --progress-bar off .[<< parameters.extra >>]
+          command: pip install --progress-bar off '.[<< parameters.extra >>]'
 
   run-tests:
     parameters:
@@ -121,6 +121,30 @@ jobs:
           name: Verify
           command: python setup.py verify
 
+  publish:
+    executor:
+      name: python
+      version: "3.9"
+    steps:
+      - checkout
+      - install-dependencies:
+          extra: publish
+      - run:
+          name: Set version number
+          command: echo "__version__ = \"${CIRCLE_TAG:1}\"" > psqlextra/_version.py
+      - run:
+          name: Build package
+          command: python -m build
+      - run:
+          name: Publish package
+          command: >
+            python -m twine upload
+            --username "${PYPI_REPO_USERNAME}"
+            --password "${PYPI_REPO_PASSWORD}"
+            --verbose
+            --non-interactive
+            --disable-progress-bar
+            dist/*
 
 workflows:
   version: 2
@@ -132,3 +156,16 @@ workflows:
       - test-python39
       - test-python310
       - analysis
+      - publish:
+          requires:
+            - test-python36
+            - test-python37
+            - test-python38
+            - test-python39
+            - test-python310
+            - analysis
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+$/

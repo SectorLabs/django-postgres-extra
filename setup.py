@@ -4,6 +4,8 @@ import subprocess
 
 from setuptools import find_packages, setup
 
+exec(open("psqlextra/_version.py").read())
+
 
 class BaseCommand(distutils.cmd.Command):
     user_options = []
@@ -36,7 +38,7 @@ with open(
 
 setup(
     name="django-postgres-extra",
-    version="2.0.4",
+    version=__version__,
     packages=find_packages(exclude=["tests"]),
     include_package_data=True,
     license="MIT License",
@@ -90,10 +92,23 @@ setup(
             "isort==5.10.0",
             "docformatter==1.4",
         ],
+        "publish": [
+            "build==0.7.0",
+            "twine==3.7.1",
+        ],
     },
     cmdclass={
         "lint": create_command(
-            "Lints the code", [["flake8", "setup.py", "psqlextra", "tests"]]
+            "Lints the code",
+            [
+                [
+                    "flake8",
+                    "--builtin=__version__",
+                    "setup.py",
+                    "psqlextra",
+                    "tests",
+                ]
+            ],
         ),
         "lint_fix": create_command(
             "Lints the code",
