@@ -78,7 +78,7 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 38
-          djversions: 20,21,22,30,31,32
+          djversions: 20,21,22,30,31,32,40
 
   test-python39:
     executor:
@@ -90,7 +90,7 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 39
-          djversions: 21,22,30,31,32
+          djversions: 21,22,30,31,32,40
 
   test-python310:
     executor:
@@ -102,7 +102,7 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 310
-          djversions: 21,22,30,31,32
+          djversions: 21,22,30,31,32,40
       - store_test_results:
           path: reports
       - run:
