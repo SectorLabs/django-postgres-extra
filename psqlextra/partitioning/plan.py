@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from ansimarkup import ansiprint
 from django.db import connections, transaction
 
 from .config import PostgresPartitioningConfig
@@ -49,17 +48,17 @@ class PostgresModelPartitioningPlan:
     def print(self) -> None:
         """Prints this model plan to the terminal in a readable format."""
 
-        ansiprint(f"<b><white>{self.config.model.__name__}:</white></b>")
+        print(f"{self.config.model.__name__}:")
 
         for partition in self.deletions:
-            ansiprint("<b><red>  - %s</red></b>" % partition.name())
+            print("  - %s" % partition.name())
             for key, value in partition.deconstruct().items():
-                ansiprint(f"<white>     <b>{key}</b>: {value}</white>")
+                print(f"     {key}: {value}")
 
         for partition in self.creations:
-            ansiprint("<b><green>  + %s</green></b>" % partition.name())
+            print("  + %s" % partition.name())
             for key, value in partition.deconstruct().items():
-                ansiprint(f"<white>     <b>{key}</b>: {value}</white>")
+                print(f"     {key}: {value}")
 
 
 @dataclass
@@ -104,12 +103,8 @@ class PostgresPartitioningPlan:
         create_count = len(self.creations)
         delete_count = len(self.deletions)
 
-        ansiprint(
-            f"<b><red>{delete_count} partitions will be deleted</red></b>"
-        )
-        ansiprint(
-            f"<b><green>{create_count} partitions will be created</green></b>"
-        )
+        print(f"{delete_count} partitions will be deleted")
+        print(f"{create_count} partitions will be created")
 
 
 __all__ = ["PostgresPartitioningPlan", "PostgresModelPartitioningPlan"]

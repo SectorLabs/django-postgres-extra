@@ -67,7 +67,6 @@ setup(
     install_requires=[
         "Django>=2.0,<5.0",
         "python-dateutil>=2.8.0,<=3.0.0",
-        "ansimarkup>=1.4.0,<=2.0.0",
     ],
     extras_require={
         ':python_version <= "3.6"': ["dataclasses"],

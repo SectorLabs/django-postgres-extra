@@ -1,10 +1,6 @@
-import sys
 
 from typing import Optional
 
-import colorama
-
-from ansimarkup import ansiprint, ansistring
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils.module_loading import import_string
@@ -70,10 +66,6 @@ class Command(BaseCommand):
         *args,
         **kwargs,
     ):
-        # disable coloring if no terminal is attached
-        if not sys.stdout.isatty():
-            colorama.init(strip=True)
-
         partitioning_manager = self._partitioning_manager()
 
         plan = partitioning_manager.plan(
@@ -83,7 +75,7 @@ class Command(BaseCommand):
         creations_count = len(plan.creations)
         deletions_count = len(plan.deletions)
         if creations_count == 0 and deletions_count == 0:
-            ansiprint("<b><white>Nothing to be done.</white></b>")
+            print("Nothing to be done.")
             return
 
         plan.print()
@@ -92,18 +84,14 @@ class Command(BaseCommand):
             return
 
         if not yes:
-            sys.stdout.write(
-                ansistring(
-                    "<b><white>Do you want to proceed? (y/N) </white></b>"
-                )
-            )
+            print("Do you want to proceed? (y/N) ")
 
             if not self._ask_for_confirmation():
-                ansiprint("<b><white>Operation aborted.</white></b>")
+                print("Operation aborted.")
                 return
 
         plan.apply(using=using)
-        ansiprint("<b><white>Operations applied.</white></b>")
+        print("Operations applied.")
 
     @staticmethod
     def _ask_for_confirmation() -> bool:
