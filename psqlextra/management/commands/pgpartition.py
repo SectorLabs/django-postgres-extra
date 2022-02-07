@@ -107,7 +107,7 @@ class Command(BaseCommand):
     @staticmethod
     def _partitioning_manager():
         partitioning_manager = getattr(
-            settings, "PSQLEXTRA_PARTITIONING_MANAGER"
+            settings, "PSQLEXTRA_PARTITIONING_MANAGER", None
         )
         if not partitioning_manager:
             raise PostgresPartitioningError(
