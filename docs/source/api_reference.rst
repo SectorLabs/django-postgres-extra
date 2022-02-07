@@ -37,6 +37,12 @@ API Reference
    .. autoclass:: ConditionalUniqueIndex
    .. autoclass:: CaseInsensitiveUniqueIndex
 
+.. automodule:: psqlextra.partitioning
+   :members:
+
+.. automodule:: psqlextra.backend.migrations.operations
+   :members:
+
 .. automodule:: psqlextra.types
    :members:
    :undoc-members:

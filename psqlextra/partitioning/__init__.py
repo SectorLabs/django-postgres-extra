@@ -5,6 +5,7 @@ from .manager import PostgresPartitioningManager
 from .partition import PostgresPartition
 from .plan import PostgresModelPartitioningPlan, PostgresPartitioningPlan
 from .range_partition import PostgresRangePartition
+from .range_strategy import PostgresRangePartitioningStrategy
 from .shorthands import partition_by_current_time
 from .strategy import PostgresPartitioningStrategy
 from .time_partition import PostgresTimePartition
@@ -22,8 +23,8 @@ __all__ = [
     "PostgresTimePartition",
     "PostgresPartitioningStrategy",
     "PostgresTimePartitioningStrategy",
-    "PostgresCurrentTimePartitioningStrategy",
     "PostgresRangePartitioningStrategy",
+    "PostgresCurrentTimePartitioningStrategy",
     "PostgresPartitioningConfig",
     "PostgresTimePartitionSize",
 ]
