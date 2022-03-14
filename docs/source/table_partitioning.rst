@@ -169,7 +169,7 @@ Time-based partitioning
        PostgresPartitioningConfig(
            model=MyPartitionedModel,
            strategy=PostgresCurrentTimePartitioningStrategy(
-               size=PostgresTimePartitionSize(wdyas=5),
+               size=PostgresTimePartitionSize(days=5),
                count=12,
            ),
        ),
