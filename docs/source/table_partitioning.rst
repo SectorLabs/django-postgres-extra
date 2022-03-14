@@ -139,6 +139,7 @@ Time-based partitioning
        PostgresTimePartitionSize,
        partition_by_current_time,
    )
+   from psqlextra.partitioning.config import PostgresPartitioningConfig
 
    manager = PostgresPartitioningManager([
        # 3 partitions ahead, each partition is one month
