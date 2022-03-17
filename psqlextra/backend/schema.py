@@ -47,6 +47,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     )
     sql_delete_partition = "DROP TABLE %s"
     sql_table_comment = "COMMENT ON TABLE %s IS %s"
+    sql_validate_constraint = "ALTER TABLE %s VALIDATE CONSTRAINT %s"
 
     side_effects = [
         HStoreUniqueSchemaEditorSideEffect(),
@@ -420,6 +421,39 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         sql = self.sql_table_comment % (self.quote_name(table_name), "%s")
         self.execute(sql, (comment,))
+
+    def add_constraint_not_valid(self, model, constraint) -> None:
+        """Adds a new constraint with NOT VALID, enforcing it only for new rows
+        until VALIDATE is applied on the constraint."""
+
+        # Local import because CheckConstraint only got added
+        # in Django 3.x. Imports fail in earlier (supported versions).
+        from django.db.models import CheckConstraint
+
+        if not isinstance(constraint, CheckConstraint):
+            raise TypeError("Only check constraints can be added as NOT VALID.")
+
+        (add_constraint_sql,) = self._extract_sql(
+            self.add_constraint, model, constraint
+        )
+
+        add_constraint_not_valid_sql = str(add_constraint_sql).rstrip(";")
+        add_constraint_not_valid_sql += " NOT VALID;"
+
+        self.execute(add_constraint_not_valid_sql, params=None)
+
+    def validate_constraint(self, model, constraint):
+        """Validates an existing constraint.
+
+        This removes the NOT VALID flag on a constraint if it exists.
+        """
+
+        sql = self.sql_validate_constraint % (
+            self.quote_name(model._meta.db_table),
+            self.quote_name(constraint.name),
+        )
+
+        self.execute(sql, params=None)
 
     def _create_view_model(self, sql: str, model: Model) -> None:
         """Creates a new view model using the specified SQL query."""

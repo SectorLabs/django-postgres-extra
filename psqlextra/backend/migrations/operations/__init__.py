@@ -1,3 +1,6 @@
+from .add_check_constraint_concurrently import (
+    PostgresAddCheckConstraintConcurrently,
+)
 from .add_default_partition import PostgresAddDefaultPartition
 from .add_hash_partition import PostgresAddHashPartition
 from .add_list_partition import PostgresAddListPartition
@@ -30,4 +33,5 @@ __all__ = [
     "PostgresCreateMaterializedViewModel",
     "PostgresDeleteViewModel",
     "PostgresDeleteMaterializedViewModel",
+    "PostgresAddCheckConstraintConcurrently",
 ]
