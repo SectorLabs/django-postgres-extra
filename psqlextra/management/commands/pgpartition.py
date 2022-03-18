@@ -1,3 +1,5 @@
+import sys
+
 from typing import Optional
 
 from django.conf import settings
@@ -83,7 +85,7 @@ class Command(BaseCommand):
             return
 
         if not yes:
-            print("Do you want to proceed? (y/N) ")
+            sys.stdout.write("Do you want to proceed? (y/N) ")
 
             if not self._ask_for_confirmation():
                 print("Operation aborted.")
