@@ -8,7 +8,7 @@ from django.db import connections, models
 from django.db.models import sql
 from django.db.models.constants import LOOKUP_SEP
 
-from .compiler import PostgresInsertCompiler, PostgresUpdateCompiler
+from .compiler import PostgresInsertOnConflictCompiler, PostgresUpdateCompiler
 from .expressions import HStoreColumn
 from .fields import HStoreField
 from .types import ConflictAction
@@ -179,7 +179,7 @@ class PostgresInsertQuery(sql.InsertQuery):
     def get_compiler(self, using=None, connection=None):
         if using:
             connection = connections[using]
-        return PostgresInsertCompiler(self, connection, using)
+        return PostgresInsertOnConflictCompiler(self, connection, using)
 
 
 class PostgresUpdateQuery(sql.UpdateQuery):

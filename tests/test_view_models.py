@@ -26,7 +26,8 @@ def test_view_model_meta_query_set(model_base):
     expected_sql = 'SELECT "{0}"."id", "{0}"."name" FROM "{0}"'.format(
         model._meta.db_table
     )
-    assert view_model._view_meta.query == (expected_sql, tuple())
+    assert view_model._view_meta.query[0].startswith(expected_sql + " /* ")
+    assert view_model._view_meta.query[1] == tuple()
 
 
 @pytest.mark.parametrize(

@@ -1,3 +1,7 @@
+import inspect
+import os
+import sys
+
 from collections.abc import Iterable
 from typing import Tuple, Union
 
@@ -6,11 +10,57 @@ import django
 from django.core.exceptions import SuspiciousOperation
 from django.db.models import Expression, Model, Q
 from django.db.models.fields.related import RelatedField
-from django.db.models.sql.compiler import SQLInsertCompiler, SQLUpdateCompiler
+from django.db.models.sql.compiler import (
+    SQLAggregateCompiler,
+    SQLCompiler,
+    SQLDeleteCompiler,
+    SQLInsertCompiler,
+    SQLUpdateCompiler,
+)
 from django.db.utils import ProgrammingError
 
 from .expressions import HStoreValue
 from .types import ConflictAction
+
+
+def append_caller_to_sql(sql):
+    try:
+        # Search for the first non-Django caller
+        stack = inspect.stack()
+        i = 0
+        for stack_frame in stack[1:]:
+            i += 1
+            frame_filename = stack_frame[1]
+            frame_line = stack_frame[2]
+            frame_function = stack_frame[3]
+            if "/django/" in frame_filename or "/psqlextra/" in frame_filename:
+                continue
+
+            return f"{sql} /* {os.getpid()} {frame_function} {frame_filename} {frame_line} */"
+
+        # Django internal commands (like migrations) end up here
+        return f"{sql} /* {os.getpid()} {sys.argv[0]} */"
+    except Exception:
+        # Don't break anything because this convinence function runs into an unexpected situation
+        return sql
+
+
+class PostgresCompiler(SQLCompiler):
+    def as_sql(self):
+        sql, params = super().as_sql()
+        return append_caller_to_sql(sql), params
+
+
+class PostgresDeleteCompiler(SQLDeleteCompiler):
+    def as_sql(self):
+        sql, params = super().as_sql()
+        return append_caller_to_sql(sql), params
+
+
+class PostgresAggregateCompiler(SQLAggregateCompiler):
+    def as_sql(self):
+        sql, params = super().as_sql()
+        return append_caller_to_sql(sql), params
 
 
 class PostgresUpdateCompiler(SQLUpdateCompiler):
@@ -24,7 +74,8 @@ class PostgresUpdateCompiler(SQLUpdateCompiler):
 
     def as_sql(self):
         self._prepare_query_values()
-        return super().as_sql()
+        sql, params = super().as_sql()
+        return append_caller_to_sql(sql), params
 
     def _prepare_query_values(self):
         """Extra prep on query values by converting dictionaries into.
@@ -72,19 +123,32 @@ class PostgresUpdateCompiler(SQLUpdateCompiler):
 class PostgresInsertCompiler(SQLInsertCompiler):
     """Compiler for SQL INSERT statements."""
 
-    def __init__(self, *args, **kwargs):
-        """Initializes a new instance of :see:PostgresInsertCompiler."""
+    def as_sql(self, return_id=False):
+        """Builds the SQL INSERT statement."""
+        queries = [
+            (append_caller_to_sql(sql), params)
+            for sql, params in super().as_sql()
+        ]
 
+        return queries
+
+
+class PostgresInsertOnConflictCompiler(SQLInsertCompiler):
+    """Compiler for SQL INSERT statements."""
+
+    def __init__(self, *args, **kwargs):
+        """Initializes a new instance of
+        :see:PostgresInsertOnConflictCompiler."""
         super().__init__(*args, **kwargs)
         self.qn = self.connection.ops.quote_name
 
     def as_sql(self, return_id=False):
         """Builds the SQL INSERT statement."""
-
         queries = [
             self._rewrite_insert(sql, params, return_id)
             for sql, params in super().as_sql()
         ]
+        print(f"InsertConflictCompiler {queries}")
 
         return queries
 
@@ -132,9 +196,12 @@ class PostgresInsertCompiler(SQLInsertCompiler):
             self.qn(self.query.model._meta.pk.attname) if return_id else "*"
         )
 
-        return self._rewrite_insert_on_conflict(
-            sql, params, self.query.conflict_action.value, returning
-        )
+        if hasattr(self.query, "conflict_action"):
+            (sql, params) = self._rewrite_insert_on_conflict(
+                sql, params, self.query.conflict_action.value, returning
+            )
+
+        return (append_caller_to_sql(sql), params)
 
     def _rewrite_insert_on_conflict(
         self, sql, params, conflict_action: ConflictAction, returning

@@ -1,5 +1,6 @@
-from django.db import models
+from django.db import connection, models
 from django.db.models import Case, F, Q, Value, When
+from django.test.utils import CaptureQueriesContext
 
 from psqlextra.expressions import HStoreRef
 from psqlextra.fields import HStoreField
@@ -134,3 +135,20 @@ def test_query_hstore_value_update_escape():
 
     inst = model.objects.all().first()
     assert inst.title.get("en") == "console.log('test')"
+
+
+def test_query_comment():
+    """Tests whether the query is commented."""
+
+    model = get_fake_model(
+        {
+            "name": models.CharField(max_length=10),
+            "value": models.IntegerField(),
+        }
+    )
+
+    with CaptureQueriesContext(connection) as queries:
+        qs = model.objects.all()
+        assert " test_query_comment " in str(qs.query)
+        list(qs)
+        assert " test_query_comment " in queries[0]["sql"]
