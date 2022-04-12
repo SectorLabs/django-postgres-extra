@@ -78,20 +78,20 @@ def append_caller_to_sql(sql):
 
 
 class PostgresCompiler(SQLCompiler):
-    def as_sql(self, **kwargs):
-        sql, params = super().as_sql(**kwargs)
+    def as_sql(self, *args, **kwargs):
+        sql, params = super().as_sql(*args, **kwargs)
         return append_caller_to_sql(sql), params
 
 
 class PostgresDeleteCompiler(SQLDeleteCompiler):
-    def as_sql(self):
-        sql, params = super().as_sql()
+    def as_sql(self, *args, **kwargs):
+        sql, params = super().as_sql(*args, **kwargs)
         return append_caller_to_sql(sql), params
 
 
 class PostgresAggregateCompiler(SQLAggregateCompiler):
-    def as_sql(self):
-        sql, params = super().as_sql()
+    def as_sql(self, *args, **kwargs):
+        sql, params = super().as_sql(*args, **kwargs)
         return append_caller_to_sql(sql), params
 
 
@@ -104,9 +104,9 @@ class PostgresUpdateCompiler(SQLUpdateCompiler):
         .update(name=dict(en=F('test')))
     """
 
-    def as_sql(self):
+    def as_sql(self, *args, **kwargs):
         self._prepare_query_values()
-        sql, params = super().as_sql()
+        sql, params = super().as_sql(*args, **kwargs)
         return append_caller_to_sql(sql), params
 
     def _prepare_query_values(self):
@@ -155,11 +155,11 @@ class PostgresUpdateCompiler(SQLUpdateCompiler):
 class PostgresInsertCompiler(SQLInsertCompiler):
     """Compiler for SQL INSERT statements."""
 
-    def as_sql(self, return_id=False):
+    def as_sql(self, *args, **kwargs):
         """Builds the SQL INSERT statement."""
         queries = [
             (append_caller_to_sql(sql), params)
-            for sql, params in super().as_sql()
+            for sql, params in super().as_sql(*args, **kwargs)
         ]
 
         return queries
@@ -174,11 +174,11 @@ class PostgresInsertOnConflictCompiler(SQLInsertCompiler):
         super().__init__(*args, **kwargs)
         self.qn = self.connection.ops.quote_name
 
-    def as_sql(self, return_id=False):
+    def as_sql(self, return_id=False, *args, **kwargs):
         """Builds the SQL INSERT statement."""
         queries = [
             self._rewrite_insert(sql, params, return_id)
-            for sql, params in super().as_sql()
+            for sql, params in super().as_sql(*args, **kwargs)
         ]
 
         return queries
