@@ -84,7 +84,7 @@ setup(
             "snapshottest==0.6.0",
         ],
         "analysis": [
-            "black==21.10b0",
+            "black==22.3.0",
             "flake8==4.0.1",
             "autoflake==1.4",
             "autopep8==1.6.0",
