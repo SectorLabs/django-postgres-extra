@@ -3,6 +3,7 @@ import pytest
 
 from django.core.exceptions import SuspiciousOperation
 from django.db import connection, models
+from django.test.utils import CaptureQueriesContext, override_settings
 from django.utils import timezone
 
 from psqlextra.fields import HStoreField
@@ -13,6 +14,7 @@ from .fake_model import get_fake_model
 
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
+@override_settings(PSQLEXTRA_ANNOTATE_SQL=True)
 def test_on_conflict(conflict_action):
     """Tests whether simple inserts work correctly."""
 
@@ -23,9 +25,11 @@ def test_on_conflict(conflict_action):
         }
     )
 
-    obj = model.objects.on_conflict(
-        [("title", "key1")], conflict_action
-    ).insert_and_get(title={"key1": "beer"}, cookies="cheers")
+    with CaptureQueriesContext(connection) as queries:
+        obj = model.objects.on_conflict(
+            [("title", "key1")], conflict_action
+        ).insert_and_get(title={"key1": "beer"}, cookies="cheers")
+        assert " test_on_conflict " in queries[0]["sql"]
 
     model.objects.on_conflict(
         [("title", "key1")], conflict_action

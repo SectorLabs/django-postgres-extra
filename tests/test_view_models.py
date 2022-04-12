@@ -2,6 +2,7 @@ import pytest
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
+from django.test.utils import override_settings
 
 from psqlextra.models import PostgresMaterializedViewModel, PostgresViewModel
 
@@ -11,6 +12,7 @@ from .fake_model import define_fake_model, define_fake_view_model
 @pytest.mark.parametrize(
     "model_base", [PostgresViewModel, PostgresMaterializedViewModel]
 )
+@override_settings(PSQLEXTRA_ANNOTATE_SQL=True)
 def test_view_model_meta_query_set(model_base):
     """Tests whether you can set a :see:QuerySet to be used as the underlying
     query for a view."""
@@ -26,7 +28,8 @@ def test_view_model_meta_query_set(model_base):
     expected_sql = 'SELECT "{0}"."id", "{0}"."name" FROM "{0}"'.format(
         model._meta.db_table
     )
-    assert view_model._view_meta.query == (expected_sql, tuple())
+    assert view_model._view_meta.query[0].startswith(expected_sql + " /* ")
+    assert view_model._view_meta.query[1] == tuple()
 
 
 @pytest.mark.parametrize(

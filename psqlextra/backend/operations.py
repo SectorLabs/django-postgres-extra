@@ -1,10 +1,24 @@
-from importlib import import_module
+from psqlextra.compiler import (
+    PostgresAggregateCompiler,
+    PostgresCompiler,
+    PostgresDeleteCompiler,
+    PostgresInsertCompiler,
+    PostgresUpdateCompiler,
+)
 
 from . import base_impl
 
 
 class PostgresOperations(base_impl.operations()):
     """Simple operations specific to PostgreSQL."""
+
+    compiler_map = {
+        "SQLCompiler": PostgresCompiler,
+        "SQLInsertCompiler": PostgresInsertCompiler,
+        "SQLUpdateCompiler": PostgresUpdateCompiler,
+        "SQLDeleteCompiler": PostgresDeleteCompiler,
+        "SQLAggregateCompiler": PostgresAggregateCompiler,
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -14,14 +28,9 @@ class PostgresOperations(base_impl.operations()):
     def compiler(self, compiler_name: str):
         """Gets the SQL compiler with the specified name."""
 
-        # first let django try to find the compiler
-        try:
-            return super().compiler(compiler_name)
-        except AttributeError:
-            pass
+        postgres_compiler = self.compiler_map.get(compiler_name)
+        if postgres_compiler:
+            return postgres_compiler
 
-        # django can't find it, look in our own module
-        if self._compiler_cache is None:
-            self._compiler_cache = import_module("psqlextra.compiler")
-
-        return getattr(self._compiler_cache, compiler_name)
+        # Let Django try to find the compiler. Better run without caller comment than break
+        return super().compiler(compiler_name)
