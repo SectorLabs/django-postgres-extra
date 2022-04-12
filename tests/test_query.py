@@ -1,6 +1,6 @@
 from django.db import connection, models
 from django.db.models import Case, F, Q, Value, When
-from django.test.utils import CaptureQueriesContext
+from django.test.utils import CaptureQueriesContext, override_settings
 
 from psqlextra.expressions import HStoreRef
 from psqlextra.fields import HStoreField
@@ -137,6 +137,7 @@ def test_query_hstore_value_update_escape():
     assert inst.title.get("en") == "console.log('test')"
 
 
+@override_settings(PSQLEXTRA_ANNOTATE_SQL=True)
 def test_query_comment():
     """Tests whether the query is commented."""
 

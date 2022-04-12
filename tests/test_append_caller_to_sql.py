@@ -1,7 +1,7 @@
 import pytest
 
 from django.db import connection, models
-from django.test.utils import CaptureQueriesContext
+from django.test.utils import CaptureQueriesContext, override_settings
 
 from psqlextra.compiler import append_caller_to_sql
 
@@ -22,6 +22,12 @@ def mockedFunction():
     return append_caller_to_sql("sql")
 
 
+@override_settings(PSQLEXTRA_ANNOTATE_SQL=False)
+def test_disable_append_caller_to_sql():
+    commented_sql = mockedFunction()
+    assert commented_sql == "sql"
+
+
 @pytest.mark.parametrize(
     "entry_point",
     [
@@ -29,6 +35,7 @@ def mockedFunction():
         psqlextraSimulated().callMockedClass,
     ],
 )
+@override_settings(PSQLEXTRA_ANNOTATE_SQL=True)
 def test_append_caller_to_sql_class(entry_point):
     commented_sql = entry_point()
     assert commented_sql.startswith("sql /* ")
@@ -36,6 +43,7 @@ def test_append_caller_to_sql_class(entry_point):
     assert __file__ in commented_sql
 
 
+@override_settings(PSQLEXTRA_ANNOTATE_SQL=True)
 def test_append_caller_to_sql_function():
     commented_sql = mockedFunction()
     assert commented_sql.startswith("sql /* ")
@@ -43,6 +51,7 @@ def test_append_caller_to_sql_function():
     assert __file__ in commented_sql
 
 
+@override_settings(PSQLEXTRA_ANNOTATE_SQL=True)
 def test_append_caller_to_sql_crud():
     model = get_fake_model(
         {

@@ -7,6 +7,7 @@ from typing import Tuple, Union
 
 import django
 
+from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.db.models import Expression, Model, Q
 from django.db.models.fields.related import RelatedField
@@ -24,12 +25,43 @@ from .types import ConflictAction
 
 
 def append_caller_to_sql(sql):
+    """Append the caller to SQL queries.
+
+    Adds the calling file and function as an SQL comment to each query.
+    Examples:
+     INSERT INTO "tests_47ee19d1" ("id", "title")
+     VALUES (1, 'Test')
+     RETURNING "tests_47ee19d1"."id"
+     /* 998020 test_append_caller_to_sql_crud .../django-postgres-extra/tests/test_append_caller_to_sql.py 55 */
+
+     SELECT "tests_47ee19d1"."id", "tests_47ee19d1"."title"
+     FROM "tests_47ee19d1"
+     WHERE "tests_47ee19d1"."id" = 1
+     LIMIT 1
+     /* 998020 test_append_caller_to_sql_crud .../django-postgres-extra/tests/test_append_caller_to_sql.py 69 */
+
+     UPDATE "tests_47ee19d1"
+     SET "title" = 'success'
+     WHERE "tests_47ee19d1"."id" = 1
+     /* 998020 test_append_caller_to_sql_crud .../django-postgres-extra/tests/test_append_caller_to_sql.py 64 */
+
+     DELETE FROM "tests_47ee19d1"
+     WHERE "tests_47ee19d1"."id" IN (1)
+     /* 998020 test_append_caller_to_sql_crud .../django-postgres-extra/tests/test_append_caller_to_sql.py 74 */
+
+    Slow and blocking queries could be easily tracked down to their originator
+    within the source code using the "pg_stat_activity" table.
+
+    Enable "PSQLEXTRA_ANNOTATE_SQL" within the database settings to enable this feature.
+    """
+
+    if not getattr(settings, "PSQLEXTRA_ANNOTATE_SQL", None):
+        return sql
+
     try:
         # Search for the first non-Django caller
         stack = inspect.stack()
-        i = 0
         for stack_frame in stack[1:]:
-            i += 1
             frame_filename = stack_frame[1]
             frame_line = stack_frame[2]
             frame_function = stack_frame[3]
@@ -148,7 +180,6 @@ class PostgresInsertOnConflictCompiler(SQLInsertCompiler):
             self._rewrite_insert(sql, params, return_id)
             for sql, params in super().as_sql()
         ]
-        print(f"InsertConflictCompiler {queries}")
 
         return queries
 
@@ -196,12 +227,11 @@ class PostgresInsertOnConflictCompiler(SQLInsertCompiler):
             self.qn(self.query.model._meta.pk.attname) if return_id else "*"
         )
 
-        if hasattr(self.query, "conflict_action"):
-            (sql, params) = self._rewrite_insert_on_conflict(
-                sql, params, self.query.conflict_action.value, returning
-            )
+        (sql, params) = self._rewrite_insert_on_conflict(
+            sql, params, self.query.conflict_action.value, returning
+        )
 
-        return (append_caller_to_sql(sql), params)
+        return append_caller_to_sql(sql), params
 
     def _rewrite_insert_on_conflict(
         self, sql, params, conflict_action: ConflictAction, returning
