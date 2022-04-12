@@ -78,8 +78,8 @@ def append_caller_to_sql(sql):
 
 
 class PostgresCompiler(SQLCompiler):
-    def as_sql(self):
-        sql, params = super().as_sql()
+    def as_sql(self, **kwargs):
+        sql, params = super().as_sql(**kwargs)
         return append_caller_to_sql(sql), params
 
 
