@@ -31,7 +31,7 @@ class DatabaseWrapper(base_impl.backend()):
         #
         # This can lead to broken functionality. We fix this automatically.
 
-        if not isinstance(self.ops, self.introspection_class):
+        if not isinstance(self.introspection, self.introspection_class):
             self.introspection = self.introspection_class(self)
 
         if not isinstance(self.ops, self.ops_class):
