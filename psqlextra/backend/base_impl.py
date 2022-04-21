@@ -1,4 +1,5 @@
 import importlib
+import os
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -23,7 +24,7 @@ def backend():
     base_class_name = getattr(
         settings,
         "POSTGRES_EXTRA_DB_BACKEND_BASE",
-        "django.db.backends.postgresql",
+        os.environ.get("POSTGRES_EXTRA_DB_BACKEND_BASE") or "django.db.backends.postgresql",
     )
 
     base_class_module = importlib.import_module(base_class_name + ".base")
