@@ -24,18 +24,34 @@ class DatabaseWrapper(base_impl.backend()):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not isinstance(self.ops, PostgresOperations):
-            # PostGis replaces the ops object instead of setting the ops_class attribute
-            if self.ops.compiler_module != 'django.db.models.sql.compiler':
-                raise NotImplementedError(
-                    f'''The Django ops object has been replaced by {self.ops} and a custom compiler module {self.ops.compiler_module} has been set.
-Replacing both at the same time is incompatible with psqlextra. '''
+
+        # Some base back-ends such as the PostGIS back-end don't properly
+        # set `ops_class` and `introspection_class` and initialize these
+        # classes themselves.
+        #
+        # This can lead to broken functionality. We fix this automatically.
+
+        if not isinstance(self.ops, self.introspection_class):
+            self.introspection = self.introspection_class(self)
+
+        if not isinstance(self.ops, self.ops_class):
+            self.ops = self.ops_class(self)
+
+        for expected_compiler_class in self.ops.compiler_classes:
+            compiler_class = self.ops.compiler(expected_compiler_class.__name__)
+
+            if not issubclass(compiler_class, expected_compiler_class):
+                logger.warning(
+                    "Compiler '%s.%s' is not properly deriving from '%s.%s'."
+                    % (
+                        compiler_class.__module__,
+                        compiler_class.__name__,
+                        expected_compiler_class.__module__,
+                        expected_compiler_class.__name__,
+                    )
                 )
-            self.ops._compiler_cache = None
-            self.ops.compiler_module = 'psqlextra.compiler'
 
-
-def prepare_database(self):
+    def prepare_database(self):
         """Ran to prepare the configured database.
 
         This is where we enable the `hstore` extension if it wasn't

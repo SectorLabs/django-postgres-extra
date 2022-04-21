@@ -1,16 +1,16 @@
 import importlib
-import os
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.db import DEFAULT_DB_ALIAS, connections
 
 from django.db.backends.postgresql.base import (  # isort:skip
     DatabaseWrapper as Psycopg2DatabaseWrapper,
 )
 
 
-def backend():
-    """Gets the base class for the custom database back-end.
+def base_backend_instance():
+    """Gets an instance of the base class for the custom database back-end.
 
     This should be the Django PostgreSQL back-end. However,
     some people are already using a custom back-end from
@@ -20,11 +20,15 @@ def backend():
     As long as the specified base eventually also has
     the PostgreSQL back-end as a base, then everything should
     work as intended.
+
+    We create an instance to inspect what classes to subclass
+    because not all back-ends set properties such as `ops_class`
+    properly. The PostGIS back-end is a good example.
     """
     base_class_name = getattr(
         settings,
         "POSTGRES_EXTRA_DB_BACKEND_BASE",
-        os.environ.get("POSTGRES_EXTRA_DB_BACKEND_BASE") or "django.db.backends.postgresql",
+        "django.db.backends.postgresql",
     )
 
     base_class_module = importlib.import_module(base_class_name + ".base")
@@ -50,7 +54,24 @@ def backend():
             % base_class_name
         )
 
-    return base_class
+    base_instance = base_class(connections.databases[DEFAULT_DB_ALIAS])
+    if base_instance.connection:
+        raise ImproperlyConfigured(
+            (
+                "'%s' establishes a connection during initialization."
+                " This is not expected and can lead to more connections"
+                " being established than neccesarry."
+            )
+            % base_class_name
+        )
+
+    return base_instance
+
+
+def backend():
+    """Gets the base class for the database back-end."""
+
+    return base_backend_instance().__class__
 
 
 def schema_editor():
@@ -60,7 +81,7 @@ def schema_editor():
     this.
     """
 
-    return backend().SchemaEditorClass
+    return base_backend_instance().SchemaEditorClass
 
 
 def introspection():
@@ -70,7 +91,7 @@ def introspection():
     for this.
     """
 
-    return backend().introspection_class
+    return base_backend_instance().introspection.__class__
 
 
 def operations():
@@ -80,4 +101,4 @@ def operations():
     this.
     """
 
-    return backend().ops_class
+    return base_backend_instance().ops.__class__
