@@ -8,7 +8,8 @@ from django.db import connections, models
 from django.db.models import sql
 from django.db.models.constants import LOOKUP_SEP
 
-from .compiler import PostgresInsertOnConflictCompiler, PostgresUpdateCompiler
+from .compiler import PostgresInsertOnConflictCompiler
+from .compiler import SQLUpdateCompiler as PostgresUpdateCompiler
 from .expressions import HStoreColumn
 from .fields import HStoreField
 from .types import ConflictAction

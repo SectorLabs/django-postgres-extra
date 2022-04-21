@@ -22,6 +22,35 @@ class DatabaseWrapper(base_impl.backend()):
     introspection_class = PostgresIntrospection
     ops_class = PostgresOperations
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Some base back-ends such as the PostGIS back-end don't properly
+        # set `ops_class` and `introspection_class` and initialize these
+        # classes themselves.
+        #
+        # This can lead to broken functionality. We fix this automatically.
+
+        if not isinstance(self.introspection, self.introspection_class):
+            self.introspection = self.introspection_class(self)
+
+        if not isinstance(self.ops, self.ops_class):
+            self.ops = self.ops_class(self)
+
+        for expected_compiler_class in self.ops.compiler_classes:
+            compiler_class = self.ops.compiler(expected_compiler_class.__name__)
+
+            if not issubclass(compiler_class, expected_compiler_class):
+                logger.warning(
+                    "Compiler '%s.%s' is not properly deriving from '%s.%s'."
+                    % (
+                        compiler_class.__module__,
+                        compiler_class.__name__,
+                        expected_compiler_class.__module__,
+                        expected_compiler_class.__name__,
+                    )
+                )
+
     def prepare_database(self):
         """Ran to prepare the configured database.
 

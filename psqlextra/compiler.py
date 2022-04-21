@@ -11,13 +11,7 @@ from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.db.models import Expression, Model, Q
 from django.db.models.fields.related import RelatedField
-from django.db.models.sql.compiler import (
-    SQLAggregateCompiler,
-    SQLCompiler,
-    SQLDeleteCompiler,
-    SQLInsertCompiler,
-    SQLUpdateCompiler,
-)
+from django.db.models.sql import compiler as django_compiler
 from django.db.utils import ProgrammingError
 
 from .expressions import HStoreValue
@@ -77,25 +71,25 @@ def append_caller_to_sql(sql):
         return sql
 
 
-class PostgresCompiler(SQLCompiler):
+class SQLCompiler(django_compiler.SQLCompiler):
     def as_sql(self, *args, **kwargs):
         sql, params = super().as_sql(*args, **kwargs)
         return append_caller_to_sql(sql), params
 
 
-class PostgresDeleteCompiler(SQLDeleteCompiler):
+class SQLDeleteCompiler(django_compiler.SQLDeleteCompiler):
     def as_sql(self, *args, **kwargs):
         sql, params = super().as_sql(*args, **kwargs)
         return append_caller_to_sql(sql), params
 
 
-class PostgresAggregateCompiler(SQLAggregateCompiler):
+class SQLAggregateCompiler(django_compiler.SQLAggregateCompiler):
     def as_sql(self, *args, **kwargs):
         sql, params = super().as_sql(*args, **kwargs)
         return append_caller_to_sql(sql), params
 
 
-class PostgresUpdateCompiler(SQLUpdateCompiler):
+class SQLUpdateCompiler(django_compiler.SQLUpdateCompiler):
     """Compiler for SQL UPDATE statements that allows us to use expressions
     inside HStore values.
 
@@ -152,7 +146,7 @@ class PostgresUpdateCompiler(SQLUpdateCompiler):
         return False
 
 
-class PostgresInsertCompiler(SQLInsertCompiler):
+class SQLInsertCompiler(django_compiler.SQLInsertCompiler):
     """Compiler for SQL INSERT statements."""
 
     def as_sql(self, *args, **kwargs):
@@ -165,7 +159,7 @@ class PostgresInsertCompiler(SQLInsertCompiler):
         return queries
 
 
-class PostgresInsertOnConflictCompiler(SQLInsertCompiler):
+class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):
     """Compiler for SQL INSERT statements."""
 
     def __init__(self, *args, **kwargs):
@@ -407,7 +401,7 @@ class PostgresInsertOnConflictCompiler(SQLInsertCompiler):
         if isinstance(field, RelatedField) and isinstance(value, Model):
             value = value.pk
 
-        return SQLInsertCompiler.prepare_value(
+        return django_compiler.SQLInsertCompiler.prepare_value(
             self,
             field,
             # Note: this deliberately doesn't use `pre_save_val` as we don't
