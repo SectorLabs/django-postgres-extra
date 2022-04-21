@@ -9,7 +9,7 @@ Settings
 
    ``DATABASES[db_name]['ENGINE']`` must be set to ``"psqlextra.backend"``. If you're already using a custom back-end, set ``POSTGRES_EXTRA_DB_BACKEND_BASE`` to your custom back-end. This will instruct ``django-postgres-extra`` to wrap the back-end you specified.
 
-   A good example of where this might be need is if you are using the PostGIS back-end: ``django.contrib.db.backends.postgis``.
+   A good example of where this might be need is if you are using the PostGIS back-end: ``django.contrib.gis.db.backends.postgis``.
 
    **Default value**: ``django.db.backends.postgresql``
 
