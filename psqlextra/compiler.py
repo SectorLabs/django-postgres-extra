@@ -242,7 +242,13 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):
 
         # build the conflict target, the columns to watch
         # for conflicts
-        conflict_target = self._build_conflict_target()
+
+        if self.query.conflict_target is None and conflict_action == ConflictAction.NOTHING: # type: ignore
+            conflict_target = ""
+        else:
+            conflict_target = self._build_conflict_target()
+
+
         index_predicate = self.query.index_predicate
         update_condition = self.query.conflict_update_condition
 
