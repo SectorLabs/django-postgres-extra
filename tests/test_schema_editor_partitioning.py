@@ -77,6 +77,39 @@ def test_schema_editor_create_delete_partitioned_model_list():
 
 
 @pytest.mark.postgres_version(lt=110000)
+@pytest.mark.parametrize("key", [["name"], ["id", "name"]])
+def test_schema_editor_create_delete_partitioned_model_hash(key):
+    """Tests whether creating a partitioned model and adding a hash partition
+    to it using the :see:PostgresSchemaEditor works."""
+
+    method = PostgresPartitioningMethod.HASH
+
+    model = define_fake_partitioned_model(
+        {"name": models.TextField()},
+        {"method": method, "key": key},
+    )
+
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.create_partitioned_model(model)
+
+    schema_editor.add_hash_partition(model, "pt1", modulus=1, remainder=0)
+
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert table.name == model._meta.db_table
+    assert table.method == method
+    assert table.key == key
+    assert table.partitions[0].full_name == model._meta.db_table + "_pt1"
+
+    schema_editor.delete_partitioned_model(model)
+
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert not table
+
+    partitions = db_introspection.get_partitions(model._meta.db_table)
+    assert len(partitions) == 0
+
+
+@pytest.mark.postgres_version(lt=110000)
 def test_schema_editor_create_delete_partitioned_model_default():
     """Tests whether creating a partitioned model and adding a default
     partition to it using the :see:PostgresSchemaEditor works."""
