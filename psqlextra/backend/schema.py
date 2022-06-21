@@ -171,10 +171,16 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         # create a composite key that includes the partitioning key
         sql = sql.replace(" PRIMARY KEY", "")
-        sql = sql[:-1] + ", PRIMARY KEY (%s, %s))" % (
-            self.quote_name(model._meta.pk.name),
-            partitioning_key_sql,
-        )
+        if model._meta.pk.name not in meta.key:
+            sql = sql[:-1] + ", PRIMARY KEY (%s, %s))" % (
+                self.quote_name(model._meta.pk.name),
+                partitioning_key_sql,
+            )
+        else:
+            sql = sql[:-1] + ", PRIMARY KEY (%s))" % (
+                partitioning_key_sql,
+            )
+            
 
         # extend the standard CREATE TABLE statement with
         # 'PARTITION BY ...'
