@@ -22,7 +22,7 @@ def mockedFunction():
     return append_caller_to_sql("sql")
 
 
-@override_settings(PSQLEXTRA_ANNOTATE_SQL=False)
+@override_settings(POSTGRES_EXTRA_ANNOTATE_SQL=False)
 def test_disable_append_caller_to_sql():
     commented_sql = mockedFunction()
     assert commented_sql == "sql"
@@ -35,7 +35,7 @@ def test_disable_append_caller_to_sql():
         psqlextraSimulated().callMockedClass,
     ],
 )
-@override_settings(PSQLEXTRA_ANNOTATE_SQL=True)
+@override_settings(POSTGRES_EXTRA_ANNOTATE_SQL=True)
 def test_append_caller_to_sql_class(entry_point):
     commented_sql = entry_point()
     assert commented_sql.startswith("sql /* ")
@@ -43,7 +43,7 @@ def test_append_caller_to_sql_class(entry_point):
     assert __file__ in commented_sql
 
 
-@override_settings(PSQLEXTRA_ANNOTATE_SQL=True)
+@override_settings(POSTGRES_EXTRA_ANNOTATE_SQL=True)
 def test_append_caller_to_sql_function():
     commented_sql = mockedFunction()
     assert commented_sql.startswith("sql /* ")
@@ -51,7 +51,7 @@ def test_append_caller_to_sql_function():
     assert __file__ in commented_sql
 
 
-@override_settings(PSQLEXTRA_ANNOTATE_SQL=True)
+@override_settings(POSTGRES_EXTRA_ANNOTATE_SQL=True)
 def test_append_caller_to_sql_crud():
     model = get_fake_model(
         {

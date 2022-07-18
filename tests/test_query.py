@@ -137,7 +137,7 @@ def test_query_hstore_value_update_escape():
     assert inst.title.get("en") == "console.log('test')"
 
 
-@override_settings(PSQLEXTRA_ANNOTATE_SQL=True)
+@override_settings(POSTGRES_EXTRA_ANNOTATE_SQL=True)
 def test_query_comment():
     """Tests whether the query is commented."""
 

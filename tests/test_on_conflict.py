@@ -14,7 +14,7 @@ from .fake_model import get_fake_model
 
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
-@override_settings(PSQLEXTRA_ANNOTATE_SQL=True)
+@override_settings(POSTGRES_EXTRA_ANNOTATE_SQL=True)
 def test_on_conflict(conflict_action):
     """Tests whether simple inserts work correctly."""
 

@@ -46,10 +46,10 @@ def append_caller_to_sql(sql):
     Slow and blocking queries could be easily tracked down to their originator
     within the source code using the "pg_stat_activity" table.
 
-    Enable "PSQLEXTRA_ANNOTATE_SQL" within the database settings to enable this feature.
+    Enable "POSTGRES_EXTRA_ANNOTATE_SQL" within the database settings to enable this feature.
     """
 
-    if not getattr(settings, "PSQLEXTRA_ANNOTATE_SQL", None):
+    if not getattr(settings, "POSTGRES_EXTRA_ANNOTATE_SQL", None):
         return sql
 
     try:
