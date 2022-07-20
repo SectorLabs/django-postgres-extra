@@ -216,6 +216,56 @@ def test_partitioning_time_daily_apply():
 
 
 @pytest.mark.postgres_version(lt=110000)
+def test_partitioning_time_hourly_apply():
+    """Tests whether automatically creating new partitions ahead hourly works as
+    expected."""
+
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    # create partitions for the next 4 hours (including the current)
+    with freezegun.freeze_time("2019-1-23 22:00"):
+        manager = PostgresPartitioningManager(
+            [partition_by_current_time(model, hours=1, count=4)]
+        )
+        manager.plan().apply()
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 4
+    assert table.partitions[0].name == "2019_jan_23_22"
+    assert table.partitions[1].name == "2019_jan_23_23"
+    assert table.partitions[2].name == "2019_jan_24_00"
+    assert table.partitions[3].name == "2019_jan_24_01"
+
+    # re-running it with 5, should just create one additional partition
+    with freezegun.freeze_time("2019-1-23 22:59"):
+        manager = PostgresPartitioningManager(
+            [partition_by_current_time(model, hours=1, count=5)]
+        )
+        manager.plan().apply()
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 5
+    assert table.partitions[4].name == "2019_jan_24_02"
+
+    # it's june now, we want to partition two hours ahead
+    with freezegun.freeze_time("2019-06-03"):
+        manager = PostgresPartitioningManager(
+            [partition_by_current_time(model, hours=1, count=2)]
+        )
+        manager.plan().apply()
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 7
+    assert table.partitions[5].name == "2019_jun_03_00"
+    assert table.partitions[6].name == "2019_jun_03_01"
+
+
+@pytest.mark.postgres_version(lt=110000)
 def test_partitioning_time_monthly_apply_insert():
     """Tests whether automatically created monthly partitions line up
     perfectly."""
@@ -331,6 +381,84 @@ def test_partitioning_time_daily_apply_insert():
 
     model.objects.create(timestamp=datetime.date(2019, 1, 9))
     model.objects.create(timestamp=datetime.date(2019, 1, 10))
+
+
+@pytest.mark.postgres_version(lt=110000)
+def test_partitioning_time_hourly_apply_insert():
+    """Tests whether automatically created hourly partitions line up
+    perfectly."""
+
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    with freezegun.freeze_time("2019-1-07 13:59"):
+        manager = PostgresPartitioningManager(
+            [partition_by_current_time(model, hours=2, count=2)]
+        )
+        manager.plan().apply()
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 2
+
+    model.objects.create(timestamp=datetime.datetime(2019, 1, 7, 13))
+    model.objects.create(timestamp=datetime.datetime(2019, 1, 7, 16, 59))
+
+    with transaction.atomic():
+        with pytest.raises(IntegrityError):
+            model.objects.create(timestamp=datetime.datetime(2019, 1, 7, 15))
+            model.objects.create(timestamp=datetime.datetime(2019, 1, 8))
+
+    with freezegun.freeze_time("2019-1-07 13:00"):
+        manager = PostgresPartitioningManager(
+            [partition_by_current_time(model, hours=2, count=4)]
+        )
+        manager.plan().apply()
+
+    model.objects.create(timestamp=datetime.datetime(2019, 1, 7, 17))
+    model.objects.create(timestamp=datetime.datetime(2019, 1, 7, 20, 59))
+
+
+@pytest.mark.postgres_version(lt=110000)
+def test_partitioning_time_hourly_timezone_apply_insert():
+    """Tests whether automatically created hourly partitions line up
+    perfectly."""
+
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    with freezegun.freeze_time("2019-1-07 13:59"):
+        manager = PostgresPartitioningManager(
+            [partition_by_current_time(model, hours=2, count=2)]
+        )
+        manager.plan().apply()
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 2
+
+    model.objects.create(timestamp=datetime.datetime(2019, 1, 7, 13))
+    model.objects.create(timestamp=datetime.datetime(2019, 1, 7, 16, 59))
+
+    with transaction.atomic():
+        with pytest.raises(IntegrityError):
+            model.objects.create(timestamp=datetime.datetime(2019, 1, 7, 15))
+            model.objects.create(timestamp=datetime.datetime(2019, 1, 8))
+
+    with freezegun.freeze_time("2019-1-07 13:00"):
+        manager = PostgresPartitioningManager(
+            [partition_by_current_time(model, hours=2, count=4)]
+        )
+        manager.plan().apply()
+
+    model.objects.create(timestamp=datetime.datetime(2019, 1, 7, 17))
+    model.objects.create(timestamp=datetime.datetime(2019, 1, 7, 20, 59))
 
 
 @pytest.mark.postgres_version(lt=110000)

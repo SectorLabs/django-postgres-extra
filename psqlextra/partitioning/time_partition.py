@@ -19,6 +19,7 @@ class PostgresTimePartition(PostgresRangePartition):
         PostgresTimePartitionUnit.MONTHS: "%Y_%b",
         PostgresTimePartitionUnit.WEEKS: "%Y_week_%W",
         PostgresTimePartitionUnit.DAYS: "%Y_%b_%d",
+        PostgresTimePartitionUnit.HOURS: "%Y_%b_%d_%H",
     }
 
     def __init__(
@@ -27,8 +28,8 @@ class PostgresTimePartition(PostgresRangePartition):
         end_datetime = start_datetime + size.as_delta()
 
         super().__init__(
-            from_values=start_datetime.strftime("%Y-%m-%d"),
-            to_values=end_datetime.strftime("%Y-%m-%d"),
+            from_values=start_datetime.strftime("%Y-%m-%d %H:00"),
+            to_values=end_datetime.strftime("%Y-%m-%d %H:00"),
         )
 
         self.size = size
