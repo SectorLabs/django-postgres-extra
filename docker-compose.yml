@@ -1,0 +1,29 @@
+version: "3.7"
+
+services:
+  postgres:
+    image: postgis/postgis:14-3.2
+    ports:
+    - "5435:5432"
+    volumes:
+    - pgdata:/var/lib/postgresql/data/:delegated
+    environment:
+    - POSTGRES_HOST_AUTH_METHOD=trust
+    - POSTGRES_DB=psqlextra
+    healthcheck:
+      test: "pg_isready -h localhost -p 5432 -q -U postgres"
+      interval: 3s
+      timeout: 5s
+      retries: 3
+
+
+  tests:
+    build:
+      context: ./
+    depends_on:
+      - postgres
+    command:
+      "tox"
+
+volumes:
+  pgdata:
