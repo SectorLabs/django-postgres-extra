@@ -16,6 +16,7 @@ def partition_by_current_time(
     months: Optional[int] = None,
     weeks: Optional[int] = None,
     days: Optional[int] = None,
+    hours: Optional[int] = None,
     max_age: Optional[relativedelta] = None,
 ) -> PostgresPartitioningConfig:
     """Short-hand for generating a partitioning config that partitions the
@@ -42,6 +43,9 @@ def partition_by_current_time(
         days:
             The amount of days each partition should contain.
 
+        hours:
+            The amount of hours each partition should contain.
+
         max_age:
             The maximum age of a partition (calculated from the
             start of the partition).
@@ -51,7 +55,7 @@ def partition_by_current_time(
     """
 
     size = PostgresTimePartitionSize(
-        years=years, months=months, weeks=weeks, days=days
+        years=years, months=months, weeks=weeks, days=days, hours=hours,
     )
 
     return PostgresPartitioningConfig(

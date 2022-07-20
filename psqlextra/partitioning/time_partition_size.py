@@ -13,6 +13,7 @@ class PostgresTimePartitionUnit(enum.Enum):
     MONTHS = "months"
     WEEKS = "weeks"
     DAYS = "days"
+    HOURS = "hours"
 
 
 class PostgresTimePartitionSize:
@@ -27,8 +28,10 @@ class PostgresTimePartitionSize:
         months: Optional[int] = None,
         weeks: Optional[int] = None,
         days: Optional[int] = None,
+        hours: Optional[int] = None,
+
     ) -> None:
-        sizes = [years, months, weeks, days]
+        sizes = [years, months, weeks, days, hours]
 
         if not any(sizes):
             raise PostgresPartitioningError("Partition cannot be 0 in size.")
@@ -50,6 +53,9 @@ class PostgresTimePartitionSize:
         elif days:
             self.unit = PostgresTimePartitionUnit.DAYS
             self.value = days
+        elif hours:
+            self.unit = PostgresTimePartitionUnit.HOURS
+            self.value = hours
         else:
             raise PostgresPartitioningError(
                 "Unsupported time partitioning unit"
@@ -68,25 +74,32 @@ class PostgresTimePartitionSize:
         if self.unit == PostgresTimePartitionUnit.DAYS:
             return relativedelta(days=self.value)
 
+        if self.unit == PostgresTimePartitionUnit.HOURS:
+            return relativedelta(hours=self.value)
+
         raise PostgresPartitioningError(
             "Unsupported time partitioning unit: %s" % self.unit
         )
 
     def start(self, dt: datetime) -> datetime:
         if self.unit == PostgresTimePartitionUnit.YEARS:
-            return self._ensure_datetime(dt.replace(month=1, day=1))
+            return self._ensure_datetime(dt.replace(month=1, day=1, hour=0))
 
         if self.unit == PostgresTimePartitionUnit.MONTHS:
-            return self._ensure_datetime(dt.replace(day=1))
+            return self._ensure_datetime(dt.replace(day=1, hour=0))
 
         if self.unit == PostgresTimePartitionUnit.WEEKS:
-            return self._ensure_datetime(dt - relativedelta(days=dt.weekday()))
+            week_dt = dt - relativedelta(days=dt.weekday())
+            return self._ensure_datetime(week_dt.replace(hour=0))
+
+        if self.unit == PostgresTimePartitionUnit.DAYS:
+            return self._ensure_datetime(dt.replace(hour=0))
 
         return self._ensure_datetime(dt)
 
     @staticmethod
     def _ensure_datetime(dt: Union[date, datetime]) -> datetime:
-        return datetime(year=dt.year, month=dt.month, day=dt.day)
+        return datetime(year=dt.year, month=dt.month, day=dt.day, hour=dt.hour)
 
     def __repr__(self) -> str:
         return "PostgresTimePartitionSize<%s, %s>" % (self.unit, self.value)

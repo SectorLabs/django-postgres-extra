@@ -8,7 +8,7 @@ SECRET_KEY = 'this is my secret key'  # NOQA
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
 DATABASES = {
-    'default': dj_database_url.config(default='postgres:///psqlextra'),
+    'default': dj_database_url.config(default='postgresql://postgres/?user=postgres'),
 }
 
 DATABASES['default']['ENGINE'] = 'psqlextra.backend'
