@@ -46,6 +46,8 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         "CREATE TABLE %s PARTITION OF %s FOR VALUES IN (%s)"
     )
     sql_delete_partition = "DROP TABLE %s"
+    sql_detach_partition = "ALTER TABLE %s DETACH PARTITION %s"
+    sql_detach_partition_concurrently = "ALTER TABLE %s DETACH PARTITION %s CONCURRENTLY"
     sql_table_comment = "COMMENT ON TABLE %s IS %s"
 
     side_effects = [
@@ -375,6 +377,24 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         sql = self.sql_delete_partition % self.quote_name(
             self.create_partition_table_name(model, name)
+        )
+        self.execute(sql)
+
+    def detach_partition(self, model: Model, name: str) -> None:
+        """Detaches the partition with the specified name."""
+
+        sql = self.sql_detach_partition % (
+            self.quote_name(model._meta.db_table),
+            self.quote_name(self.create_partition_table_name(model, name))
+        )
+        self.execute(sql)
+
+    def detach_partition_concurrently(self, model: Model, name: str) -> None:
+        """Detaches the partition with the specified name."""
+
+        sql = self.sql_detach_partition_concurrently % (
+            self.quote_name(model._meta.db_table),
+            self.quote_name(self.create_partition_table_name(model, name))
         )
         self.execute(sql)
 

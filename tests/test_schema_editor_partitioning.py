@@ -275,3 +275,61 @@ def test_schema_editor_add_default_partition(method, key):
     schema_editor.delete_partition(model, "mypartition")
     table = db_introspection.get_partitioned_table(model._meta.db_table)
     assert len(table.partitions) == 0
+
+
+@pytest.mark.postgres_version(lt=140000)
+def test_schema_editor_detach_list_partition():
+    """Tests whether detaching a list partition works."""
+
+    model = define_fake_partitioned_model(
+        {"name": models.TextField()},
+        {"method": PostgresPartitioningMethod.LIST, "key": ["name"]},
+    )
+
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.create_partitioned_model(model)
+
+    schema_editor.add_list_partition(
+        model, name="mypartition", values=["1"], comment="test"
+    )
+
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert len(table.partitions) == 1
+    assert table.partitions[0].name == "mypartition"
+    assert (
+        table.partitions[0].full_name == f"{model._meta.db_table}_mypartition"
+    )
+    assert table.partitions[0].comment == "test"
+
+    schema_editor.detach_partition(model, "mypartition")
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert len(table.partitions) == 0
+
+
+@pytest.mark.postgres_version(lt=140000)
+def test_schema_editor_detach_concurrently_list_partition():
+    """Tests whether detaching a list partition works."""
+
+    model = define_fake_partitioned_model(
+        {"name": models.TextField()},
+        {"method": PostgresPartitioningMethod.LIST, "key": ["name"]},
+    )
+
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.create_partitioned_model(model)
+
+    schema_editor.add_list_partition(
+        model, name="mypartition", values=["1"], comment="test"
+    )
+
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert len(table.partitions) == 1
+    assert table.partitions[0].name == "mypartition"
+    assert (
+        table.partitions[0].full_name == f"{model._meta.db_table}_mypartition"
+    )
+    assert table.partitions[0].comment == "test"
+
+    schema_editor.detach_partition_concurrently(model, "mypartition")
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert len(table.partitions) == 0
