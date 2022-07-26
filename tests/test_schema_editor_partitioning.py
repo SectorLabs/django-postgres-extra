@@ -306,7 +306,8 @@ def test_schema_editor_detach_list_partition():
     assert len(table.partitions) == 0
 
 
-@pytest.mark.postgres_version(lt=140000)
+@pytest.mark.postgres_version(lt=110000)
+@pytest.mark.django_db(transaction=True)
 def test_schema_editor_detach_concurrently_list_partition():
     """Tests whether detaching a list partition works."""
 
