@@ -308,19 +308,30 @@ def test_schema_editor_detach_list_partition():
 
 @pytest.mark.postgres_version(lt=110000)
 @pytest.mark.django_db(transaction=True)
-def test_schema_editor_detach_concurrently_list_partition():
+@pytest.mark.parametrize(
+    "method,key,add_partition_func_name,kwargs",
+    [
+        (PostgresPartitioningMethod.RANGE, ["timestamp"], "add_range_partition", {"from_values": "2019-1-1", "to_values": "2019-2-1"}),
+        (PostgresPartitioningMethod.RANGE, ["id"], "add_range_partition", {"from_values": 1, "to_values": 10}),
+        (PostgresPartitioningMethod.LIST, ["name"], "add_list_partition", {"values": ["1"]}),
+    ],
+)
+def test_schema_editor_detach_concurrently_list_partition(method, key, add_partition_func_name, kwargs):
     """Tests whether detaching a list partition works."""
 
     model = define_fake_partitioned_model(
-        {"name": models.TextField()},
-        {"method": PostgresPartitioningMethod.LIST, "key": ["name"]},
+        {"name": models.TextField(), "timestamp": models.DateTimeField(), },
+        {"method": method, "key": key},
     )
 
     schema_editor = PostgresSchemaEditor(connection)
     schema_editor.create_partitioned_model(model)
 
-    schema_editor.add_list_partition(
-        model, name="mypartition", values=["1"], comment="test"
+    getattr(schema_editor, add_partition_func_name)(
+        model,
+        name="mypartition",
+        comment="test",
+        **kwargs,
     )
 
     table = db_introspection.get_partitioned_table(model._meta.db_table)
