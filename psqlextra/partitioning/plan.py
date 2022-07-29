@@ -47,9 +47,6 @@ class PostgresModelPartitioningPlan:
                 for partition in self.detachements:
                     partition.detach(self.config.model, schema_editor, concurrently=False)
 
-                for partition in self.deletions:
-                    partition.delete(self.config.model, schema_editor)
-
         with connection.schema_editor() as schema_editor:
             for partition in self.concurrent_detachements:
                 partition.detach(self.config.model, schema_editor, concurrently=True)
