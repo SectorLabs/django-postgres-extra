@@ -178,11 +178,11 @@ setup(
             [
                 [
                     "pytest",
-                    #"--cov=psqlextra",
-                    #"--cov-report=term",
-                    #"--cov-report=xml:reports/xml",
-                    #"--cov-report=html:reports/html",
-                    #"--junitxml=reports/junit/tests.xml",
+                    "--cov=psqlextra",
+                    "--cov-report=term",
+                    "--cov-report=xml:reports/xml",
+                    "--cov-report=html:reports/html",
+                    "--junitxml=reports/junit/tests.xml",
                     "--reuse-db",
                 ]
             ],
