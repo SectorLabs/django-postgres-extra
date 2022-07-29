@@ -26,6 +26,7 @@ class PostgresPartitioningManager:
         skip_create: bool = False,
         skip_delete: bool = False,
         using: Optional[str] = None,
+        detach: Optional[str] = None,
     ) -> PostgresPartitioningPlan:
         """Plans which partitions should be deleted/created.
 
@@ -54,6 +55,7 @@ class PostgresPartitioningManager:
                 skip_create=skip_create,
                 skip_delete=skip_delete,
                 using=using,
+                detach=detach,
             )
             if not model_plan:
                 continue
@@ -77,6 +79,7 @@ class PostgresPartitioningManager:
         skip_create: bool = False,
         skip_delete: bool = False,
         using: Optional[str] = None,
+        detach: Optional[str] = None,
     ) -> Optional[PostgresModelPartitioningPlan]:
         """Creates a partitioning plan for one partitioning config."""
 
@@ -102,6 +105,11 @@ class PostgresPartitioningManager:
 
                 if introspected_partition.comment != AUTO_PARTITIONED_COMMENT:
                     continue
+
+                if detach == "concurrently":
+                    model_plan.concurrent_detachements.append(partition)
+                elif detach == "sequentially":
+                    model_plan.detachements.append(partition)
 
                 model_plan.deletions.append(partition)
 
