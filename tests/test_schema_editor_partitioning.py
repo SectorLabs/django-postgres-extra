@@ -272,12 +272,15 @@ def test_schema_editor_add_default_partition(method, key):
     )
     assert table.partitions[0].comment == "test"
 
+    assert f"{model._meta.db_table}_mypartition" in connection.introspection.table_names()
+
     schema_editor.delete_partition(model, "mypartition")
     table = db_introspection.get_partitioned_table(model._meta.db_table)
     assert len(table.partitions) == 0
+    assert f"{model._meta.db_table}_mypartition" not in connection.introspection.table_names()
 
 
-@pytest.mark.postgres_version(lt=140000)
+@pytest.mark.postgres_version(lt=110000)
 def test_schema_editor_detach_list_partition():
     """Tests whether detaching a list partition works."""
 
@@ -301,12 +304,16 @@ def test_schema_editor_detach_list_partition():
     )
     assert table.partitions[0].comment == "test"
 
+    assert f"{model._meta.db_table}_mypartition" in connection.introspection.table_names()
+
     schema_editor.detach_partition(model, "mypartition")
+    schema_editor.delete_partition(model, "mypartition")
     table = db_introspection.get_partitioned_table(model._meta.db_table)
     assert len(table.partitions) == 0
+    assert f"{model._meta.db_table}_mypartition" not in connection.introspection.table_names()
 
 
-@pytest.mark.postgres_version(lt=110000)
+@pytest.mark.postgres_version(lt=140000)
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.parametrize(
     "method,key,add_partition_func_name,kwargs",
