@@ -59,7 +59,7 @@ class Command(BaseCommand):
 
         parser.add_argument(
             "--detach",
-            help="Detach partitions before delete",
+            help="Detach partitions",
             required=False,
             choices=["no", "sequentially", "concurrently"],
             default="no",
