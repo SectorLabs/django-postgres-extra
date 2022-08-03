@@ -95,7 +95,7 @@ class PostgresPartitioningManager:
 
                 model_plan.creations.append(partition)
 
-        if not skip_delete:
+        if detach != "no":
             for partition in config.strategy.to_delete():
                 introspected_partition = table.partition_by_name(
                     name=partition.name()
@@ -110,6 +110,17 @@ class PostgresPartitioningManager:
                     model_plan.concurrent_detachements.append(partition)
                 elif detach == "sequentially":
                     model_plan.detachements.append(partition)
+
+        if not skip_delete:
+            for partition in config.strategy.to_delete():
+                introspected_partition = table.partition_by_name(
+                    name=partition.name()
+                )
+                if not introspected_partition:
+                    break
+
+                if introspected_partition.comment != AUTO_PARTITIONED_COMMENT:
+                    continue
 
                 model_plan.deletions.append(partition)
 
