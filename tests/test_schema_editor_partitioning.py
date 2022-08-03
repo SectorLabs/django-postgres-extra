@@ -301,13 +301,13 @@ def test_schema_editor_detach_and_delete_list_partition():
     )
     assert table.partitions[0].comment == "test"
 
-    assert f"{model._meta.db_table}_mypartition" in connection.introspection.table_names()
+    assert f"{model._meta.db_table}_mypartition" in db_introspection.table_names()
 
     schema_editor.detach_partition(model, "mypartition")
     schema_editor.delete_partition(model, "mypartition")
     table = db_introspection.get_partitioned_table(model._meta.db_table)
     assert len(table.partitions) == 0
-    assert f"{model._meta.db_table}_mypartition" not in connection.introspection.table_names()
+    assert f"{model._meta.db_table}_mypartition" not in db_introspection.table_names()
 
 
 @pytest.mark.postgres_version(lt=140000)
@@ -320,7 +320,7 @@ def test_schema_editor_detach_and_delete_list_partition():
         (PostgresPartitioningMethod.LIST, ["name"], "add_list_partition", {"values": ["1"]}),
     ],
 )
-def test_schema_editor_detach_and_delete_concurrently_list_partition(method, key, add_partition_func_name, kwargs):
+def test_schema_editor_detach_and_delete_concurrently(method, key, add_partition_func_name, kwargs):
     """Tests whether detaching a list partition works."""
 
     model = define_fake_partitioned_model(
@@ -345,13 +345,13 @@ def test_schema_editor_detach_and_delete_concurrently_list_partition(method, key
         table.partitions[0].full_name == f"{model._meta.db_table}_mypartition"
     )
     assert table.partitions[0].comment == "test"
-    assert f"{model._meta.db_table}_mypartition" in connection.introspection.table_names()
+    assert f"{model._meta.db_table}_mypartition" in db_introspection.table_names()
 
     schema_editor.detach_partition_concurrently(model, "mypartition")
     schema_editor.delete_partition(model, "mypartition")
     table = db_introspection.get_partitioned_table(model._meta.db_table)
     assert len(table.partitions) == 0
-    assert f"{model._meta.db_table}_mypartition" not in connection.introspection.table_names()
+    assert f"{model._meta.db_table}_mypartition" not in db_introspection.table_names()
 
 @pytest.mark.postgres_version(lt=140000)
 @pytest.mark.django_db(transaction=True)
@@ -363,7 +363,7 @@ def test_schema_editor_detach_and_delete_concurrently_list_partition(method, key
         (PostgresPartitioningMethod.LIST, ["name"], "add_list_partition", {"values": ["1"]}),
     ],
 )
-def test_schema_editor_detach_concurrently_list_partition(method, key, add_partition_func_name, kwargs):
+def test_schema_editor_detach_concurrently(method, key, add_partition_func_name, kwargs):
     """Tests whether detaching a list partition works."""
 
     model = define_fake_partitioned_model(
@@ -388,9 +388,9 @@ def test_schema_editor_detach_concurrently_list_partition(method, key, add_parti
         table.partitions[0].full_name == f"{model._meta.db_table}_mypartition"
     )
     assert table.partitions[0].comment == "test"
-    assert f"{model._meta.db_table}_mypartition" in connection.introspection.table_names()
+    assert f"{model._meta.db_table}_mypartition" in db_introspection.table_names()
 
     schema_editor.detach_partition_concurrently(model, "mypartition")
     table = db_introspection.get_partitioned_table(model._meta.db_table)
     assert len(table.partitions) == 0
-    assert f"{model._meta.db_table}_mypartition" in connection.introspection.table_names()
+    assert f"{model._meta.db_table}_mypartition" in db_introspection.table_names()
