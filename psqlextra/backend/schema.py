@@ -390,7 +390,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         self.execute(sql)
 
     def detach_partition_concurrently(self, model: Model, name: str) -> None:
-        """Detaches the partition with the specified name."""
+        """Detaches concurrently the partition with the specified name."""
 
         sql = self.sql_detach_partition_concurrently % (
             self.quote_name(model._meta.db_table),
