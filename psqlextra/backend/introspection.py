@@ -84,7 +84,7 @@ class PostgresIntrospection(base_impl.introspection()):
             (
                 table
                 for table in self.get_partitioned_tables(cursor)
-                if table.name == table_name
+                if table.name == table_name.split(".")[-1].lstrip('"')
             ),
             None,
         )
