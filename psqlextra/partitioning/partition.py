@@ -38,7 +38,9 @@ class PostgresPartition:
     ) -> None:
         """Detaches this partition from the database."""
         if concurrently:
-            schema_editor.detach_partition_concurrently(model=model, name=self.name())
+            schema_editor.detach_partition_concurrently(
+                model=model, name=self.name()
+            )
         else:
             schema_editor.detach_partition(model=model, name=self.name())
 

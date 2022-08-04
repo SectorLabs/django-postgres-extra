@@ -29,7 +29,6 @@ class PostgresTimePartitionSize:
         weeks: Optional[int] = None,
         days: Optional[int] = None,
         hours: Optional[int] = None,
-
     ) -> None:
         sizes = [years, months, weeks, days, hours]
 

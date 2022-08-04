@@ -79,7 +79,10 @@ class Command(BaseCommand):
         partitioning_manager = self._partitioning_manager()
 
         plan = partitioning_manager.plan(
-            skip_create=skip_create, skip_delete=skip_delete, detach=detach, using=using
+            skip_create=skip_create,
+            skip_delete=skip_delete,
+            detach=detach,
+            using=using,
         )
 
         creations_count = len(plan.creations)
