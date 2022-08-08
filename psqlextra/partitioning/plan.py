@@ -18,6 +18,10 @@ class PostgresModelPartitioningPlan:
 
     config: PostgresPartitioningConfig
     creations: List[PostgresPartition] = field(default_factory=list)
+    detachements: List[PostgresPartition] = field(default_factory=list)
+    concurrent_detachements: List[PostgresPartition] = field(
+        default_factory=list
+    )
     deletions: List[PostgresPartition] = field(default_factory=list)
 
     def apply(self, using: Optional[str]) -> None:
@@ -42,8 +46,24 @@ class PostgresModelPartitioningPlan:
                         comment=AUTO_PARTITIONED_COMMENT,
                     )
 
-                for partition in self.deletions:
-                    partition.delete(self.config.model, schema_editor)
+        if self.detachements:
+            with transaction.atomic():
+                with connection.schema_editor() as schema_editor:
+                    for partition in self.detachements:
+                        partition.detach(
+                            self.config.model, schema_editor, concurrently=False
+                        )
+
+        if self.concurrent_detachements:
+            with connection.schema_editor() as schema_editor:
+                for partition in self.concurrent_detachements:
+                    partition.detach(
+                        self.config.model, schema_editor, concurrently=True
+                    )
+
+        with transaction.atomic():
+            for partition in self.deletions:
+                partition.delete(self.config.model, schema_editor)
 
     def print(self) -> None:
         """Prints this model plan to the terminal in a readable format."""

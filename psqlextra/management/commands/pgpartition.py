@@ -57,6 +57,14 @@ class Command(BaseCommand):
             default=False,
         )
 
+        parser.add_argument(
+            "--detach",
+            help="Detach partitions",
+            required=False,
+            choices=["no", "sequentially", "concurrently"],
+            default="no",
+        )
+
     def handle(
         self,
         dry: bool,
@@ -64,13 +72,17 @@ class Command(BaseCommand):
         using: Optional[str],
         skip_create: bool,
         skip_delete: bool,
+        detach: str,
         *args,
         **kwargs,
     ):
         partitioning_manager = self._partitioning_manager()
 
         plan = partitioning_manager.plan(
-            skip_create=skip_create, skip_delete=skip_delete, using=using
+            skip_create=skip_create,
+            skip_delete=skip_delete,
+            detach=detach,
+            using=using,
         )
 
         creations_count = len(plan.creations)
