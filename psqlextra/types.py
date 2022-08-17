@@ -28,6 +28,9 @@ class ConflictAction(Enum):
     def all(cls) -> List["ConflictAction"]:
         return [choice for choice in cls]
 
+    def __str__(self) -> str:
+        return self.value
+
 
 class PostgresPartitioningMethod(StrEnum):
     """Methods of partitioning supported by PostgreSQL 11.x native support for

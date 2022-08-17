@@ -232,6 +232,42 @@ Alternatively, with Django 3.1 or newer, :class:`~django:django.db.models.Q` obj
     Q(name__gt=ExcludedCol('priority'))
 
 
+Update values
+"""""""""""""
+
+Optionally, the fields to update can be overriden. The default is to update the same fields that were specified in the rows to insert.
+
+Refer to the insert values using the :class:`psqlextra.expressions.ExcludedCol` expression which translates to PostgreSQL's ``EXCLUDED.<column>`` expression. All expressions and features that can be used with Django's :meth:`~django:django.db.models.query.QuerySet.update` can be used here.
+
+.. warning::
+
+   Specifying an empty ``update_values`` (``{}``) will transform the query into :attr:`~psqlextra.types.ConflictAction.NOTHING`. Only ``None`` makes the default behaviour kick in of updating all fields that were specified.
+
+.. code-block:: python
+
+    from django.db.models import F
+
+    from psqlextra.expressions import ExcludedCol
+
+    (
+        MyModel
+        .objects
+        .on_conflict(
+            ['name'],
+            ConflictAction.UPDATE,
+            update_values=dict(
+                name=ExcludedCol('name'),
+                count=F('count') + 1,
+            ),
+        )
+        .insert(
+            name='henk',
+            count=0,
+        )
+    )
+
+
+
 ConflictAction.NOTHING
 **********************
 

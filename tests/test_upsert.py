@@ -2,7 +2,7 @@ import django
 import pytest
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 from django.db.models.expressions import CombinedExpression, Value
 
 from psqlextra.expressions import ExcludedCol
@@ -144,6 +144,54 @@ def test_upsert_with_update_condition():
     assert obj1.active
 
 
+def test_upsert_with_update_values():
+    """Tests that the default update values can be overriden with custom
+    expressions."""
+
+    model = get_fake_model(
+        {
+            "name": models.TextField(unique=True),
+            "count": models.IntegerField(default=0),
+        }
+    )
+
+    obj1 = model.objects.create(name="joe")
+
+    model.objects.upsert(
+        conflict_target=["name"],
+        fields=dict(name="joe"),
+        update_values=dict(
+            count=F("count") + 1,
+        ),
+    )
+
+    obj1.refresh_from_db()
+    assert obj1.count == 1
+
+
+def test_upsert_with_update_values_empty():
+    """Tests that an upsert with an empty dict turns into ON CONFLICT DO
+    NOTHING."""
+
+    model = get_fake_model(
+        {
+            "name": models.TextField(unique=True),
+            "count": models.IntegerField(default=0),
+        }
+    )
+
+    obj1 = model.objects.create(name="joe")
+
+    model.objects.upsert(
+        conflict_target=["name"],
+        fields=dict(name="joe"),
+        update_values={},
+    )
+
+    obj1.refresh_from_db()
+    assert obj1.count == 0
+
+
 @pytest.mark.skipif(
     django.VERSION < (3, 1), reason="requires django 3.1 or newer"
 )
@@ -200,7 +248,7 @@ def test_upsert_and_get_applies_converters():
     assert obj.title == "bye"
 
 
-def test_upsert_bulk():
+def test_bulk_upsert():
     """Tests whether bulk_upsert works properly."""
 
     model = get_fake_model(
@@ -337,3 +385,28 @@ def test_bulk_upsert_accepts_iter_iterable():
     for index, obj in enumerate(objs, 1):
         assert isinstance(obj, model)
         assert obj.id == index
+
+
+def test_bulk_upsert_update_values():
+    model = get_fake_model(
+        {
+            "name": models.CharField(max_length=255, unique=True),
+            "count": models.IntegerField(default=0),
+        }
+    )
+
+    model.objects.bulk_create(
+        [
+            model(name="joe"),
+            model(name="john"),
+        ]
+    )
+
+    objs = model.objects.bulk_upsert(
+        conflict_target=["name"],
+        rows=[],
+        return_model=True,
+        update_values=dict(count=F("count") + 1),
+    )
+
+    assert all([obj for obj in objs if obj.count == 1])
