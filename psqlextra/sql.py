@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import django
 
@@ -154,10 +154,14 @@ class PostgresInsertQuery(sql.InsertQuery):
         self.conflict_action = ConflictAction.UPDATE
         self.conflict_update_condition = None
         self.index_predicate = None
+        self.update_values = {}
 
-        self.update_fields = []
-
-    def values(self, objs, insert_fields, update_fields=[]):
+    def insert_on_conflict_values(
+        self,
+        objs: List,
+        insert_fields: List,
+        update_values: Dict[str, Union[Any, Expression]] = {},
+    ):
         """Sets the values to be used in this query.
 
         Insert fields are fields that are definitely
@@ -176,12 +180,13 @@ class PostgresInsertQuery(sql.InsertQuery):
             insert_fields:
                 The fields to use in the INSERT statement
 
-            update_fields:
-                The fields to only use in the UPDATE statement.
+            update_values:
+                Expressions/values to use when a conflict
+                occurs and an UPDATE is performed.
         """
 
         self.insert_values(insert_fields, objs, raw=False)
-        self.update_fields = update_fields
+        self.update_values = update_values
 
     def get_compiler(self, using=None, connection=None):
         if using:

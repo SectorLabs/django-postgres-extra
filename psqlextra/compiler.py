@@ -104,8 +104,7 @@ class SQLUpdateCompiler(django_compiler.SQLUpdateCompiler):  # type: ignore [nam
         return append_caller_to_sql(sql), params
 
     def _prepare_query_values(self):
-        """Extra prep on query values by converting dictionaries into.
-
+        """Extra prep on query values by converting dictionaries into
         :see:HStoreValue expressions.
 
         This allows putting expressions in a dictionary. The
@@ -234,13 +233,6 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
         """Rewrites a normal SQL INSERT query to add the 'ON CONFLICT'
         clause."""
 
-        update_columns = ", ".join(
-            [
-                "{0} = EXCLUDED.{0}".format(self.qn(field.column))
-                for field in self.query.update_fields  # type: ignore[attr-defined]
-            ]
-        )
-
         # build the conflict target, the columns to watch
         # for conflicts
         on_conflict_clause = self._build_on_conflict_clause()
@@ -254,10 +246,21 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
             rewritten_sql += f" WHERE {expr_sql}"
             params += tuple(expr_params)
 
+        # Fallback in case the user didn't specify any update values. We can still
+        # make the query work if we switch to ConflictAction.NOTHING
+        if (
+            conflict_action == ConflictAction.UPDATE.value
+            and not self.query.update_values
+        ):
+            conflict_action = ConflictAction.NOTHING
+
         rewritten_sql += f" DO {conflict_action}"
 
-        if conflict_action == "UPDATE":
-            rewritten_sql += f" SET {update_columns}"
+        if conflict_action == ConflictAction.UPDATE.value:
+            set_sql, sql_params = self._build_set_statement()
+
+            rewritten_sql += f" SET {set_sql}"
+            params += sql_params
 
             if update_condition:
                 expr_sql, expr_params = self._compile_expression(
@@ -269,6 +272,23 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
         rewritten_sql += f" RETURNING {returning}"
 
         return (rewritten_sql, params)
+
+    def _build_set_statement(self) -> Tuple[str, tuple]:
+        """Builds the SET statement for the ON CONFLICT DO UPDATE clause.
+
+        This uses the update compiler to provide full compatibility with
+        the standard Django's `update(...)`.
+        """
+
+        # Local import to work around the circular dependency between
+        # the compiler and the queries.
+        from .sql import PostgresUpdateQuery
+
+        query = self.query.chain(PostgresUpdateQuery)
+        query.add_update_values(self.query.update_values)
+
+        sql, params = query.get_compiler(self.connection.alias).as_sql()
+        return sql.split("SET")[1].split(" WHERE")[0], tuple(params)
 
     def _build_on_conflict_clause(self):
         if django.VERSION >= (2, 2):

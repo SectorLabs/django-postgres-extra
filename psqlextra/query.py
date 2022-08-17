@@ -2,6 +2,7 @@ from collections import OrderedDict
 from itertools import chain
 from typing import (
     TYPE_CHECKING,
+    Any,
     Dict,
     Generic,
     Iterable,
@@ -17,6 +18,7 @@ from django.db import connections, models, router
 from django.db.models import Expression, Q, QuerySet
 from django.db.models.fields import NOT_PROVIDED
 
+from .expressions import ExcludedCol
 from .sql import PostgresInsertQuery, PostgresQuery
 from .types import ConflictAction
 
@@ -51,6 +53,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         self.conflict_action = None
         self.conflict_update_condition = None
         self.index_predicate = None
+        self.update_values = None
 
     def annotate(self, **annotations) -> "Self":  # type: ignore[valid-type, override]
         """Custom version of the standard annotate function that allows using
@@ -108,6 +111,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         action: ConflictAction,
         index_predicate: Optional[Union[Expression, Q, str]] = None,
         update_condition: Optional[Union[Expression, Q, str]] = None,
+        update_values: Optional[Dict[str, Union[Any, Expression]]] = None,
     ):
         """Sets the action to take when conflicts arise when attempting to
         insert/create a new row.
@@ -125,12 +129,18 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
 
             update_condition:
                 Only update if this SQL expression evaluates to true.
+
+            update_values:
+                Optionally, values/expressions to use when rows
+                conflict. If not specified, all columns specified
+                in the rows are updated with the values you specified.
         """
 
         self.conflict_target = fields
         self.conflict_action = action
         self.conflict_update_condition = update_condition
         self.index_predicate = index_predicate
+        self.update_values = update_values
 
         return self
 
@@ -293,6 +303,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         index_predicate: Optional[Union[Expression, Q, str]] = None,
         using: Optional[str] = None,
         update_condition: Optional[Union[Expression, Q, str]] = None,
+        update_values: Optional[Dict[str, Union[Any, Expression]]] = None,
     ) -> int:
         """Creates a new record or updates the existing one with the specified
         data.
@@ -315,6 +326,11 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             update_condition:
                 Only update if this SQL expression evaluates to true.
 
+            update_values:
+                Optionally, values/expressions to use when rows
+                conflict. If not specified, all columns specified
+                in the rows are updated with the values you specified.
+
         Returns:
             The primary key of the row that was created/updated.
         """
@@ -324,6 +340,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             ConflictAction.UPDATE,
             index_predicate=index_predicate,
             update_condition=update_condition,
+            update_values=update_values,
         )
 
         kwargs = {**fields, "using": using}
@@ -336,6 +353,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         index_predicate: Optional[Union[Expression, Q, str]] = None,
         using: Optional[str] = None,
         update_condition: Optional[Union[Expression, Q, str]] = None,
+        update_values: Optional[Dict[str, Union[Any, Expression]]] = None,
     ):
         """Creates a new record or updates the existing one with the specified
         data and then gets the row.
@@ -358,6 +376,11 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             update_condition:
                 Only update if this SQL expression evaluates to true.
 
+            update_values:
+                Optionally, values/expressions to use when rows
+                conflict. If not specified, all columns specified
+                in the rows are updated with the values you specified.
+
         Returns:
             The model instance representing the row
             that was created/updated.
@@ -368,6 +391,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             ConflictAction.UPDATE,
             index_predicate=index_predicate,
             update_condition=update_condition,
+            update_values=update_values,
         )
 
         kwargs = {**fields, "using": using}
@@ -381,6 +405,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         return_model: bool = False,
         using: Optional[str] = None,
         update_condition: Optional[Union[Expression, Q, str]] = None,
+        update_values: Optional[Dict[str, Union[Any, Expression]]] = None,
     ):
         """Creates a set of new records or updates the existing ones with the
         specified data.
@@ -407,6 +432,11 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             update_condition:
                 Only update if this SQL expression evaluates to true.
 
+            update_values:
+                Optionally, values/expressions to use when rows
+                conflict. If not specified, all columns specified
+                in the rows are updated with the values you specified.
+
         Returns:
             A list of either the dicts of the rows upserted, including the pk or
             the models of the rows upserted
@@ -417,7 +447,9 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             ConflictAction.UPDATE,
             index_predicate=index_predicate,
             update_condition=update_condition,
+            update_values=update_values,
         )
+
         return self.bulk_insert(rows, return_model, using=using)
 
     def _create_model_instance(
@@ -505,7 +537,11 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             )
 
         # get the fields to be used during update/insert
-        insert_fields, update_fields = self._get_upsert_fields(first_row)
+        insert_fields, update_values = self._get_upsert_fields(first_row)
+
+        # allow the user to override what should happen on update
+        if self.update_values is not None:
+            update_values = self.update_values
 
         # build a normal insert query
         query = PostgresInsertQuery(self.model)
@@ -513,7 +549,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         query.conflict_target = self.conflict_target
         query.conflict_update_condition = self.conflict_update_condition
         query.index_predicate = self.index_predicate
-        query.values(objs, insert_fields, update_fields)
+        query.insert_on_conflict_values(objs, insert_fields, update_values)
 
         compiler = query.get_compiler(using)
         return compiler
@@ -578,13 +614,13 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
 
         model_instance = self.model(**kwargs)
         insert_fields = []
-        update_fields = []
+        update_values = {}
 
         for field in model_instance._meta.local_concrete_fields:
             has_default = field.default != NOT_PROVIDED
             if field.name in kwargs or field.column in kwargs:
                 insert_fields.append(field)
-                update_fields.append(field)
+                update_values[field.name] = ExcludedCol(field.column)
                 continue
             elif has_default:
                 insert_fields.append(field)
@@ -595,13 +631,13 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             # instead of a concrete field, we have to handle that
             if field.primary_key is True and "pk" in kwargs:
                 insert_fields.append(field)
-                update_fields.append(field)
+                update_values[field.name] = ExcludedCol(field.column)
                 continue
 
             if self._is_magical_field(model_instance, field, is_insert=True):
                 insert_fields.append(field)
 
             if self._is_magical_field(model_instance, field, is_insert=False):
-                update_fields.append(field)
+                update_values[field.name] = ExcludedCol(field.column)
 
-        return insert_fields, update_fields
+        return insert_fields, update_values
