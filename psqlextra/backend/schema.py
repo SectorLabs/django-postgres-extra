@@ -57,7 +57,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         HStoreRequiredSchemaEditorSideEffect(),
     ]
 
-    def __init__(self, connection, collect_sql=False, atomic=True):
+    def __init__(self, connection, collect_sql=False, atomic=False):
         super().__init__(connection, collect_sql, atomic)
 
         for side_effect in self.side_effects:

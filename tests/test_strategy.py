@@ -28,7 +28,7 @@ def test_delete_on_condition():
     strategy = PostgresDeleteOnConditionPartitioningStrategy(
         delegate=TestStrategy(), delete_condition=test_condition
     )
-    partitions_to_delete = list(strategy.to_delete())
+    partitions_to_delete = list(filter(lambda x: x.to_be_deleted, list(strategy.to_delete())))
     assert len(partitions_to_delete) == 1
     assert partitions_to_delete[0].from_values == 0
     assert partitions_to_delete[0].to_values == 9

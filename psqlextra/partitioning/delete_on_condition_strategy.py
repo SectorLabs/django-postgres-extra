@@ -22,5 +22,5 @@ class PostgresDeleteOnConditionPartitioningStrategy(
 
     def to_delete(self,) -> Generator[PostgresPartition, None, None]:
         for partition in self._delegate.to_delete():
-            setattr(partition, 'skip_delete', self._delete_condition(partition))
+            setattr(partition, 'to_be_deleted', self._delete_condition(partition))
             yield partition

@@ -101,8 +101,8 @@ class PostgresPartitioningManager:
             )
             if not introspected_partition:
                 break
-
-            if introspected_partition.comment != AUTO_PARTITIONED_COMMENT or getattr(partition, "skip_delete", False):
+            if (introspected_partition.comment != AUTO_PARTITIONED_COMMENT
+                    or not getattr(partition, "to_be_deleted", True)):
                 continue
 
             if not skip_delete:
