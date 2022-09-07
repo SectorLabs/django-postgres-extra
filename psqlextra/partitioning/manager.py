@@ -27,6 +27,7 @@ class PostgresPartitioningManager:
         skip_delete: bool = False,
         using: Optional[str] = None,
         detach: Optional[str] = None,
+        deferred_attach: Optional[bool] = None
     ) -> PostgresPartitioningPlan:
         """Plans which partitions should be deleted/created.
 
@@ -56,6 +57,7 @@ class PostgresPartitioningManager:
                 skip_delete=skip_delete,
                 using=using,
                 detach=detach,
+                defer_attach=deferred_attach,
             )
             if not model_plan:
                 continue
