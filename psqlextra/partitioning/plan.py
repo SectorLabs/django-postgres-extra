@@ -18,6 +18,7 @@ class PostgresModelPartitioningPlan:
 
     config: PostgresPartitioningConfig
     creations: List[PostgresPartition] = field(default_factory=list)
+    deferred_creations: List[PostgresPartition] = field(default_factory=list)
     detachements: List[PostgresPartition] = field(default_factory=list)
     concurrent_detachements: List[PostgresPartition] = field(
         default_factory=list
@@ -37,14 +38,26 @@ class PostgresModelPartitioningPlan:
 
         connection = connections[using or "default"]
 
-        with transaction.atomic():
-            with connection.schema_editor() as schema_editor:
-                for partition in self.creations:
-                    partition.create(
-                        self.config.model,
-                        schema_editor,
-                        comment=AUTO_PARTITIONED_COMMENT,
-                    )
+        if self.creations:
+            with transaction.atomic():
+                with connection.schema_editor() as schema_editor:
+                    for partition in self.creations:
+                        partition.create(
+                            self.config.model,
+                            schema_editor,
+                            comment=AUTO_PARTITIONED_COMMENT,
+                        )
+
+        if self.deferred_creations:
+            with transaction.atomic():
+                with connection.schema_editor() as schema_editor:
+                    for partition in self.creations:
+                        partition.create(
+                            self.config.model,
+                            schema_editor,
+                            comment=AUTO_PARTITIONED_COMMENT,
+                            defer_attach=True,
+                        )
 
         if self.detachements:
             with transaction.atomic():

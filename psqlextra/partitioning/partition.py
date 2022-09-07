@@ -18,6 +18,7 @@ class PostgresPartition:
         model: PostgresPartitionedModel,
         schema_editor: PostgresSchemaEditor,
         comment: Optional[str] = None,
+        defer_attach: bool = False,
     ) -> None:
         """Creates this partition in the database."""
 

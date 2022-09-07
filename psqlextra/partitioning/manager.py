@@ -80,6 +80,7 @@ class PostgresPartitioningManager:
         skip_delete: bool = False,
         using: Optional[str] = None,
         detach: Optional[str] = None,
+        defer_attach: Optional[bool] = None,
     ) -> Optional[PostgresModelPartitioningPlan]:
         """Creates a partitioning plan for one partitioning config."""
 
@@ -89,11 +90,18 @@ class PostgresPartitioningManager:
         model_plan = PostgresModelPartitioningPlan(config)
 
         if not skip_create:
-            for partition in config.strategy.to_create():
-                if table.partition_by_name(name=partition.name()):
-                    continue
+            if not defer_attach:
+                for partition in config.strategy.to_create():
+                    if table.partition_by_name(name=partition.name()):
+                        continue
 
-                model_plan.creations.append(partition)
+                    model_plan.creations.append(partition)
+            else:
+                for partition in config.strategy.to_create():
+                    if table.partition_by_name(name=partition.name()):
+                        continue
+
+                    model_plan.deferred_creations.append(partition)
 
         for partition in config.strategy.to_delete():
             introspected_partition = table.partition_by_name(
