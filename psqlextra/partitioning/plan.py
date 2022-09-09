@@ -51,7 +51,7 @@ class PostgresModelPartitioningPlan:
         if self.deferred_creations:
             with transaction.atomic():
                 with connection.schema_editor() as schema_editor:
-                    for partition in self.creations:
+                    for partition in self.deferred_creations:
                         partition.create(
                             self.config.model,
                             schema_editor,
@@ -75,8 +75,9 @@ class PostgresModelPartitioningPlan:
                     )
 
         with transaction.atomic():
-            for partition in self.deletions:
-                partition.delete(self.config.model, schema_editor)
+            with connection.schema_editor() as schema_editor:
+                for partition in self.deletions:
+                    partition.delete(self.config.model, schema_editor)
 
     def print(self) -> None:
         """Prints this model plan to the terminal in a readable format."""

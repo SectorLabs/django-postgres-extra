@@ -81,7 +81,7 @@ class Command(BaseCommand):
         skip_create: bool,
         skip_delete: bool,
         detach: str,
-        deferred_attach: Optional[bool],
+        defer_attach: Optional[bool],
         *args,
         **kwargs,
     ):
@@ -92,7 +92,7 @@ class Command(BaseCommand):
             skip_delete=skip_delete,
             detach=detach,
             using=using,
-            deferred_attach=deferred_attach,
+            deferred_attach=defer_attach,
         )
 
         creations_count = len(plan.creations)
