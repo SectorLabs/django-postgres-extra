@@ -123,7 +123,7 @@ class PostgresPartitioningManager:
             elif detach == "sequentially":
                 model_plan.detachements.append(partition)
 
-        if len(model_plan.creations) == 0 and len(model_plan.deletions) == 0:
+        if len(model_plan.creations) == 0 and len(model_plan.deferred_creations) == 0 and len(model_plan.deletions) == 0:
             return None
 
         return model_plan

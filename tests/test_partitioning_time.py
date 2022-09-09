@@ -453,6 +453,35 @@ def test_partitioning_time_multiple(kwargs, partition_names):
 
 @pytest.mark.postgres_version(lt=110000)
 @pytest.mark.parametrize(
+    "kwargs,partition_names",
+    [
+        (dict(days=2), ["2019_jan_01", "2019_jan_03"]),
+        (dict(weeks=2), ["2018_week_53", "2019_week_02"]),
+        (dict(months=2), ["2019_jan", "2019_mar"]),
+        (dict(years=2), ["2019", "2021"]),
+    ],
+)
+def test_partitioning_time_multiple_defer_attach(kwargs, partition_names):
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    with freezegun.freeze_time("2019-1-1"):
+        manager = PostgresPartitioningManager(
+            [partition_by_current_time(model, **kwargs, count=2)]
+        )
+        manager.plan(deferred_attach=True).apply()
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 2
+    assert partition_names == [par.name for par in table.partitions]
+
+
+@pytest.mark.postgres_version(lt=110000)
+@pytest.mark.parametrize(
     "kwargs,timepoints",
     [
         (
