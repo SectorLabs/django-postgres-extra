@@ -42,6 +42,12 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     sql_add_range_partition = (
         "CREATE TABLE %s PARTITION OF %s FOR VALUES FROM (%s) TO (%s)"
     )
+    sql_create_unattached_partition = (
+        "CREATE TABLE %s (LIKE %s INCLUDING DEFAULTS INCLUDING CONSTRAINTS)"
+    )
+    sql_attach_range_partition = (
+        "ALTER TABLE %s ATTACH PARTITION %s FOR VALUES FROM (%s) TO (%s)"
+    )
     sql_add_list_partition = (
         "CREATE TABLE %s PARTITION OF %s FOR VALUES IN (%s)"
     )
@@ -196,6 +202,37 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         """Drops the specified partitioned model."""
 
         return self.delete_model(model)
+
+    def add_range_partition_deferred(
+        self,
+        model: Model,
+        name: str,
+        from_values: Any,
+        to_values: Any,
+        comment: Optional[str] = None,
+    ) -> None:
+        # asserts the model is a model set up for partitioning
+        self._partitioning_properties_for_model(model)
+
+        table_name = self.create_partition_table_name(model, name)
+
+        sql_create_unattached = self.sql_create_unattached_partition % (
+            self.quote_name(table_name),
+            self.quote_name(model._meta.db_table),
+        )
+        sql_attach_partition = self.sql_attach_range_partition % (
+            self.quote_name(model._meta.db_table),
+            self.quote_name(table_name),
+            "%s",
+            "%s",
+        )
+
+        with transaction.atomic():
+            self.execute(sql_create_unattached)
+            self.execute(sql_attach_partition, (from_values, to_values))
+
+            if comment:
+                self.set_comment_on_table(table_name, comment)
 
     def add_range_partition(
         self,

@@ -65,6 +65,14 @@ class Command(BaseCommand):
             default="no",
         )
 
+        parser.add_argument(
+            "--defer-attach",
+            help="First create, then attach partitions",
+            required=False,
+            action="store_true",
+            default=False,
+        )
+
     def handle(
         self,
         dry: bool,
@@ -73,6 +81,7 @@ class Command(BaseCommand):
         skip_create: bool,
         skip_delete: bool,
         detach: str,
+        defer_attach: Optional[bool],
         *args,
         **kwargs,
     ):
@@ -83,6 +92,7 @@ class Command(BaseCommand):
             skip_delete=skip_delete,
             detach=detach,
             using=using,
+            deferred_attach=defer_attach,
         )
 
         creations_count = len(plan.creations)

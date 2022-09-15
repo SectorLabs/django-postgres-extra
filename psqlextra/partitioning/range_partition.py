@@ -26,14 +26,24 @@ class PostgresRangePartition(PostgresPartition):
         model: PostgresPartitionedModel,
         schema_editor: PostgresSchemaEditor,
         comment: Optional[str] = None,
+        defer_attach: bool = False,
     ) -> None:
-        schema_editor.add_range_partition(
-            model=model,
-            name=self.name(),
-            from_values=self.from_values,
-            to_values=self.to_values,
-            comment=comment,
-        )
+        if not defer_attach:
+            schema_editor.add_range_partition(
+                model=model,
+                name=self.name(),
+                from_values=self.from_values,
+                to_values=self.to_values,
+                comment=comment,
+            )
+        else:
+            schema_editor.add_range_partition_deferred(
+                model=model,
+                name=self.name(),
+                from_values=self.from_values,
+                to_values=self.to_values,
+                comment=comment,
+            )
 
     def delete(
         self,

@@ -27,6 +27,7 @@ class PostgresPartitioningManager:
         skip_delete: bool = False,
         using: Optional[str] = None,
         detach: Optional[str] = None,
+        deferred_attach: Optional[bool] = None
     ) -> PostgresPartitioningPlan:
         """Plans which partitions should be deleted/created.
 
@@ -56,6 +57,7 @@ class PostgresPartitioningManager:
                 skip_delete=skip_delete,
                 using=using,
                 detach=detach,
+                defer_attach=deferred_attach,
             )
             if not model_plan:
                 continue
@@ -80,6 +82,7 @@ class PostgresPartitioningManager:
         skip_delete: bool = False,
         using: Optional[str] = None,
         detach: Optional[str] = None,
+        defer_attach: Optional[bool] = None,
     ) -> Optional[PostgresModelPartitioningPlan]:
         """Creates a partitioning plan for one partitioning config."""
 
@@ -89,11 +92,18 @@ class PostgresPartitioningManager:
         model_plan = PostgresModelPartitioningPlan(config)
 
         if not skip_create:
-            for partition in config.strategy.to_create():
-                if table.partition_by_name(name=partition.name()):
-                    continue
+            if not defer_attach:
+                for partition in config.strategy.to_create():
+                    if table.partition_by_name(name=partition.name()):
+                        continue
 
-                model_plan.creations.append(partition)
+                    model_plan.creations.append(partition)
+            else:
+                for partition in config.strategy.to_create():
+                    if table.partition_by_name(name=partition.name()):
+                        continue
+
+                    model_plan.deferred_creations.append(partition)
 
         for partition in config.strategy.to_delete():
             introspected_partition = table.partition_by_name(
@@ -113,7 +123,7 @@ class PostgresPartitioningManager:
             elif detach == "sequentially":
                 model_plan.detachements.append(partition)
 
-        if len(model_plan.creations) == 0 and len(model_plan.deletions) == 0:
+        if len(model_plan.creations) == 0 and len(model_plan.deferred_creations) == 0 and len(model_plan.deletions) == 0:
             return None
 
         return model_plan
