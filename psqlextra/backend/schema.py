@@ -45,9 +45,6 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     sql_create_unattached_partition = (
         "CREATE TABLE %s (LIKE %s INCLUDING DEFAULTS INCLUDING CONSTRAINTS)"
     )
-    sql_add_range_check_constraint = (
-        "ALTER TABLE %s ADD CONSTRAINT %s CHECK ( %s )"
-    )
     sql_attach_range_partition = (
         "ALTER TABLE %s ATTACH PARTITION %s FOR VALUES FROM (%s) TO (%s)"
     )
