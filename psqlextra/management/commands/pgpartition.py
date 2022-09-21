@@ -97,7 +97,9 @@ class Command(BaseCommand):
 
         creations_count = len(plan.creations)
         deletions_count = len(plan.deletions)
-        if creations_count == 0 and deletions_count == 0:
+        deferred_creations_count = len(plan.deferred_creations)
+
+        if creations_count == 0 and deletions_count == 0 and deferred_creations_count == 0:
             print("Nothing to be done.")
             return
 

@@ -94,6 +94,11 @@ class PostgresModelPartitioningPlan:
             for key, value in partition.deconstruct().items():
                 print(f"     {key}: {value}")
 
+        for partition in self.deferred_creations:
+            print("  + %s" % partition.name())
+            for key, value in partition.deconstruct().items():
+                print(f"     {key}: {value}")
+
 
 @dataclass
 class PostgresPartitioningPlan:
@@ -110,6 +115,16 @@ class PostgresPartitioningPlan:
         for model_plan in self.model_plans:
             creations.extend(model_plan.creations)
         return creations
+
+    @property
+    def deferred_creations(self) -> List[PostgresPartition]:
+        """Gets a complete flat list of the partitions that are going to be
+        created."""
+
+        deferred_creations = []
+        for model_plan in self.model_plans:
+            deferred_creations.extend(model_plan.deferred_creations)
+        return deferred_creations
 
     @property
     def deletions(self) -> List[PostgresPartition]:
@@ -136,9 +151,12 @@ class PostgresPartitioningPlan:
 
         create_count = len(self.creations)
         delete_count = len(self.deletions)
+        deferred_creations_count = len(self.deferred_creations)
 
         print(f"{delete_count} partitions will be deleted")
         print(f"{create_count} partitions will be created")
+        if deferred_creations_count:
+            print(f"{deferred_creations_count} partitions will be deferently created")
 
 
 __all__ = ["PostgresPartitioningPlan", "PostgresModelPartitioningPlan"]

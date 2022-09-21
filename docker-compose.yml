@@ -25,5 +25,18 @@ services:
     command:
       "tox"
 
+  quick-tests:
+    build:
+      dockerfile: Dockerfile-py39-DJ-32
+      context: ./
+    depends_on:
+      - postgres
+    environment:
+    - DJANGO_SETTINGS_MODULE=settings
+    volumes:
+      - ./prof:/django-postgres-extra-fork/prof/
+    command:
+      "pytest -s --reuse-db --durations=10"
+
 volumes:
   pgdata:
