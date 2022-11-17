@@ -196,11 +196,11 @@ class PostgresQuerySet(models.QuerySet):
             compiler = self._build_insert_compiler([fields], using=using)
             rows = compiler.execute_sql(return_id=True)
 
-            pk_field_name = self.model._meta.pk.name
+            _, pk_db_column = self.model._meta.pk.get_attname_column()
             if not rows or len(rows) == 0:
                 return None
 
-            return rows[0][pk_field_name]
+            return rows[0][pk_db_column]
 
         # no special action required, use the standard Django create(..)
         return super().create(**fields).pk

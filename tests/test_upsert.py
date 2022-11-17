@@ -82,6 +82,22 @@ def test_upsert_explicit_pk():
     assert obj2.cookies == "second-boo"
 
 
+def test_upsert_one_to_one_field():
+    model1 = get_fake_model({"title": models.TextField(unique=True)})
+    model2 = get_fake_model(
+        {"model1": models.OneToOneField(model1, on_delete=models.CASCADE)}
+    )
+
+    obj1 = model1.objects.create(title="hello world")
+
+    obj2_id = model2.objects.upsert(
+        conflict_target=["model1"], fields=dict(model1=obj1)
+    )
+
+    obj2 = model2.objects.get(id=obj2_id)
+    assert obj2.model1 == obj1
+
+
 def test_upsert_with_update_condition():
     """Tests that an expression can be used as an upsert update condition."""
 
