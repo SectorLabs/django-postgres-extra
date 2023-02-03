@@ -16,4 +16,4 @@ If you're unsure whether your change would be a good fit for `django-postgres-ex
   * PyLint passes.
   * PEP8 passes.
 * Features that allow creating custom indexes or fields must also implement the associated migrations. `django-postgres-extra` prides itself on the fact that it integrates smoothly with Django migrations. We'd like to keep it that way for all features.
-* Sufficiently complicated changes must be accomponied by tests.
+* Sufficiently complicated changes must be accompanied by tests.
