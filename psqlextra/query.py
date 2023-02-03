@@ -139,6 +139,12 @@ class PostgresQuerySet(models.QuerySet):
             the models of the rows inserted with defaults for any fields not specified
         """
 
+        def is_empty(r):
+            return all([False for _ in r])
+
+        if not rows or is_empty(rows):
+            return []
+
         if not self.conflict_target and not self.conflict_action:
             # no special action required, use the standard Django bulk_create(..)
             return super().bulk_create(
@@ -374,12 +380,6 @@ class PostgresQuerySet(models.QuerySet):
             A list of either the dicts of the rows upserted, including the pk or
             the models of the rows upserted
         """
-
-        def is_empty(r):
-            return all([False for _ in r])
-
-        if not rows or is_empty(rows):
-            return []
 
         self.on_conflict(
             conflict_target,
