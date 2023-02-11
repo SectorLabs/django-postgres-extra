@@ -17,6 +17,7 @@ def partition_by_current_time(
     weeks: Optional[int] = None,
     days: Optional[int] = None,
     max_age: Optional[relativedelta] = None,
+    name_format: Optional[str] = None,
 ) -> PostgresPartitioningConfig:
     """Short-hand for generating a partitioning config that partitions the
     specified model by time.
@@ -48,6 +49,10 @@ def partition_by_current_time(
 
             Partitions older than this are deleted when running
             a delete/cleanup run.
+
+        name_format:
+            The datetime format which is being passed to datetime.strftime
+            to generate the partition name.
     """
 
     size = PostgresTimePartitionSize(
@@ -57,7 +62,10 @@ def partition_by_current_time(
     return PostgresPartitioningConfig(
         model=model,
         strategy=PostgresCurrentTimePartitioningStrategy(
-            size=size, count=count, max_age=max_age
+            size=size,
+            count=count,
+            max_age=max_age,
+            name_format=name_format,
         ),
     )
 
