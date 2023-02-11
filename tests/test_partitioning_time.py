@@ -116,6 +116,45 @@ def test_partitioning_time_monthly_apply():
 
 
 @pytest.mark.postgres_version(lt=110000)
+def test_partitioning_time_monthly_with_custom_naming_apply():
+    """Tests whether automatically created new partitions are named according
+    to the specified name_format."""
+
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    # create partitions for the next 12 months (including the current)
+    with freezegun.freeze_time("2019-1-30"):
+        manager = PostgresPartitioningManager(
+            [
+                partition_by_current_time(
+                    model, months=1, count=12, name_format="%Y_%m"
+                )
+            ]
+        )
+        manager.plan().apply()
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 12
+    assert table.partitions[0].name == "2019_01"
+    assert table.partitions[1].name == "2019_02"
+    assert table.partitions[2].name == "2019_03"
+    assert table.partitions[3].name == "2019_04"
+    assert table.partitions[4].name == "2019_05"
+    assert table.partitions[5].name == "2019_06"
+    assert table.partitions[6].name == "2019_07"
+    assert table.partitions[7].name == "2019_08"
+    assert table.partitions[8].name == "2019_09"
+    assert table.partitions[9].name == "2019_10"
+    assert table.partitions[10].name == "2019_11"
+    assert table.partitions[11].name == "2019_12"
+
+
+@pytest.mark.postgres_version(lt=110000)
 def test_partitioning_time_weekly_apply():
     """Tests whether automatically creating new partitions ahead weekly works
     as expected."""

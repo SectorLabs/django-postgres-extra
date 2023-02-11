@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from .error import PostgresPartitioningError
 from .range_partition import PostgresRangePartition
@@ -22,7 +23,10 @@ class PostgresTimePartition(PostgresRangePartition):
     }
 
     def __init__(
-        self, size: PostgresTimePartitionSize, start_datetime: datetime
+        self,
+        size: PostgresTimePartitionSize,
+        start_datetime: datetime,
+        name_format: Optional[str] = None,
     ) -> None:
         end_datetime = start_datetime + size.as_delta()
 
@@ -34,9 +38,12 @@ class PostgresTimePartition(PostgresRangePartition):
         self.size = size
         self.start_datetime = start_datetime
         self.end_datetime = end_datetime
+        self.name_format = name_format
 
     def name(self) -> str:
-        name_format = self._unit_name_format.get(self.size.unit)
+        name_format = self.name_format or self._unit_name_format.get(
+            self.size.unit
+        )
         if not name_format:
             raise PostgresPartitioningError("Unknown size/unit")
 
