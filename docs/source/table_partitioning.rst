@@ -196,7 +196,7 @@ You can look at :class:`psqlextra.partitioning.PostgresCurrentTimePartitioningSt
 Manually managing partitions
 ----------------------------
 
-If you are using list or has partitioning, you most likely have a fixed amount of partitions that can be created up front using migrations or using the schema editor.
+If you are using list or hash partitioning, you most likely have a fixed amount of partitions that can be created up front using migrations or using the schema editor.
 
 Using migration operations
 **************************
