@@ -49,9 +49,6 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
     def execute(self, sql, params=()):
         """execute query"""
-        # print(sql, params)
-        # if not raw:
-        #     return super().execute(sql, params)
         return super().execute(sql, params)
 
     def create_model(self, model: Model) -> None:
@@ -237,7 +234,6 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
                 ", ".join(self.quote_name(field_name) for field_name in partition_by[1]),
             )
 
-        print("RANGE", sql)
         with transaction.atomic():
             self.execute(sql, (from_values, to_values))
 
@@ -302,7 +298,6 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
                 ", ".join(self.quote_name(field_name) for field_name in partition_by[1]),
             )
 
-        print("LIST", sql)
         with transaction.atomic():
             self.execute(sql, values)
 
@@ -417,7 +412,6 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             self.quote_name(parent_table_name),
         )
 
-        print("DEFAULT", sql)
         with transaction.atomic():
             self.execute(sql)
 
