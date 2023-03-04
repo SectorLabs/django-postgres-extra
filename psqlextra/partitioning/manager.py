@@ -1,7 +1,6 @@
 from typing import List, Optional, Tuple
 
-from django.db import connections
-
+from django.db import ConnectionProxy, connections
 from psqlextra.models import PostgresPartitionedModel
 
 from .config import PostgresPartitioningConfig
@@ -62,14 +61,10 @@ class PostgresPartitioningManager:
 
         return PostgresPartitioningPlan(model_plans)
 
-    def find_config_for_model(
-        self, model: PostgresPartitionedModel
-    ) -> Optional[PostgresPartitioningConfig]:
+    def find_config_for_model(self, model: PostgresPartitionedModel) -> Optional[PostgresPartitioningConfig]:
         """Finds the partitioning config for the specified model."""
 
-        return next(
-            (config for config in self.configs if config.model == model), None
-        )
+        return next((config for config in self.configs if config.model == model), None)
 
     def _plan_for_config(
         self,
@@ -84,19 +79,25 @@ class PostgresPartitioningManager:
         table = self._get_partitioned_table(connection, config.model)
 
         model_plan = PostgresModelPartitioningPlan(config)
+        partition_by: Tuple[str, list[str]] | None = None
+
+        meta = getattr(config.model, "_partitioning_meta", None)
+        if meta and getattr(meta, "submethod", None):
+            partition_by = (meta.submethod, meta.subkey)
 
         if not skip_create:
             for partition in config.strategy.to_create():
-                if table.partition_by_name(name=partition.name()):
-                    continue
+                if not table.partition_by_name(name=partition.name()):
+                    partition.partition_by = partition_by
+                    model_plan.creations.append(partition)
 
-                model_plan.creations.append(partition)
+                # create subtables
+                if partition_by:
+                    self._create_subparition(config, model_plan, partition, connection)
 
         if not skip_delete:
             for partition in config.strategy.to_delete():
-                introspected_partition = table.partition_by_name(
-                    name=partition.name()
-                )
+                introspected_partition = table.partition_by_name(name=partition.name())
                 if not introspected_partition:
                     break
 
@@ -111,11 +112,36 @@ class PostgresPartitioningManager:
         return model_plan
 
     @staticmethod
+    def _create_subparition(
+        config: PostgresPartitioningConfig,
+        model_plan: PostgresModelPartitioningPlan,
+        parent_partition: PostgresPartition,
+        connection: ConnectionProxy,
+    ) -> None:
+        if not hasattr(config, "substrategy") or not config.substrategy:
+            raise PostgresPartitioningError(
+                f"Model {config.model.__name__}, does not define a substrategy in its PostgresPartitioningConfig"
+                "There must be one to define subpartitioning`?"
+            )
+
+        parent_partition_name = "%s_%s" % (config.model._meta.db_table.lower(), parent_partition.name().lower())
+
+        with connection.cursor() as cursor:
+            table = connection.introspection.get_partitioned_table(cursor, parent_partition_name)
+
+        for partition in config.substrategy.to_create():
+            partition_name = parent_partition.name() + "_" + partition.name()
+            print(partition_name)
+            if not table or not table.partition_by_name(name=partition_name):
+                partition.parent_partition_name = parent_partition.name()
+                model_plan.creations.append(partition)
+
+        return
+
+    @staticmethod
     def _get_partitioned_table(connection, model: PostgresPartitionedModel):
         with connection.cursor() as cursor:
-            table = connection.introspection.get_partitioned_table(
-                cursor, model._meta.db_table
-            )
+            table = connection.introspection.get_partitioned_table(cursor, model._meta.db_table)
 
         if not table:
             raise PostgresPartitioningError(
@@ -132,6 +158,4 @@ class PostgresPartitioningManager:
 
         models = set([config.model.__name__ for config in configs])
         if len(models) != len(configs):
-            raise PostgresPartitioningError(
-                "Only one partitioning config per model is allowed"
-            )
+            raise PostgresPartitioningError("Only one partitioning config per model is allowed")

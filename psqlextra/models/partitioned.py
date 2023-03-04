@@ -1,5 +1,4 @@
 from django.db.models.base import ModelBase
-
 from psqlextra.types import PostgresPartitioningMethod
 
 from .base import PostgresModel
@@ -23,18 +22,21 @@ class PostgresPartitionedModelMeta(ModelBase):
 
         method = getattr(meta_class, "method", None)
         key = getattr(meta_class, "key", None)
+        submethod = getattr(meta_class, "submethod", None)
+        subkey = getattr(meta_class, "subkey", None)
 
         patitioning_meta = PostgresPartitionedModelOptions(
-            method=method or cls.default_method, key=key or cls.default_key
+            method=method or cls.default_method,
+            key=key or cls.default_key,
+            subkey=subkey,
+            submethod=submethod,
         )
 
         new_class.add_to_class("_partitioning_meta", patitioning_meta)
         return new_class
 
 
-class PostgresPartitionedModel(
-    PostgresModel, metaclass=PostgresPartitionedModelMeta
-):
+class PostgresPartitionedModel(PostgresModel, metaclass=PostgresPartitionedModelMeta):
     """Base class for taking advantage of PostgreSQL's 11.x native support for
     table partitioning."""
 

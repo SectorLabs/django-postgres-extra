@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from psqlextra.backend.schema import PostgresSchemaEditor
 from psqlextra.models import PostgresPartitionedModel
@@ -8,9 +8,18 @@ from psqlextra.models import PostgresPartitionedModel
 class PostgresPartition:
     """Base class for a PostgreSQL table partition."""
 
+    partition_by: Optional[Tuple[str, List[str]]] = None
+    parent_partition_name: Optional[str] = None
+
     @abstractmethod
     def name(self) -> str:
         """Generates/computes the name for this partition."""
+
+    def full_name(self) -> str:
+        """Concatenate the name with the parent_partition name (if needed)"""
+        if self.parent_partition_name:
+            return self.parent_partition_name + "_" + self.name()
+        return self.name()
 
     @abstractmethod
     def create(
@@ -32,7 +41,7 @@ class PostgresPartition:
     def deconstruct(self) -> dict:
         """Deconstructs this partition into a dict of attributes/fields."""
 
-        return {"name": self.name()}
+        return {"name": self.full_name()}
 
 
 __all__ = ["PostgresPartition"]

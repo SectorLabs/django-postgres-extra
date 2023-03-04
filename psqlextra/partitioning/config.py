@@ -11,9 +11,11 @@ class PostgresPartitioningConfig:
         self,
         model: PostgresPartitionedModel,
         strategy: PostgresPartitioningStrategy,
+        substrategy: PostgresPartitioningStrategy | None = None,
     ) -> None:
         self.model = model
         self.strategy = strategy
+        self.substrategy = substrategy
 
 
 __all__ = ["PostgresPartitioningConfig"]

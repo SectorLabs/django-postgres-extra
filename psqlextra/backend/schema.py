@@ -1,23 +1,15 @@
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 from unittest import mock
 
-from django.core.exceptions import (
-    FieldDoesNotExist,
-    ImproperlyConfigured,
-    SuspiciousOperation,
-)
+from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured, SuspiciousOperation
 from django.db import transaction
 from django.db.models import Field, Model
-
 from psqlextra.type_assertions import is_sql_with_params
 from psqlextra.types import PostgresPartitioningMethod
 
 from . import base_impl
 from .introspection import PostgresIntrospection
-from .side_effects import (
-    HStoreRequiredSchemaEditorSideEffect,
-    HStoreUniqueSchemaEditorSideEffect,
-)
+from .side_effects import HStoreRequiredSchemaEditorSideEffect, HStoreUniqueSchemaEditorSideEffect
 
 
 class PostgresSchemaEditor(base_impl.schema_editor()):
@@ -28,23 +20,15 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     sql_create_view = "CREATE VIEW %s AS (%s)"
     sql_replace_view = "CREATE OR REPLACE VIEW %s AS (%s)"
     sql_drop_view = "DROP VIEW IF EXISTS %s"
-    sql_create_materialized_view = (
-        "CREATE MATERIALIZED VIEW %s AS (%s) WITH DATA"
-    )
+    sql_create_materialized_view = "CREATE MATERIALIZED VIEW %s AS (%s) WITH DATA"
     sql_drop_materialized_view = "DROP MATERIALIZED VIEW %s"
     sql_refresh_materialized_view = "REFRESH MATERIALIZED VIEW %s"
-    sql_refresh_materialized_view_concurrently = (
-        "REFRESH MATERIALIZED VIEW CONCURRENTLY %s"
-    )
+    sql_refresh_materialized_view_concurrently = "REFRESH MATERIALIZED VIEW CONCURRENTLY %s"
     sql_partition_by = " PARTITION BY %s (%s)"
     sql_add_default_partition = "CREATE TABLE %s PARTITION OF %s DEFAULT"
     sql_add_hash_partition = "CREATE TABLE %s PARTITION OF %s FOR VALUES WITH (MODULUS %s, REMAINDER %s)"
-    sql_add_range_partition = (
-        "CREATE TABLE %s PARTITION OF %s FOR VALUES FROM (%s) TO (%s)"
-    )
-    sql_add_list_partition = (
-        "CREATE TABLE %s PARTITION OF %s FOR VALUES IN (%s)"
-    )
+    sql_add_range_partition = "CREATE TABLE %s PARTITION OF %s FOR VALUES FROM (%s) TO (%s)"
+    sql_add_list_partition = "CREATE TABLE %s PARTITION OF %s FOR VALUES IN (%s)"
     sql_delete_partition = "DROP TABLE %s"
     sql_table_comment = "COMMENT ON TABLE %s IS %s"
 
@@ -63,6 +47,13 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         self.deferred_sql = []
         self.introspection = PostgresIntrospection(self.connection)
 
+    def execute(self, sql, params=()):
+        """execute query"""
+        # print(sql, params)
+        # if not raw:
+        #     return super().execute(sql, params)
+        return super().execute(sql, params)
+
     def create_model(self, model: Model) -> None:
         """Creates a new model."""
 
@@ -79,16 +70,10 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         super().delete_model(model)
 
-    def refresh_materialized_view_model(
-        self, model: Model, concurrently: bool = False
-    ) -> None:
+    def refresh_materialized_view_model(self, model: Model, concurrently: bool = False) -> None:
         """Refreshes a materialized view."""
 
-        sql_template = (
-            self.sql_refresh_materialized_view_concurrently
-            if concurrently
-            else self.sql_refresh_materialized_view
-        )
+        sql_template = self.sql_refresh_materialized_view_concurrently if concurrently else self.sql_refresh_materialized_view
 
         sql = sql_template % self.quote_name(model._meta.db_table)
         self.execute(sql)
@@ -131,9 +116,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         """
 
         with self.connection.cursor() as cursor:
-            constraints = self.introspection.get_constraints(
-                cursor, model._meta.db_table
-            )
+            constraints = self.introspection.get_constraints(cursor, model._meta.db_table)
 
         with transaction.atomic():
             self.delete_materialized_view_model(model)
@@ -151,9 +134,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     def delete_materialized_view_model(self, model: Model) -> None:
         """Deletes a materialized view model."""
 
-        sql = self.sql_drop_materialized_view % self.quote_name(
-            model._meta.db_table
-        )
+        sql = self.sql_drop_materialized_view % self.quote_name(model._meta.db_table)
         self.execute(sql)
 
     def create_partitioned_model(self, model: Model) -> None:
@@ -165,19 +146,19 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         # table creations..
         sql, params = self._extract_sql(self.create_model, model)
 
-        partitioning_key_sql = ", ".join(
-            self.quote_name(field_name) for field_name in meta.key
-        )
+        partkeys = meta.key + getattr(meta, "subkey", [])
+        primary_key_sql = ", ".join(self.quote_name(field_name) for field_name in partkeys)
+        partitioning_key_sql = ", ".join(self.quote_name(field_name) for field_name in meta.key)
 
         # create a composite key that includes the partitioning key
         sql = sql.replace(" PRIMARY KEY", "")
-        if model._meta.pk.name not in meta.key:
+        if model._meta.pk.name not in partkeys:
             sql = sql[:-1] + ", PRIMARY KEY (%s, %s))" % (
                 self.quote_name(model._meta.pk.name),
-                partitioning_key_sql,
+                primary_key_sql,
             )
         else:
-            sql = sql[:-1] + ", PRIMARY KEY (%s))" % (partitioning_key_sql,)
+            sql = sql[:-1] + ", PRIMARY KEY (%s))" % (primary_key_sql,)
 
         # extend the standard CREATE TABLE statement with
         # 'PARTITION BY ...'
@@ -200,6 +181,8 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         from_values: Any,
         to_values: Any,
         comment: Optional[str] = None,
+        partition_by: Optional[Tuple[str, List[str]]] = None,
+        parent_partition_name: Optional[str] = None,
     ) -> None:
         """Creates a new range partition for the specified partitioned model.
 
@@ -224,6 +207,12 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             comment:
                 Optionally, a comment to add on this
                 partition table.
+
+            partition_by:
+                Optionally, a tuple of submethod, subkey list that is used to subpartition this table
+
+            parent_partition_name:
+                Optionnally, for subpartitions, the name of the parent partition
         """
 
         # asserts the model is a model set up for partitioning
@@ -231,18 +220,32 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         table_name = self.create_partition_table_name(model, name)
 
+        parent_table_name = model._meta.db_table
+        if parent_partition_name:
+            parent_table_name += "_" + parent_partition_name
+
         sql = self.sql_add_range_partition % (
             self.quote_name(table_name),
-            self.quote_name(model._meta.db_table),
+            self.quote_name(parent_table_name),
             "%s",
             "%s",
         )
 
+        if partition_by:
+            sql += self.sql_partition_by % (
+                partition_by[0].upper(),
+                ", ".join(self.quote_name(field_name) for field_name in partition_by[1]),
+            )
+
+        print("RANGE", sql)
         with transaction.atomic():
             self.execute(sql, (from_values, to_values))
 
             if comment:
                 self.set_comment_on_table(table_name, comment)
+
+        if partition_by:
+            self.add_default_partition(model, name + "_default", comment, parent_partition_name=name)
 
     def add_list_partition(
         self,
@@ -250,6 +253,8 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         name: str,
         values: List[Any],
         comment: Optional[str] = None,
+        partition_by: Optional[Tuple[str, List[str]]] = None,
+        parent_partition_name: Optional[str] = None,
     ) -> None:
         """Creates a new list partition for the specified partitioned model.
 
@@ -268,6 +273,12 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             comment:
                 Optionally, a comment to add on this
                 partition table.
+
+            partition_by:
+                Optionally, a tuple of submethod, subkey list that is used to subpartition this table
+
+            parent_partition_name:
+                Optionnally, for subpartitions, the name of the parent partition
         """
 
         # asserts the model is a model set up for partitioning
@@ -275,17 +286,31 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         table_name = self.create_partition_table_name(model, name)
 
+        parent_table_name = model._meta.db_table
+        if parent_partition_name:
+            parent_table_name += "_" + parent_partition_name
+
         sql = self.sql_add_list_partition % (
             self.quote_name(table_name),
-            self.quote_name(model._meta.db_table),
+            self.quote_name(parent_table_name),
             ",".join(["%s" for _ in range(len(values))]),
         )
 
+        if partition_by:
+            sql += self.sql_partition_by % (
+                partition_by[0].upper(),
+                ", ".join(self.quote_name(field_name) for field_name in partition_by[1]),
+            )
+
+        print("LIST", sql)
         with transaction.atomic():
             self.execute(sql, values)
 
             if comment:
                 self.set_comment_on_table(table_name, comment)
+
+        if partition_by:
+            self.add_default_partition(model, name + "_default", comment, parent_partition_name=table_name)
 
     def add_hash_partition(
         self,
@@ -294,6 +319,8 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         modulus: int,
         remainder: int,
         comment: Optional[str] = None,
+        partition_by: Optional[Tuple[str, List[str]]] = None,
+        parent_partition_name: Optional[str] = None,
     ) -> None:
         """Creates a new hash partition for the specified partitioned model.
 
@@ -313,6 +340,12 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
             comment:
                 Optionally, a comment to add on this partition table.
+
+            partition_by:
+                Optionally, a tuple of submethod, subkey list that is used to subpartition this table
+
+            parent_partition_name:
+                Optionnally, for subpartitions, the name of the parent partition
         """
 
         # asserts the model is a model set up for partitioning
@@ -320,12 +353,22 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         table_name = self.create_partition_table_name(model, name)
 
+        parent_table_name = model._meta.db_table
+        if parent_partition_name:
+            parent_table_name += "_" + parent_partition_name
+
         sql = self.sql_add_hash_partition % (
             self.quote_name(table_name),
-            self.quote_name(model._meta.db_table),
+            self.quote_name(parent_table_name),
             "%s",
             "%s",
         )
+
+        if partition_by:
+            sql += self.sql_partition_by % (
+                partition_by[0].upper(),
+                ", ".join(self.quote_name(field_name) for field_name in partition_by[1]),
+            )
 
         with transaction.atomic():
             self.execute(sql, (modulus, remainder))
@@ -333,8 +376,11 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             if comment:
                 self.set_comment_on_table(table_name, comment)
 
+        if partition_by:
+            self.add_default_partition(model, name + "_default", comment, parent_partition_name=table_name)
+
     def add_default_partition(
-        self, model: Model, name: str, comment: Optional[str] = None
+        self, model: Model, name: str, comment: Optional[str] = None, parent_partition_name: Optional[str] = None
     ) -> None:
         """Creates a new default partition for the specified partitioned model.
 
@@ -352,6 +398,9 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             comment:
                 Optionally, a comment to add on this
                 partition table.
+
+            parent_partition_name:
+                Optionnally, for subpartitions, the name of the parent partition
         """
 
         # asserts the model is a model set up for partitioning
@@ -359,11 +408,16 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         table_name = self.create_partition_table_name(model, name)
 
+        parent_table_name = model._meta.db_table
+        if parent_partition_name:
+            parent_table_name += "_" + parent_partition_name
+
         sql = self.sql_add_default_partition % (
             self.quote_name(table_name),
-            self.quote_name(model._meta.db_table),
+            self.quote_name(parent_table_name),
         )
 
+        print("DEFAULT", sql)
         with transaction.atomic():
             self.execute(sql)
 
@@ -373,14 +427,10 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     def delete_partition(self, model: Model, name: str) -> None:
         """Deletes the partition with the specified name."""
 
-        sql = self.sql_delete_partition % self.quote_name(
-            self.create_partition_table_name(model, name)
-        )
+        sql = self.sql_delete_partition % self.quote_name(self.create_partition_table_name(model, name))
         self.execute(sql)
 
-    def alter_db_table(
-        self, model: Model, old_db_table: str, new_db_table: str
-    ) -> None:
+    def alter_db_table(self, model: Model, old_db_table: str, new_db_table: str) -> None:
         """Alters a table/model."""
 
         super().alter_db_table(model, old_db_table, new_db_table)
@@ -461,10 +511,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         meta = getattr(model, "_view_meta", None)
         if not meta:
             raise ImproperlyConfigured(
-                (
-                    "Model '%s' is not properly configured to be a view."
-                    " Create the `ViewMeta` class as a child of '%s'."
-                )
+                ("Model '%s' is not properly configured to be a view." " Create the `ViewMeta` class as a child of '%s'.")
                 % (model.__name__, model.__name__)
             )
 
@@ -493,10 +540,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         meta = getattr(model, "_partitioning_meta", None)
         if not meta:
             raise ImproperlyConfigured(
-                (
-                    "Model '%s' is not properly configured to be partitioned."
-                    " Create the `PartitioningMeta` class as a child of '%s'."
-                )
+                ("Model '%s' is not properly configured to be partitioned." " Create the `PartitioningMeta` class as a child of '%s'.")
                 % (model.__name__, model.__name__)
             )
 
@@ -541,6 +585,30 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
                 )
                 % (model.__name__, field_name, meta.key, model.__name__)
             )
+
+        if getattr(meta, "subkey", None):
+            if not isinstance(meta.subkey, list):
+                raise ImproperlyConfigured(
+                    (
+                        "Model '%s' is not properly configured to be subpartitioned."
+                        " Partitioning subkey should be a list (of field names or values,"
+                        " depending on the partitioning method)."
+                    )
+                    % model.__name__
+                )
+
+            try:
+                for field_name in meta.subkey:
+                    model._meta.get_field(field_name)
+            except FieldDoesNotExist:
+                raise ImproperlyConfigured(
+                    (
+                        "Model '%s' is not properly configured to be subpartitioned."
+                        " Field '%s' in partitioning subkey %s is not a valid field on"
+                        " '%s'."
+                    )
+                    % (model.__name__, field_name, meta.subkey, model.__name__)
+                )
 
         return meta
 

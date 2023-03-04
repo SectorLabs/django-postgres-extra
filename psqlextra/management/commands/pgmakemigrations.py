@@ -1,5 +1,4 @@
 from django.core.management.commands import makemigrations
-
 from psqlextra.backend.migrations import postgres_patched_migrations
 
 
