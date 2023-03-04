@@ -146,7 +146,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         # table creations..
         sql, params = self._extract_sql(self.create_model, model)
 
-        partkeys = meta.key + getattr(meta, "subkey", [])
+        partkeys = meta.key + (getattr(meta, "subkey", None) or [])
         primary_key_sql = ", ".join(self.quote_name(field_name) for field_name in partkeys)
         partitioning_key_sql = ", ".join(self.quote_name(field_name) for field_name in meta.key)
 
