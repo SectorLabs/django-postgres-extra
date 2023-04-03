@@ -187,8 +187,14 @@ class PostgresIntrospection(base_impl.introspection()):
             "SELECT indexname, indexdef FROM pg_indexes WHERE tablename = %s",
             (table_name,),
         )
-        for index, definition in cursor.fetchall():
-            if constraints[index].get("definition") is None:
-                constraints[index]["definition"] = definition
+        for index_name, definition in cursor.fetchall():
+            # PostgreSQL 13 or older won't give a definition if the
+            # index is actually a primary key.
+            constraint = constraints.get(index_name)
+            if not constraint:
+                continue
+
+            if constraint.get("definition") is None:
+                constraint["definition"] = definition
 
         return constraints
