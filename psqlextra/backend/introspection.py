@@ -69,7 +69,8 @@ class PostgresIntrospection(base_impl.introspection()):
     ) -> PostgresIntrospectedPartitonedTable:
         """Gets a list of partitioned tables."""
 
-        sql = """
+        cursor.execute(
+            """
             SELECT
                 pg_class.relname,
                 pg_partitioned_table.partstrat
@@ -80,8 +81,7 @@ class PostgresIntrospection(base_impl.introspection()):
             ON
                 pg_class.oid = pg_partitioned_table.partrelid
         """
-
-        cursor.execute(sql)
+        )
 
         return [
             PostgresIntrospectedPartitonedTable(
@@ -190,6 +190,19 @@ class PostgresIntrospection(base_impl.introspection()):
 
     def get_columns(self, cursor, table_name: str):
         return self.get_table_description(cursor, table_name)
+
+    def get_schema_list(self, cursor) -> List[str]:
+        """A flat list of available schemas."""
+
+        sql = """
+            SELECT
+                schema_name
+            FROM
+                information_schema.schemata
+        """
+
+        cursor.execute(sql, tuple())
+        return [name for name, in cursor.fetchall()]
 
     def get_constraints(self, cursor, table_name: str):
         """Retrieve any constraints or keys (unique, pk, fk, check, index)
