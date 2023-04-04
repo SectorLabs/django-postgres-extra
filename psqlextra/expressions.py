@@ -212,7 +212,7 @@ class ExcludedCol(expressions.Expression):
     """References a column in PostgreSQL's special EXCLUDED column, which is
     used in upserts to refer to the data about to be inserted/updated.
 
-    See: https://www.postgresql.org/docs/9.5/sql-insert.html#SQL-ON-CONFLICT
+    See: https://www.postgresql.org/docs/current/sql-insert.html#SQL-ON-CONFLICT
     """
 
     def __init__(self, name: str):
