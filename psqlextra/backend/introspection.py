@@ -1,5 +1,8 @@
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
+
+from django.db import transaction
 
 from psqlextra.types import PostgresPartitioningMethod
 
@@ -47,6 +50,22 @@ class PostgresIntrospectedPartitonedTable:
 
 class PostgresIntrospection(base_impl.introspection()):
     """Adds introspection features specific to PostgreSQL."""
+
+    # TODO: This class is a mess, both here and in the
+    # the base.
+    #
+    # Some methods return untyped dicts, some named tuples,
+    # some flat lists of strings. It's horribly inconsistent.
+    #
+    # Most methods are poorly named. For example; `get_table_description`
+    # does not return a complete table description. It merely returns
+    # the columns.
+    #
+    # We do our best in this class to stay consistent with
+    # the base in Django by respecting its naming scheme
+    # and commonly used return types. Creating an API that
+    # matches the look&feel from the Django base class
+    # is more important than fixing those issues.
 
     def get_partitioned_tables(
         self, cursor
@@ -172,6 +191,9 @@ class PostgresIntrospection(base_impl.introspection()):
         cursor.execute(sql, (table_name,))
         return [row[0] for row in cursor.fetchall()]
 
+    def get_columns(self, cursor, table_name: str):
+        return self.get_table_description(cursor, table_name)
+
     def get_constraints(self, cursor, table_name: str):
         """Retrieve any constraints or keys (unique, pk, fk, check, index)
         across one or more columns.
@@ -202,15 +224,93 @@ class PostgresIntrospection(base_impl.introspection()):
     def get_table_locks(self, cursor) -> List[Tuple[str, str, str]]:
         cursor.execute(
             """
-         SELECT
-          n.nspname,
-          t.relname,
-          l.mode
-        FROM pg_locks l
-        INNER JOIN pg_class t ON t.oid = l.relation
-        INNER JOIN pg_namespace n ON n.oid = t.relnamespace
-        WHERE t.relnamespace >= 2200
-        ORDER BY n.nspname, t.relname, l.mode"""
+            SELECT
+                n.nspname,
+                t.relname,
+                l.mode
+            FROM pg_locks l
+            INNER JOIN pg_class t ON t.oid = l.relation
+            INNER JOIN pg_namespace n ON n.oid = t.relnamespace
+            WHERE t.relnamespace >= 2200
+            ORDER BY n.nspname, t.relname, l.mode
+        """
         )
 
         return cursor.fetchall()
+
+    def get_storage_settings(self, cursor, table_name: str) -> Dict[str, str]:
+        sql = """
+            SELECT
+                unnest(c.reloptions || array(select 'toast.' || x from pg_catalog.unnest(tc.reloptions) x))
+            FROM
+                pg_catalog.pg_class c
+            LEFT JOIN
+                pg_catalog.pg_class tc ON (c.reltoastrelid = tc.oid)
+            LEFT JOIN
+                pg_catalog.pg_am am ON (c.relam = am.oid)
+            WHERE
+                c.relname::text = %s
+        """
+
+        cursor.execute(sql, (table_name,))
+
+        storage_settings = {}
+        for row in cursor.fetchall():
+            # It's hard to believe, but storage settings are really
+            # represented as `key=value` strings in Postgres.
+            # See: https://www.postgresql.org/docs/current/catalog-pg-class.html
+            name, value = row[0].split("=")
+            storage_settings[name] = value
+
+        return storage_settings
+
+    def get_relations(self, cursor, table_name: str):
+        """Gets a dictionary {field_name: (field_name_other_table,
+        other_table)} representing all relations in the specified table.
+
+        This is overriden because the query in Django does not handle
+        relations between tables in different schemas properly.
+        """
+
+        cursor.execute(
+            """
+            SELECT a1.attname, c2.relname, a2.attname
+            FROM pg_constraint con
+            LEFT JOIN pg_class c1 ON con.conrelid = c1.oid
+            LEFT JOIN pg_class c2 ON con.confrelid = c2.oid
+            LEFT JOIN pg_attribute a1 ON c1.oid = a1.attrelid AND a1.attnum = con.conkey[1]
+            LEFT JOIN pg_attribute a2 ON c2.oid = a2.attrelid AND a2.attnum = con.confkey[1]
+            WHERE
+                con.conrelid = %s::regclass AND
+                con.contype = 'f' AND
+                pg_catalog.pg_table_is_visible(c1.oid)
+        """,
+            [table_name],
+        )
+        return {row[0]: (row[2], row[1]) for row in cursor.fetchall()}
+
+    @contextmanager
+    def in_search_path(self, search_path: List[str]):
+        """Changes the Postgres `search_path` within the context and switches
+        it back when it exits."""
+
+        # Wrap in a transaction so a savepoint is created. If
+        # something goes wrong, the `SET LOCAL search_path`
+        # statement will be rolled back.
+        with transaction.atomic(using=self.connection.alias):
+            with self.connection.cursor() as cursor:
+                cursor.execute("SHOW search_path")
+                (original_search_path,) = cursor.fetchone()
+
+                # Syntax in Postgres is a bit weird here. It isn't really
+                # a list of names like in `WHERE bla in (val1, val2)`.
+                placeholder = ", ".join(["%s" for _ in search_path])
+                cursor.execute(
+                    f"SET LOCAL search_path = {placeholder}", search_path
+                )
+
+                yield self
+
+                cursor.execute(
+                    f"SET LOCAL search_path = {original_search_path}"
+                )
