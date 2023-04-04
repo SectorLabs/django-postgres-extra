@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from psqlextra.types import PostgresPartitioningMethod
 
@@ -198,3 +198,19 @@ class PostgresIntrospection(base_impl.introspection()):
                 constraint["definition"] = definition
 
         return constraints
+
+    def get_table_locks(self, cursor) -> List[Tuple[str, str, str]]:
+        cursor.execute(
+            """
+         SELECT
+          n.nspname,
+          t.relname,
+          l.mode
+        FROM pg_locks l
+        INNER JOIN pg_class t ON t.oid = l.relation
+        INNER JOIN pg_namespace n ON n.oid = t.relnamespace
+        WHERE t.relnamespace >= 2200
+        ORDER BY n.nspname, t.relname, l.mode"""
+        )
+
+        return cursor.fetchall()
