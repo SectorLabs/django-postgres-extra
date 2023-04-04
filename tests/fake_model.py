@@ -3,9 +3,10 @@ import sys
 import uuid
 
 from contextlib import contextmanager
+from typing import Type
 
 from django.apps import AppConfig, apps
-from django.db import connection
+from django.db import connection, models
 
 from psqlextra.models import (
     PostgresMaterializedViewModel,
@@ -37,6 +38,17 @@ def define_fake_model(
 
     apps.app_configs[attributes["app_label"]].models[name] = model
     return model
+
+
+def undefine_fake_model(model: Type[models.Model]) -> None:
+    """Removes the fake model from the app registry."""
+
+    app_label = model._meta.app_label or "tests"
+    app_models = apps.app_configs[app_label].models
+
+    for model_name in [model.__name__, model.__name__.lower()]:
+        if model_name in app_models:
+            del app_models[model_name]
 
 
 def define_fake_view_model(
@@ -113,6 +125,15 @@ def get_fake_model(fields=None, model_base=PostgresModel, meta_options={}):
         schema_editor.create_model(model)
 
     return model
+
+
+def delete_fake_model(model: Type[models.Model]) -> None:
+    """Deletes a fake model from the database and the internal app registry."""
+
+    undefine_fake_model(model)
+
+    with connection.schema_editor() as schema_editor:
+        schema_editor.delete_model(model)
 
 
 @contextmanager
