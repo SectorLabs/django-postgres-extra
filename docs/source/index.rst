@@ -35,6 +35,10 @@ Explore the documentation to learn about all features:
 
    Support for ``TRUNCATE TABLE`` statements (including cascading).
 
+* :ref:`Locking models & tables <locking_page>`
+
+   Support for explicit table-level locks.
+
 
 .. toctree::
    :maxdepth: 2
@@ -49,6 +53,7 @@ Explore the documentation to learn about all features:
    table_partitioning
    expressions
    annotations
+   locking
    settings
    api_reference
    major_releases

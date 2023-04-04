@@ -37,6 +37,9 @@ API Reference
    .. autoclass:: ConditionalUniqueIndex
    .. autoclass:: CaseInsensitiveUniqueIndex
 
+.. automodule:: psqlextra.locking
+   :members:
+
 .. automodule:: psqlextra.partitioning
    :members:
 
