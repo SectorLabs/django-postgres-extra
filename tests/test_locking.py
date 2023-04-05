@@ -66,18 +66,17 @@ def test_postgres_lock_table_in_schema():
     assert lock_signature not in get_table_locks()
 
 
+@pytest.mark.parametrize("lock_mode", list(PostgresTableLockMode))
 @pytest.mark.django_db(transaction=True)
-def test_postgres_lock_mode(mocked_model):
+def test_postgres_lock_model(mocked_model, lock_mode):
     lock_signature = (
         "public",
         mocked_model._meta.db_table,
-        "AccessExclusiveLock",
+        lock_mode.alias,
     )
 
     with transaction.atomic():
-        postgres_lock_model(
-            mocked_model, PostgresTableLockMode.ACCESS_EXCLUSIVE
-        )
+        postgres_lock_model(mocked_model, lock_mode)
         assert lock_signature in get_table_locks()
 
     assert lock_signature not in get_table_locks()
