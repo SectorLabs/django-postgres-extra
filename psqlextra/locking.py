@@ -19,6 +19,13 @@ class PostgresTableLockMode(Enum):
     EXCLUSIVE = "EXCLUSIVE"
     ACCESS_EXCLUSIVE = "ACCESS EXCLUSIVE"
 
+    @property
+    def alias(self) -> str:
+        return (
+            "".join([word.title() for word in self.name.lower().split("_")])
+            + "Lock"
+        )
+
 
 def postgres_lock_table(
     table_name: str,
