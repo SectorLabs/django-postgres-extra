@@ -7,7 +7,7 @@ Locking
 
 `Explicit table-level locks`_ are supported through the :meth:`psqlextra.locking.postgres_lock_model` and :meth:`psqlextra.locking.postgres_lock_table` methods. All table-level lock methods are supported.
 
-Locks are always bound to the current transaction and are released when the transaction is comitted or rolled back. There is no support (in PostgreSQL) for explicitly releasing a lock.
+Locks are always bound to the current transaction and are released when the transaction is committed or rolled back. There is no support (in PostgreSQL) for explicitly releasing a lock.
 
 .. warning::
 
@@ -31,7 +31,7 @@ Use :class:`psqlextra.locking.PostgresTableLockMode` to indicate the type of loc
     with transaction.atomic(durable=True):
         postgres_lock_model(MyModel, PostgresTableLockMode.EXCLUSIVE)
 
-    # locks are released here, when the transaction comitted
+    # locks are released here, when the transaction committed
 
 
 Locking a table
@@ -53,4 +53,4 @@ Use :meth:`psqlextra.locking.postgres_lock_table` to lock arbitrary tables in ar
             schema_name="myschema"
         )
 
-    # locks are released here, when the transaction comitted
+    # locks are released here, when the transaction committed
