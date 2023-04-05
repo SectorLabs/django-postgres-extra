@@ -39,7 +39,7 @@ class PostgresPartitioningManager:
                 for deletion, regardless of the configuration.
 
             using:
-                Name of the database connection to use.
+                Optional name of the database connection to use.
 
         Returns:
             A plan describing what partitions would be created

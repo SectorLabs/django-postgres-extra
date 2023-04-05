@@ -28,7 +28,7 @@ class PostgresModelPartitioningPlan:
 
         Arguments:
             using:
-                Name of the database connection to use.
+                Optional name of the database connection to use.
         """
 
         connection = connections[using or "default"]

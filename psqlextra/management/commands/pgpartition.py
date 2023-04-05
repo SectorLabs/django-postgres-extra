@@ -37,7 +37,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--using",
             "-u",
-            help="Name of the database connection to use.",
+            help="Optional name of the database connection to use.",
             default="default",
         )
 

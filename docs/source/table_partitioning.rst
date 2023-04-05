@@ -101,7 +101,7 @@ Command-line options
   Long flag            Short flag    Default          Description
  ==================== ============= ================ ==================================================================================================== === === === === === ===
   ``--yes``            ``-y``        ``False``        Specifies yes to all questions. You will NOT be asked for confirmation before partition deletion.
-  ``--using``          ``-u``        ``'default'``    Name of the database connection to use.
+  ``--using``          ``-u``        ``'default'``    Optional name of the database connection to use.
   ``--skip-create``                  ``False``        Whether to skip creating partitions.
   ``--skip-delete``                  ``False``        Whether to skip deleting partitions.
 

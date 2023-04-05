@@ -131,7 +131,7 @@ class PostgresQuerySet(models.QuerySet):
                 just dicts.
 
             using:
-                Name of the database connection to use for
+                Optional name of the database connection to use for
                 this query.
 
         Returns:

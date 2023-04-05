@@ -45,7 +45,7 @@ def postgres_lock_table(
             using it's ``search_path``.
 
         using:
-            Name of the database alias to use.
+            Optional name of the database connection to use.
     """
 
     connection = connections[using]
@@ -89,7 +89,7 @@ def postgres_lock_model(
             this unless you're doing something special.
 
         using:
-            Name of the database alias to use.
+            Optional name of the database connection to use.
     """
 
     postgres_lock_table(
