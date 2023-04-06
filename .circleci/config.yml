@@ -95,6 +95,17 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 310
+
+  test-python311:
+    executor:
+      name: python
+      version: "3.11"
+    steps:
+      - checkout
+      - install-dependencies:
+          extra: test
+      - run-tests:
+          pyversion: 311
       - store_test_results:
           path: reports
       - run:
@@ -171,6 +182,12 @@ workflows:
               only: /.*/
             branches:
               only: /.*/
+      - test-python311:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
       - analysis:
           filters:
             tags:
@@ -184,6 +201,7 @@ workflows:
             - test-python38
             - test-python39
             - test-python310
+            - test-python311
             - analysis
           filters:
             tags:
