@@ -97,7 +97,7 @@ setup(
         ],
         "psycopg3": [
             "django>=4.2,<5.0",
-            "psycopg2>=3.0.0",
+            "psycopg[binary]>=3.0.0",
         ],
     },
     cmdclass={
