@@ -55,18 +55,19 @@ def test_postgres_schema_create_name_that_requires_escaping():
 
 
 def test_postgres_schema_create_time_based():
-    with freezegun.freeze_time("2023-04-07 13:37:00.0"):
+    with freezegun.freeze_time("2023-04-07 13:37:23.4"):
         schema = PostgresSchema.create_time_based("myprefix")
 
-    assert schema.name == "myprefix_2023040713041680892620"
+    assert schema.name == "myprefix_20230407130423"
     assert _does_schema_exist(schema.name)
 
 
 def test_postgres_schema_create_time_based_long_prefix():
     with pytest.raises(ValidationError) as exc_info:
-        PostgresSchema.create_time_based("a" * 100)
+        with freezegun.freeze_time("2023-04-07 13:37:23.4"):
+            PostgresSchema.create_time_based("a" * 100)
 
-    assert "is longer than 55 characters" in str(exc_info.value)
+    assert "is longer than 49 characters" in str(exc_info.value)
 
 
 def test_postgres_schema_create_random():
