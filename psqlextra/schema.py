@@ -70,7 +70,7 @@ class PostgresSchema:
                 The name to give to the new schema (max 63 characters).
 
             using:
-                Name of the database connection to use.
+                Optional name of the database connection to use.
         """
 
         if len(name) > cls.NAME_MAX_LENGTH:
@@ -116,7 +116,7 @@ class PostgresSchema:
                 and anything that references it if it exists.
 
             using:
-                Name of the database connection to use.
+                Optional name of the database connection to use.
         """
 
         with transaction.atomic(using=using):
@@ -133,7 +133,7 @@ class PostgresSchema:
                 exists.
 
             using:
-                Name of the database connection to use.
+                Optional name of the database connection to use.
         """
 
         connection = connections[using]
@@ -197,6 +197,9 @@ def postgres_temporary_schema(
         delete_on_throw:
             Whether to automatically drop the schema if
             any error occurs within the context manager.
+
+        using:
+            Optional name of the database connection to use.
     """
 
     schema = PostgresSchema.create_random(prefix, using=using)
