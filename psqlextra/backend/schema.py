@@ -430,7 +430,9 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         meta = self._view_properties_for_model(model)
 
         with self.connection.cursor() as cursor:
-            view_sql = cursor.mogrify(*meta.query).decode("utf-8")
+            view_sql = cursor.mogrify(*meta.query)
+            if isinstance(view_sql, bytes):
+                view_sql = view_sql.decode("utf-8")
 
         self.execute(sql % (self.quote_name(model._meta.db_table), view_sql))
 

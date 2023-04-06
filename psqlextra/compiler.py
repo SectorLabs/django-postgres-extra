@@ -187,12 +187,13 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):
                     rows.extend(cursor.fetchall())
                 except ProgrammingError:
                     pass
+            description = cursor.description
 
         # create a mapping between column names and column value
         return [
             {
                 column.name: row[column_index]
-                for column_index, column in enumerate(cursor.description)
+                for column_index, column in enumerate(description)
                 if row
             }
             for row in rows

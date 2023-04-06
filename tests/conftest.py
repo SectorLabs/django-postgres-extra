@@ -29,7 +29,7 @@ def fake_app():
 def postgres_server_version(db) -> int:
     """Gets the PostgreSQL server version."""
 
-    return connection.cursor().connection.server_version
+    return connection.cursor().connection.info.server_version
 
 
 @pytest.fixture(autouse=True)
