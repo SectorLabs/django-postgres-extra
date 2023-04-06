@@ -98,9 +98,6 @@ Without an outer transaction, the temporary schema might not be dropped when you
 
    By default, the drop will fail if the schema is not empty or there is anything referencing the schema.  Specify ``cascade=True`` to drop all of the schema's contents and **anything referencing it**.
 
-.. note::
-
-
 .. code-block:: python
 
    for psqlextra.schema import postgres_temporary_schema
@@ -151,7 +148,11 @@ By default, a connection operates in the ``public`` schema. The schema offers a 
 
 .. warning::
 
-   Do not pass the connection to a different thread. It is **NOT** thread safe.
+   Do not use this in the following scenarios:
+
+    1. You access the connection from multiple threads. Scoped connections are **NOT** thread safe.
+
+    2. The underlying database connection is passed through a connection pooler in transaction pooling mode.
 
 .. code-block:: python
 
