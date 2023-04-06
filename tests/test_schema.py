@@ -52,11 +52,21 @@ def test_postgres_schema_create_name_that_requires_escaping():
     assert _does_schema_exist("table")
 
 
-def test_postgres_schema_create_random():
+def test_postgres_schema_create_time_based():
     with freezegun.freeze_time("2023-04-07 13:37:00.0"):
-        schema = PostgresSchema.create_random("myprefix")
+        schema = PostgresSchema.create_time_based("myprefix")
 
     assert schema.name == "myprefix_2023040713041680892620"
+    assert _does_schema_exist(schema.name)
+
+
+def test_postgres_schema_create_random():
+    schema = PostgresSchema.create_random("myprefix")
+
+    prefix, suffix = schema.name.split("_")
+    assert prefix == "myprefix"
+    assert len(suffix) == 8
+
     assert _does_schema_exist(schema.name)
 
 
@@ -215,11 +225,12 @@ def test_postgres_schema_connection_no_delete_default():
 
 
 def test_postgres_temporary_schema():
-    with freezegun.freeze_time("2023-04-07 13:37:00.0"):
-        with postgres_temporary_schema("temp") as schema:
-            assert schema.name == "temp_2023040713041680892620"
+    with postgres_temporary_schema("temp") as schema:
+        name_prefix, name_suffix = schema.name.split("_")
+        assert name_prefix == "temp"
+        assert len(name_suffix) == 8
 
-            assert _does_schema_exist(schema.name)
+        assert _does_schema_exist(schema.name)
 
     assert not _does_schema_exist(schema.name)
 

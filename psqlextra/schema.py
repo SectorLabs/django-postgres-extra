@@ -1,3 +1,5 @@
+import os
+
 from contextlib import contextmanager
 
 import wrapt
@@ -84,10 +86,14 @@ class PostgresSchema:
         return cls(name, using=using)
 
     @classmethod
-    def create_random(
+    def create_time_based(
         cls, prefix: str, *, using: str = DEFAULT_DB_ALIAS
     ) -> "PostgresSchema":
-        """Creates a new schema with a random (time-based) suffix.
+        """Creates a new schema with a time-based suffix.
+
+        The time is precise up to the second. Creating
+        multiple time based schema in the same second
+        WILL lead to conflicts.
 
         Arguments:
             prefix:
@@ -99,6 +105,24 @@ class PostgresSchema:
         """
 
         name_suffix = timezone.now().strftime("%Y%m%d%H%m%s")
+        return cls.create(f"{prefix}_{name_suffix}", using=using)
+
+    @classmethod
+    def create_random(
+        cls, prefix: str, *, using: str = DEFAULT_DB_ALIAS
+    ) -> "PostgresSchema":
+        """Creates a new schema with a random suffix.
+
+        Arguments:
+            prefix:
+                Name to prefix the final name with. The name plus
+                prefix cannot be longer than 63 characters.
+
+            using:
+                Name of the database connection to use.
+        """
+
+        name_suffix = os.urandom(4).hex()
         return cls.create(f"{prefix}_{name_suffix}", using=using)
 
     @classmethod
