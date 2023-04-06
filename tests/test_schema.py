@@ -37,10 +37,12 @@ def test_postgres_schema_does_not_overwrite():
 
 
 def test_postgres_schema_create_max_name_length():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         PostgresSchema.create(
             "stringthatislongerhtan63charactersforsureabsolutelysurethisislongerthanthat"
         )
+
+    assert "is longer than Postgres's limit" in str(exc_info.value)
 
 
 def test_postgres_schema_create_name_that_requires_escaping():
@@ -60,6 +62,13 @@ def test_postgres_schema_create_time_based():
     assert _does_schema_exist(schema.name)
 
 
+def test_postgres_schema_create_time_based_long_prefix():
+    with pytest.raises(ValidationError) as exc_info:
+        PostgresSchema.create_time_based("a" * 100)
+
+    assert "is longer than 55 characters" in str(exc_info.value)
+
+
 def test_postgres_schema_create_random():
     schema = PostgresSchema.create_random("myprefix")
 
@@ -68,6 +77,13 @@ def test_postgres_schema_create_random():
     assert len(suffix) == 8
 
     assert _does_schema_exist(schema.name)
+
+
+def test_postgres_schema_create_random_long_prefix():
+    with pytest.raises(ValidationError) as exc_info:
+        PostgresSchema.create_random("a" * 100)
+
+    assert "is longer than 55 characters" in str(exc_info.value)
 
 
 def test_postgres_schema_delete_and_create():

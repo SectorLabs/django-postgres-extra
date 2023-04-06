@@ -104,8 +104,10 @@ class PostgresSchema:
                 Name of the database connection to use.
         """
 
-        name_suffix = timezone.now().strftime("%Y%m%d%H%m%s")
-        return cls.create(f"{prefix}_{name_suffix}", using=using)
+        suffix = timezone.now().strftime("%Y%m%d%H%m%s")
+        cls._verify_generated_name_length(prefix, suffix)
+
+        return cls.create(f"{prefix}_{suffix}", using=using)
 
     @classmethod
     def create_random(
@@ -122,8 +124,10 @@ class PostgresSchema:
                 Name of the database connection to use.
         """
 
-        name_suffix = os.urandom(4).hex()
-        return cls.create(f"{prefix}_{name_suffix}", using=using)
+        suffix = os.urandom(4).hex()
+        cls._verify_generated_name_length(prefix, suffix)
+
+        return cls.create(f"{prefix}_{suffix}", using=using)
 
     @classmethod
     def delete_and_create(
@@ -200,6 +204,15 @@ class PostgresSchema:
         """
 
         return PostgresSchemaConnectionWrapper(connections[self.using], self)
+
+    @classmethod
+    def _verify_generated_name_length(cls, prefix: str, suffix: str) -> None:
+        max_prefix_length = cls.NAME_MAX_LENGTH - len(suffix)
+
+        if len(prefix) > max_prefix_length:
+            raise ValidationError(
+                f"Schema prefix '{prefix}' is longer than {max_prefix_length} characters. Together with the generated suffix of {len(suffix)} characters, the name would exceed Postgres's limit of {cls.NAME_MAX_LENGTH} characters."
+            )
 
 
 PostgresSchema.default = PostgresSchema("public")
