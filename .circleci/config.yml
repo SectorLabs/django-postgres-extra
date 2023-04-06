@@ -32,13 +32,11 @@ commands:
     parameters:
       pyversion:
         type: integer
-      djversions:
-        type: string
 
     steps:
       - run:
           name: Run tests
-          command: tox -e 'py<< parameters.pyversion >>-dj{<< parameters.djversions >>}'
+          command: tox --listenvs | grep ^py<< parameters.pyversion >> | circleci tests split | xargs -n 1 tox -e
           environment:
             DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
 
@@ -53,7 +51,6 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 36
-          djversions: 20,21,22,30,31,32
 
   test-python37:
     executor:
@@ -65,7 +62,6 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 37
-          djversions: 20,21,22,30,31,32
 
   test-python38:
     executor:
@@ -77,7 +73,6 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 38
-          djversions: 20,21,22,30,31,32,40,41,42
 
   test-python39:
     executor:
@@ -89,7 +84,6 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 39
-          djversions: 21,22,30,31,32,40,41,42
 
   test-python310:
     executor:
@@ -101,7 +95,6 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 310
-          djversions: 21,22,30,31,32,40,41,42
       - store_test_results:
           path: reports
       - run:
