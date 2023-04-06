@@ -86,11 +86,17 @@ def test_postgres_schema_delete_and_create():
     pg_error = extract_postgres_error(exc_info.value)
     assert pg_error.pgcode == errorcodes.DEPENDENT_OBJECTS_STILL_EXIST
 
+    # Verify that the schema and table still exist
+    assert _does_schema_exist(schema.name)
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM test.bla")
+        assert cursor.fetchone() == ("hello",)
+
     # Dropping the schema should work with cascade=True
     schema = PostgresSchema.delete_and_create(schema.name, cascade=True)
     assert _does_schema_exist(schema.name)
 
-    # Since the schema was deleteped and re-created, the `bla`
+    # Since the schema was deleted and re-created, the `bla`
     # table should not exist anymore.
     with pytest.raises(ProgrammingError) as exc_info:
         with connection.cursor() as cursor:
