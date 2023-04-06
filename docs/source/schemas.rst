@@ -73,14 +73,32 @@ Re-create if necessary with a custom name
    schema = PostgresSchema.drop_and_create("otherschema", cascade=True)
 
 
-With a random name
-******************
+With a time-based name
+**********************
+
+.. warning::
+
+   The time-based suffix is precise up to the second. If two threads or processes both try to create a time-based schema name with the same suffix in the same second, they will have conflicts.
 
 .. code-block:: python
 
    for psqlextra.schema import PostgresSchema
 
    # schema name will be "myprefix_<timestamp>"
+   schema = PostgresSchema.create_time_based("myprefix")
+   print(schema.name)
+
+
+With a random name
+******************
+
+A 8 character suffix is appended. Entropy is dependent on your system. See :meth:`~os.urandom` for more information.
+
+.. code-block:: python
+
+   for psqlextra.schema import PostgresSchema
+
+   # schema name will be "myprefix_<8 random characters>"
    schema = PostgresSchema.create_random("myprefix")
    print(schema.name)
 
