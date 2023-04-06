@@ -727,6 +727,72 @@ class PostgresSchemaEditor(SchemaEditor):
         for side_effect in self.side_effects:
             side_effect.alter_field(model, old_field, new_field, strict)
 
+    def vacuum(
+        self,
+        table_name: str,
+        columns: List[str] = [],
+        *,
+        full: bool = False,
+        freeze: bool = False,
+        verbose: bool = False,
+        analyze: bool = False,
+        disable_page_skipping: bool = False,
+        skip_locked: bool = False,
+        index_cleanup: bool = False,
+        truncate: bool = False,
+        parallel: Optional[int] = None,
+    ) -> None:
+        """Runs the VACUUM statement on the specified table with the specified
+        options.
+
+        Arguments:
+            table_name:
+                Name of the table to run VACUUM on.
+
+            columns:
+                Optionally, a list of columns to vacuum. If not
+                specified, all columns are vacuumed.
+        """
+
+        if self.connection.in_atomic_block:
+            raise SuspiciousOperation("Vacuum cannot be done in a transaction")
+
+        options = []
+        if full:
+            options.append("FULL")
+        if freeze:
+            options.append("FREEZE")
+        if verbose:
+            options.append("VERBOSE")
+        if analyze:
+            options.append("ANALYZE")
+        if disable_page_skipping:
+            options.append("DISABLE_PAGE_SKIPPING")
+        if skip_locked:
+            options.append("SKIP_LOCKED")
+        if index_cleanup:
+            options.append("INDEX_CLEANUP")
+        if truncate:
+            options.append("TRUNCATE")
+        if parallel is not None:
+            options.append(f"PARALLEL {parallel}")
+
+        sql = "VACUUM"
+
+        if options:
+            options_sql = ", ".join(options)
+            sql += f" ({options_sql})"
+
+        sql += f" {self.quote_name(table_name)}"
+
+        if columns:
+            columns_sql = ", ".join(
+                [self.quote_name(column) for column in columns]
+            )
+            sql += f" ({columns_sql})"
+
+        self.execute(sql)
+
     def set_comment_on_table(self, table_name: str, comment: str) -> None:
         """Sets the comment on the specified table."""
 
