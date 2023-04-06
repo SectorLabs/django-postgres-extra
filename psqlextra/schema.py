@@ -104,7 +104,7 @@ class PostgresSchema:
                 Name of the database connection to use.
         """
 
-        suffix = timezone.now().strftime("%Y%m%d%H%m%s")
+        suffix = timezone.now().strftime("%Y%m%d%H%m%S")
         cls._verify_generated_name_length(prefix, suffix)
 
         return cls.create(f"{prefix}_{suffix}", using=using)
