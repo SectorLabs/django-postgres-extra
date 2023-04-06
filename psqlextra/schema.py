@@ -165,7 +165,15 @@ class PostgresSchema:
 
     @property
     def connection(self) -> BaseDatabaseWrapper:
-        """Obtains a database connection scoped to this schema."""
+        """Obtains a database connection scoped to this schema.
+
+        Do not use this in the following scenarios:
+
+            1. You access the connection from multiple threads. Scoped
+            connections are NOT thread safe.
+            2. The underlying database connection is passed through a
+            connection pooler in transaction pooling mode.
+        """
 
         return PostgresSchemaConnectionWrapper(connections[self.using], self)
 
