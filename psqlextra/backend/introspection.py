@@ -194,14 +194,16 @@ class PostgresIntrospection(base_impl.introspection()):
     def get_schema_list(self, cursor) -> List[str]:
         """A flat list of available schemas."""
 
-        sql = """
+        cursor.execute(
+            """
             SELECT
                 schema_name
             FROM
                 information_schema.schemata
-        """
+            """,
+            tuple(),
+        )
 
-        cursor.execute(sql, tuple())
         return [name for name, in cursor.fetchall()]
 
     def get_constraints(self, cursor, table_name: str):
