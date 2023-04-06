@@ -42,13 +42,6 @@ commands:
           environment:
             DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
 
-      - run:
-          name: Run tests psycopg3
-          command: tox -e 'py<< parameters.pyversion >>-dj{<< parameters.djversions >>}'
-          environment:
-            DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
-
-
 jobs:
   test-python36:
     executor:
