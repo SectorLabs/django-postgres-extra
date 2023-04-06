@@ -95,10 +95,6 @@ setup(
             "build==0.7.0",
             "twine==3.7.1",
         ],
-        "psycopg3": [
-            "django>=4.2,<5.0",
-            "psycopg[binary]>=3.0.0",
-        ],
     },
     cmdclass={
         "lint": create_command(
