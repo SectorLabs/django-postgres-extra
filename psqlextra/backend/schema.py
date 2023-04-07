@@ -25,6 +25,10 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     and hooks into existing implementations to add side effects specific to
     PostgreSQL."""
 
+    sql_create_schema = "CREATE SCHEMA %s"
+    sql_delete_schema = "DROP SCHEMA %s"
+    sql_delete_schema_cascade = "DROP SCHEMA %s CASCADE"
+
     sql_create_view = "CREATE VIEW %s AS (%s)"
     sql_replace_view = "CREATE OR REPLACE VIEW %s AS (%s)"
     sql_drop_view = "DROP VIEW IF EXISTS %s"
@@ -62,6 +66,21 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         self.deferred_sql = []
         self.introspection = PostgresIntrospection(self.connection)
+
+    def create_schema(self, name: str) -> None:
+        """Creates a Postgres schema."""
+
+        self.execute(self.sql_create_schema % self.quote_name(name))
+
+    def delete_schema(self, name: str, cascade: bool) -> None:
+        """Drops a Postgres schema."""
+
+        sql = (
+            self.sql_delete_schema
+            if not cascade
+            else self.sql_delete_schema_cascade
+        )
+        self.execute(sql % self.quote_name(name))
 
     def create_model(self, model: Model) -> None:
         """Creates a new model."""

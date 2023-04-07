@@ -40,6 +40,11 @@ Explore the documentation to learn about all features:
    Support for explicit table-level locks.
 
 
+* :ref:`Creating/dropping schemas <schemas_page>`
+
+    Support for managing Postgres schemas.
+
+
 .. toctree::
    :maxdepth: 2
    :caption: Overview
@@ -54,6 +59,7 @@ Explore the documentation to learn about all features:
    expressions
    annotations
    locking
+   schemas
    settings
    api_reference
    major_releases
