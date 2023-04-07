@@ -10,12 +10,20 @@ class PostgresPartitionedModelOptions:
     are held.
     """
 
-    def __init__(self, method: PostgresPartitioningMethod, key: List[str]):
+    def __init__(
+        self,
+        method: PostgresPartitioningMethod,
+        key: List[str],
+        submethod: PostgresPartitioningMethod | None = None,
+        subkey: List[str] | None = None,
+    ):
         self.method = method
         self.key = key
-        self.original_attrs: Dict[
-            str, Union[PostgresPartitioningMethod, List[str]]
-        ] = dict(method=method, key=key)
+        self.submethod = submethod
+        self.subkey = subkey
+        self.original_attrs: Dict[str, Union[None, PostgresPartitioningMethod, List[str]]] = dict(
+            method=method, key=key, submethod=submethod, subkey=subkey
+        )
 
 
 class PostgresViewOptions:
@@ -28,6 +36,4 @@ class PostgresViewOptions:
 
     def __init__(self, query: Optional[SQLWithParams]):
         self.query = query
-        self.original_attrs: Dict[str, Optional[SQLWithParams]] = dict(
-            query=self.query
-        )
+        self.original_attrs: Dict[str, Optional[SQLWithParams]] = dict(query=self.query)

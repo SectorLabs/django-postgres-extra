@@ -51,12 +51,12 @@ class PostgresModelPartitioningPlan:
         print(f"{self.config.model.__name__}:")
 
         for partition in self.deletions:
-            print("  - %s" % partition.name())
+            print("  - %s" % partition.full_name())
             for key, value in partition.deconstruct().items():
                 print(f"     {key}: {value}")
 
         for partition in self.creations:
-            print("  + %s" % partition.name())
+            print("  + %s" % partition.full_name())
             for key, value in partition.deconstruct().items():
                 print(f"     {key}: {value}")
 
