@@ -21,3 +21,6 @@ class PostgresOperations(base_impl.operations()):
         SQLUpdateCompiler,
         SQLInsertCompiler,
     ]
+
+    def default_schema_name(self) -> str:
+        return "public"

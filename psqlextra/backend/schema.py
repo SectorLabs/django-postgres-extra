@@ -1,5 +1,7 @@
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Type
 from unittest import mock
+
+import django
 
 from django.core.exceptions import (
     FieldDoesNotExist,
@@ -7,6 +9,7 @@ from django.core.exceptions import (
     SuspiciousOperation,
 )
 from django.db import transaction
+from django.db.backends.ddl_references import Statement
 from django.db.models import Field, Model
 
 from psqlextra.type_assertions import is_sql_with_params
@@ -19,8 +22,10 @@ from .side_effects import (
     HStoreUniqueSchemaEditorSideEffect,
 )
 
+SchemaEditor = base_impl.schema_editor()
 
-class PostgresSchemaEditor(base_impl.schema_editor()):
+
+class PostgresSchemaEditor(SchemaEditor):
     """Schema editor that adds extra methods for PostgreSQL specific features
     and hooks into existing implementations to add side effects specific to
     PostgreSQL."""
@@ -28,6 +33,16 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
     sql_create_schema = "CREATE SCHEMA %s"
     sql_delete_schema = "DROP SCHEMA %s"
     sql_delete_schema_cascade = "DROP SCHEMA %s CASCADE"
+
+    sql_add_pk = "ALTER TABLE %s ADD PRIMARY KEY (%s)"
+    sql_create_fk_not_valid = f"{SchemaEditor.sql_create_fk} NOT VALID"
+
+    sql_validate_fk = "ALTER TABLE %s VALIDATE CONSTRAINT %s"
+
+    sql_create_sequence_with_owner = "CREATE SEQUENCE %s OWNED BY %s.%s"
+
+    sql_set_table_storage_setting = "ALTER TABLE %s SET (%s = %s)"
+    sql_reset_table_storage_setting = "ALTER TABLE %s RESET (%s)"
 
     sql_create_view = "CREATE VIEW %s AS (%s)"
     sql_replace_view = "CREATE OR REPLACE VIEW %s AS (%s)"
@@ -82,7 +97,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         )
         self.execute(sql % self.quote_name(name))
 
-    def create_model(self, model: Model) -> None:
+    def create_model(self, model: Type[Model]) -> None:
         """Creates a new model."""
 
         super().create_model(model)
@@ -90,7 +105,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         for side_effect in self.side_effects:
             side_effect.create_model(model)
 
-    def delete_model(self, model: Model) -> None:
+    def delete_model(self, model: Type[Model]) -> None:
         """Drops/deletes an existing model."""
 
         for side_effect in self.side_effects:
@@ -98,8 +113,302 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         super().delete_model(model)
 
+    def clone_model_structure_to_schema(
+        self, model: Type[Model], *, schema_name: str
+    ) -> None:
+        """Creates a clone of the columns for the specified model in a separate
+        schema.
+
+        The table will have exactly the same name as the model table
+        in the default schema. It will have none of the constraints,
+        foreign keys and indexes.
+
+        Use this to create a temporary clone of a model table to
+        replace the original model table later on. The lack of
+        indices and constraints allows for greater write speeds.
+
+        The original model table will be unaffected.
+
+        Arguments:
+            model:
+                Model to clone the table of into the
+                specified schema.
+
+            schema_name:
+                Name of the schema to create the cloned
+                table in.
+        """
+
+        table_name = model._meta.db_table
+        quoted_table_name = self.quote_name(model._meta.db_table)
+        quoted_schema_name = self.quote_name(schema_name)
+
+        quoted_table_fqn = f"{quoted_schema_name}.{quoted_table_name}"
+
+        self.execute(
+            self.sql_create_table
+            % {
+                "table": quoted_table_fqn,
+                "definition": f"LIKE {quoted_table_name} INCLUDING ALL EXCLUDING CONSTRAINTS EXCLUDING INDEXES",
+            }
+        )
+
+        # Copy sequences
+        #
+        # Django 4.0 and older do not use IDENTITY so Postgres does
+        # not copy the sequences into the new table. We do it manually.
+        if django.VERSION < (4, 1):
+            with self.connection.cursor() as cursor:
+                sequences = self.introspection.get_sequences(cursor, table_name)
+
+            for sequence in sequences:
+                if sequence["table"] != table_name:
+                    continue
+
+                quoted_sequence_name = self.quote_name(sequence["name"])
+                quoted_sequence_fqn = (
+                    f"{quoted_schema_name}.{quoted_sequence_name}"
+                )
+                quoted_column_name = self.quote_name(sequence["column"])
+
+                self.execute(
+                    self.sql_create_sequence_with_owner
+                    % (
+                        quoted_sequence_fqn,
+                        quoted_table_fqn,
+                        quoted_column_name,
+                    )
+                )
+
+                self.execute(
+                    self.sql_alter_column
+                    % {
+                        "table": quoted_table_fqn,
+                        "changes": self.sql_alter_column_default
+                        % {
+                            "column": quoted_column_name,
+                            "default": "nextval('%s')" % quoted_sequence_fqn,
+                        },
+                    }
+                )
+
+        # Copy storage settings
+        #
+        # Postgres only copies column-level storage options, not
+        # the table-level storage options.
+        with self.connection.cursor() as cursor:
+            storage_settings = self.introspection.get_storage_settings(
+                cursor, model._meta.db_table
+            )
+
+        for setting_name, setting_value in storage_settings.items():
+            self.set_table_storage_setting(
+                quoted_table_fqn, setting_name, setting_value
+            )
+
+    def clone_model_constraints_and_indexes_to_schema(
+        self, model: Type[Model], *, schema_name: str
+    ) -> None:
+        """Adds the constraints, foreign keys and indexes to a model table that
+        was cloned into a separate table without them by
+        `clone_model_structure_to_schema`.
+
+        Arguments:
+            model:
+                Model for which the cloned table was created.
+
+            schema_name:
+                Name of the schema in which the cloned table
+                resides.
+        """
+
+        with self.introspection.in_search_path(
+            [schema_name, self.connection.ops.default_schema_name()]
+        ):
+            for constraint in model._meta.constraints:
+                self.add_constraint(model, constraint)
+
+            for index in model._meta.indexes:
+                self.add_index(model, index)
+
+            if model._meta.unique_together:
+                self.alter_unique_together(
+                    model, tuple(), model._meta.unique_together
+                )
+
+            if model._meta.index_together:
+                self.alter_index_together(
+                    model, tuple(), model._meta.index_together
+                )
+
+            for field in model._meta.local_concrete_fields:
+                # Django creates primary keys later added to the model with
+                # a custom name. We want the name as it was created originally.
+                if field.primary_key:
+                    with self.introspection.in_search_path(
+                        [self.connection.ops.default_schema_name()]
+                    ):
+                        [primary_key_name] = self._constraint_names(
+                            model, primary_key=True
+                        )
+
+                    self.execute(
+                        self.sql_create_pk
+                        % {
+                            "table": self.quote_name(model._meta.db_table),
+                            "name": self.quote_name(primary_key_name),
+                            "columns": self.quote_name(
+                                field.db_column or field.attname
+                            ),
+                        }
+                    )
+                    continue
+
+                # Django creates foreign keys in a single statement which acquires
+                # a AccessExclusiveLock on the referenced table. We want to avoid
+                # that and created the FK as NOT VALID. We can run VALIDATE in
+                # a separate transaction later to validate the entries without
+                # acquiring a AccessExclusiveLock.
+                if field.remote_field:
+                    with self.introspection.in_search_path(
+                        [self.connection.ops.default_schema_name()]
+                    ):
+                        [fk_name] = self._constraint_names(
+                            model, [field.column], foreign_key=True
+                        )
+
+                    sql = Statement(
+                        self.sql_create_fk_not_valid,
+                        table=self.quote_name(model._meta.db_table),
+                        name=self.quote_name(fk_name),
+                        column=self.quote_name(field.column),
+                        to_table=self.quote_name(
+                            field.target_field.model._meta.db_table
+                        ),
+                        to_column=self.quote_name(field.target_field.column),
+                        deferrable=self.connection.ops.deferrable_sql(),
+                    )
+
+                    self.execute(sql)
+
+                # It's hard to alter a field's check because it is defined
+                # by the field class, not the field instance. Handle this
+                # manually.
+                field_check = field.db_parameters(self.connection).get("check")
+                if field_check:
+                    with self.introspection.in_search_path(
+                        [self.connection.ops.default_schema_name()]
+                    ):
+                        [field_check_name] = self._constraint_names(
+                            model,
+                            [field.column],
+                            check=True,
+                            exclude={
+                                constraint.name
+                                for constraint in model._meta.constraints
+                            },
+                        )
+
+                    self.execute(
+                        self._create_check_sql(
+                            model, field_check_name, field_check
+                        )
+                    )
+
+                # Clone the field and alter its state to math our current
+                # table definition. This will cause Django see the missing
+                # indices and create them.
+                if field.remote_field:
+                    # We add the foreign key constraint ourselves with NOT VALID,
+                    # hence, we specify `db_constraint=False` on both old/new.
+                    # Django won't touch the foreign key constraint.
+                    old_field = self._clone_model_field(
+                        field, db_index=False, unique=False, db_constraint=False
+                    )
+                    new_field = self._clone_model_field(
+                        field, db_constraint=False
+                    )
+                    self.alter_field(model, old_field, new_field)
+                else:
+                    old_field = self._clone_model_field(
+                        field, db_index=False, unique=False
+                    )
+                    new_field = self._clone_model_field(field)
+                    self.alter_field(model, old_field, new_field)
+
+    def clone_model_foreign_keys_to_schema(
+        self, model: Type[Model], schema_name: str
+    ) -> None:
+        """Validates the foreign keys in the cloned model table created by
+        `clone_model_structure_to_schema` and
+        `clone_model_constraints_and_indexes_to_schema`.
+
+        Do NOT run this in the same transaction as the
+        foreign keys were added to the table. It WILL
+        acquire a long-lived AccessExclusiveLock.
+
+        Arguments:
+            model:
+                Model for which the cloned table was created.
+
+            schema_name:
+                Name of the schema in which the cloned table
+                resides.
+        """
+
+        with self.introspection.in_search_path(
+            [schema_name, self.connection.ops.default_schema_name()]
+        ):
+            for fk_name in self._constraint_names(model, foreign_key=True):
+                self.execute(
+                    self.sql_validate_fk
+                    % (
+                        self.quote_name(model._meta.db_table),
+                        self.quote_name(fk_name),
+                    )
+                )
+
+    def set_table_storage_setting(
+        self, table_name: str, name: str, value: str
+    ) -> None:
+        """Sets a storage setting for a table.
+
+        See: https://www.postgresql.org/docs/current/sql-createtable.html#SQL-CREATETABLE-STORAGE-PARAMETERS
+
+        Arguments:
+            name:
+                Name of the setting to set.
+
+            value:
+                Value to set the setting to.
+
+                Note that this is always a string, even if it looks
+                like a number or a boolean. That's how Postgres
+                stores storage settings internally.
+        """
+
+        self.execute(
+            self.sql_set_table_storage_setting
+            % (self.quote_name(table_name), name, value)
+        )
+
+    def reset_table_storage_setting(self, table_name: str, name: str) -> None:
+        """Resets a table's storage setting to the database or server default.
+
+        See: https://www.postgresql.org/docs/current/sql-createtable.html#SQL-CREATETABLE-STORAGE-PARAMETERS
+
+        Arguments:
+            name:
+                Name of the setting to reset.
+        """
+
+        self.execute(
+            self.sql_reset_table_storage_setting
+            % (self.quote_name(table_name), name)
+        )
+
     def refresh_materialized_view_model(
-        self, model: Model, concurrently: bool = False
+        self, model: Type[Model], concurrently: bool = False
     ) -> None:
         """Refreshes a materialized view."""
 
@@ -112,12 +421,12 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         sql = sql_template % self.quote_name(model._meta.db_table)
         self.execute(sql)
 
-    def create_view_model(self, model: Model) -> None:
+    def create_view_model(self, model: Type[Model]) -> None:
         """Creates a new view model."""
 
         self._create_view_model(self.sql_create_view, model)
 
-    def replace_view_model(self, model: Model) -> None:
+    def replace_view_model(self, model: Type[Model]) -> None:
         """Replaces a view model with a newer version.
 
         This is used to alter the backing query of a view.
@@ -125,18 +434,18 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         self._create_view_model(self.sql_replace_view, model)
 
-    def delete_view_model(self, model: Model) -> None:
+    def delete_view_model(self, model: Type[Model]) -> None:
         """Deletes a view model."""
 
         sql = self.sql_drop_view % self.quote_name(model._meta.db_table)
         self.execute(sql)
 
-    def create_materialized_view_model(self, model: Model) -> None:
+    def create_materialized_view_model(self, model: Type[Model]) -> None:
         """Creates a new materialized view model."""
 
         self._create_view_model(self.sql_create_materialized_view, model)
 
-    def replace_materialized_view_model(self, model: Model) -> None:
+    def replace_materialized_view_model(self, model: Type[Model]) -> None:
         """Replaces a materialized view with a newer version.
 
         This is used to alter the backing query of a materialized view.
@@ -167,7 +476,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
                 self.execute(constraint_options["definition"])
 
-    def delete_materialized_view_model(self, model: Model) -> None:
+    def delete_materialized_view_model(self, model: Type[Model]) -> None:
         """Deletes a materialized view model."""
 
         sql = self.sql_drop_materialized_view % self.quote_name(
@@ -175,7 +484,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         )
         self.execute(sql)
 
-    def create_partitioned_model(self, model: Model) -> None:
+    def create_partitioned_model(self, model: Type[Model]) -> None:
         """Creates a new partitioned model."""
 
         meta = self._partitioning_properties_for_model(model)
@@ -207,14 +516,14 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         self.execute(sql, params)
 
-    def delete_partitioned_model(self, model: Model) -> None:
+    def delete_partitioned_model(self, model: Type[Model]) -> None:
         """Drops the specified partitioned model."""
 
         return self.delete_model(model)
 
     def add_range_partition(
         self,
-        model: Model,
+        model: Type[Model],
         name: str,
         from_values: Any,
         to_values: Any,
@@ -265,7 +574,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
     def add_list_partition(
         self,
-        model: Model,
+        model: Type[Model],
         name: str,
         values: List[Any],
         comment: Optional[str] = None,
@@ -308,7 +617,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
     def add_hash_partition(
         self,
-        model: Model,
+        model: Type[Model],
         name: str,
         modulus: int,
         remainder: int,
@@ -353,7 +662,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
                 self.set_comment_on_table(table_name, comment)
 
     def add_default_partition(
-        self, model: Model, name: str, comment: Optional[str] = None
+        self, model: Type[Model], name: str, comment: Optional[str] = None
     ) -> None:
         """Creates a new default partition for the specified partitioned model.
 
@@ -389,7 +698,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             if comment:
                 self.set_comment_on_table(table_name, comment)
 
-    def delete_partition(self, model: Model, name: str) -> None:
+    def delete_partition(self, model: Type[Model], name: str) -> None:
         """Deletes the partition with the specified name."""
 
         sql = self.sql_delete_partition % self.quote_name(
@@ -398,7 +707,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         self.execute(sql)
 
     def alter_db_table(
-        self, model: Model, old_db_table: str, new_db_table: str
+        self, model: Type[Model], old_db_table: str, new_db_table: str
     ) -> None:
         """Alters a table/model."""
 
@@ -407,7 +716,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         for side_effect in self.side_effects:
             side_effect.alter_db_table(model, old_db_table, new_db_table)
 
-    def add_field(self, model: Model, field: Field) -> None:
+    def add_field(self, model: Type[Model], field: Field) -> None:
         """Adds a new field to an exisiting model."""
 
         super().add_field(model, field)
@@ -415,7 +724,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         for side_effect in self.side_effects:
             side_effect.add_field(model, field)
 
-    def remove_field(self, model: Model, field: Field) -> None:
+    def remove_field(self, model: Type[Model], field: Field) -> None:
         """Removes a field from an existing model."""
 
         for side_effect in self.side_effects:
@@ -425,7 +734,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
     def alter_field(
         self,
-        model: Model,
+        model: Type[Model],
         old_field: Field,
         new_field: Field,
         strict: bool = False,
@@ -437,13 +746,79 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         for side_effect in self.side_effects:
             side_effect.alter_field(model, old_field, new_field, strict)
 
+    def vacuum(
+        self,
+        table_name: str,
+        columns: List[str] = [],
+        *,
+        full: bool = False,
+        freeze: bool = False,
+        verbose: bool = False,
+        analyze: bool = False,
+        disable_page_skipping: bool = False,
+        skip_locked: bool = False,
+        index_cleanup: bool = False,
+        truncate: bool = False,
+        parallel: Optional[int] = None,
+    ) -> None:
+        """Runs the VACUUM statement on the specified table with the specified
+        options.
+
+        Arguments:
+            table_name:
+                Name of the table to run VACUUM on.
+
+            columns:
+                Optionally, a list of columns to vacuum. If not
+                specified, all columns are vacuumed.
+        """
+
+        if self.connection.in_atomic_block:
+            raise SuspiciousOperation("Vacuum cannot be done in a transaction")
+
+        options = []
+        if full:
+            options.append("FULL")
+        if freeze:
+            options.append("FREEZE")
+        if verbose:
+            options.append("VERBOSE")
+        if analyze:
+            options.append("ANALYZE")
+        if disable_page_skipping:
+            options.append("DISABLE_PAGE_SKIPPING")
+        if skip_locked:
+            options.append("SKIP_LOCKED")
+        if index_cleanup:
+            options.append("INDEX_CLEANUP")
+        if truncate:
+            options.append("TRUNCATE")
+        if parallel is not None:
+            options.append(f"PARALLEL {parallel}")
+
+        sql = "VACUUM"
+
+        if options:
+            options_sql = ", ".join(options)
+            sql += f" ({options_sql})"
+
+        sql += f" {self.quote_name(table_name)}"
+
+        if columns:
+            columns_sql = ", ".join(
+                [self.quote_name(column) for column in columns]
+            )
+            sql += f" ({columns_sql})"
+
+        self.execute(sql)
+
     def set_comment_on_table(self, table_name: str, comment: str) -> None:
         """Sets the comment on the specified table."""
 
         sql = self.sql_table_comment % (self.quote_name(table_name), "%s")
         self.execute(sql, (comment,))
 
-    def _create_view_model(self, sql: str, model: Model) -> None:
+    def _create_view_model(self, sql: str, model: Type[Model]) -> None:
         """Creates a new view model using the specified SQL query."""
 
         meta = self._view_properties_for_model(model)
@@ -470,7 +845,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
             return tuple(execute.mock_calls[0])[1]
 
     @staticmethod
-    def _view_properties_for_model(model: Model):
+    def _view_properties_for_model(model: Type[Model]):
         """Gets the view options for the specified model.
 
         Raises:
@@ -502,7 +877,7 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
         return meta
 
     @staticmethod
-    def _partitioning_properties_for_model(model: Model):
+    def _partitioning_properties_for_model(model: Type[Model]):
         """Gets the partitioning options for the specified model.
 
         Raises:
@@ -565,5 +940,29 @@ class PostgresSchemaEditor(base_impl.schema_editor()):
 
         return meta
 
-    def create_partition_table_name(self, model: Model, name: str) -> str:
+    def create_partition_table_name(self, model: Type[Model], name: str) -> str:
         return "%s_%s" % (model._meta.db_table.lower(), name.lower())
+
+    def _clone_model_field(self, field: Field, **overrides) -> Field:
+        """Clones the specified model field and overrides its kwargs with the
+        specified overrides.
+
+        The cloned field will not be contributed to the model.
+        """
+
+        _, _, field_args, field_kwargs = field.deconstruct()
+
+        cloned_field_args = field_args[:]
+        cloned_field_kwargs = {**field_kwargs, **overrides}
+
+        cloned_field = field.__class__(
+            *cloned_field_args, **cloned_field_kwargs
+        )
+        cloned_field.model = field.model
+        cloned_field.set_attributes_from_name(field.name)
+
+        if cloned_field.remote_field:
+            cloned_field.remote_field.model = field.remote_field.model
+            cloned_field.set_attributes_from_rel()
+
+        return cloned_field
