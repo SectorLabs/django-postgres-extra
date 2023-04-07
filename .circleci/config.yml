@@ -195,14 +195,6 @@ workflows:
             branches:
               only: /.*/
       - publish:
-          requires:
-            - test-python36
-            - test-python37
-            - test-python38
-            - test-python39
-            - test-python310
-            - test-python311
-            - analysis
           filters:
             tags:
               only: /^v.*/
