@@ -1,8 +1,5 @@
-from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
-
-from django.db import transaction
 
 from psqlextra.types import PostgresPartitioningMethod
 
@@ -250,6 +247,7 @@ class PostgresIntrospection(base_impl.introspection()):
                 pg_catalog.pg_am am ON (c.relam = am.oid)
             WHERE
                 c.relname::text = %s
+                AND pg_catalog.pg_table_is_visible(c.oid)
         """
 
         cursor.execute(sql, (table_name,))
@@ -288,29 +286,3 @@ class PostgresIntrospection(base_impl.introspection()):
             [table_name],
         )
         return {row[0]: (row[2], row[1]) for row in cursor.fetchall()}
-
-    @contextmanager
-    def in_search_path(self, search_path: List[str]):
-        """Changes the Postgres `search_path` within the context and switches
-        it back when it exits."""
-
-        # Wrap in a transaction so a savepoint is created. If
-        # something goes wrong, the `SET LOCAL search_path`
-        # statement will be rolled back.
-        with transaction.atomic(using=self.connection.alias):
-            with self.connection.cursor() as cursor:
-                cursor.execute("SHOW search_path")
-                (original_search_path,) = cursor.fetchone()
-
-                # Syntax in Postgres is a bit weird here. It isn't really
-                # a list of names like in `WHERE bla in (val1, val2)`.
-                placeholder = ", ".join(["%s" for _ in search_path])
-                cursor.execute(
-                    f"SET LOCAL search_path = {placeholder}", search_path
-                )
-
-                yield self
-
-                cursor.execute(
-                    f"SET LOCAL search_path = {original_search_path}"
-                )

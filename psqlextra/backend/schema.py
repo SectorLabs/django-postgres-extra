@@ -12,6 +12,10 @@ from django.db import transaction
 from django.db.backends.ddl_references import Statement
 from django.db.models import Field, Model
 
+from psqlextra.settings import (
+    postgres_prepend_local_search_path,
+    postgres_reset_local_search_path,
+)
 from psqlextra.type_assertions import is_sql_with_params
 from psqlextra.types import PostgresPartitioningMethod
 
@@ -39,6 +43,8 @@ class PostgresSchemaEditor(SchemaEditor):
 
     sql_alter_table_storage_setting = "ALTER TABLE %s SET (%s = %s)"
     sql_reset_table_storage_setting = "ALTER TABLE %s RESET (%s)"
+
+    sql_alter_table_schema = "ALTER TABLE %s SET SCHEMA %s"
 
     sql_create_view = "CREATE VIEW %s AS (%s)"
     sql_replace_view = "CREATE OR REPLACE VIEW %s AS (%s)"
@@ -203,8 +209,8 @@ class PostgresSchemaEditor(SchemaEditor):
                 resides.
         """
 
-        with self.introspection.in_search_path(
-            [schema_name, self.connection.ops.default_schema_name()]
+        with postgres_prepend_local_search_path(
+            [schema_name], using=self.connection.alias
         ):
             for constraint in model._meta.constraints:
                 self.add_constraint(model, constraint)
@@ -226,8 +232,8 @@ class PostgresSchemaEditor(SchemaEditor):
                 # Django creates primary keys later added to the model with
                 # a custom name. We want the name as it was created originally.
                 if field.primary_key:
-                    with self.introspection.in_search_path(
-                        [self.connection.ops.default_schema_name()]
+                    with postgres_reset_local_search_path(
+                        using=self.connection.alias
                     ):
                         [primary_key_name] = self._constraint_names(
                             model, primary_key=True
@@ -251,8 +257,8 @@ class PostgresSchemaEditor(SchemaEditor):
                 # a separate transaction later to validate the entries without
                 # acquiring a AccessExclusiveLock.
                 if field.remote_field:
-                    with self.introspection.in_search_path(
-                        [self.connection.ops.default_schema_name()]
+                    with postgres_reset_local_search_path(
+                        using=self.connection.alias
                     ):
                         [fk_name] = self._constraint_names(
                             model, [field.column], foreign_key=True
@@ -277,8 +283,8 @@ class PostgresSchemaEditor(SchemaEditor):
                 # manually.
                 field_check = field.db_parameters(self.connection).get("check")
                 if field_check:
-                    with self.introspection.in_search_path(
-                        [self.connection.ops.default_schema_name()]
+                    with postgres_reset_local_search_path(
+                        using=self.connection.alias
                     ):
                         [field_check_name] = self._constraint_names(
                             model,
@@ -337,10 +343,12 @@ class PostgresSchemaEditor(SchemaEditor):
                 resides.
         """
 
-        with self.introspection.in_search_path(
-            [schema_name, self.connection.ops.default_schema_name()]
+        constraint_names = self._constraint_names(model, foreign_key=True)
+
+        with postgres_prepend_local_search_path(
+            [schema_name], using=self.connection.alias
         ):
-            for fk_name in self._constraint_names(model, foreign_key=True):
+            for fk_name in constraint_names:
                 self.execute(
                     self.sql_validate_fk
                     % (
@@ -437,6 +445,47 @@ class PostgresSchemaEditor(SchemaEditor):
         """
 
         self.reset_table_storage_setting(model._meta.db_table, name)
+
+    def alter_table_schema(self, table_name: str, schema_name: str) -> None:
+        """Moves the specified table into the specified schema.
+
+        WARNING: Moving models into a different schema than the default
+        will break querying the model.
+
+        Arguments:
+            table_name:
+                Name of the table to move into the specified schema.
+
+            schema_name:
+                Name of the schema to move the table to.
+        """
+
+        self.execute(
+            self.sql_alter_table_schema
+            % (self.quote_name(table_name), self.quote_name(schema_name))
+        )
+
+    def alter_model_schema(self, model: Type[Model], schema_name: str) -> None:
+        """Moves the specified model's table into the specified schema.
+
+        WARNING: Moving models into a different schema than the default
+        will break querying the model.
+
+        Arguments:
+            model:
+               Model of which to move the table.
+
+            schema_name:
+                Name of the schema to move the model's table to.
+        """
+
+        self.execute(
+            self.sql_alter_table_schema
+            % (
+                self.quote_name(model._meta.db_table),
+                self.quote_name(schema_name),
+            )
+        )
 
     def refresh_materialized_view_model(
         self, model: Type[Model], concurrently: bool = False

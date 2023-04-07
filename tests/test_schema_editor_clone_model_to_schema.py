@@ -23,12 +23,18 @@ def _create_schema() -> str:
 
     with connection.cursor() as cursor:
         cursor.execute(
+            "DROP SCHEMA IF EXISTS %s CASCADE"
+            % connection.ops.quote_name(name),
+            tuple(),
+        )
+        cursor.execute(
             "CREATE SCHEMA %s" % connection.ops.quote_name(name), tuple()
         )
 
     return name
 
 
+@transaction.atomic
 def _assert_cloned_table_is_same(
     source_table_fqn: Tuple[str, str],
     target_table_fqn: Tuple[str, str],
@@ -40,49 +46,49 @@ def _assert_cloned_table_is_same(
     source_columns = db_introspection.get_columns(
         source_table_name, schema_name=source_schema_name
     )
-    source_columns = db_introspection.get_columns(
+    target_columns = db_introspection.get_columns(
         target_table_name, schema_name=target_schema_name
     )
-    assert source_columns == source_columns
+    assert source_columns == target_columns
 
     source_relations = db_introspection.get_relations(
         source_table_name, schema_name=source_schema_name
     )
-    source_relations = db_introspection.get_relations(
+    target_relations = db_introspection.get_relations(
         target_table_name, schema_name=target_schema_name
     )
     if excluding_constraints_and_indexes:
-        assert source_relations == {}
+        assert target_relations == {}
     else:
-        assert source_relations == source_relations
+        assert source_relations == target_relations
 
     source_constraints = db_introspection.get_constraints(
         source_table_name, schema_name=source_schema_name
     )
-    source_constraints = db_introspection.get_constraints(
+    target_constraints = db_introspection.get_constraints(
         target_table_name, schema_name=target_schema_name
     )
     if excluding_constraints_and_indexes:
-        assert source_constraints == {}
+        assert target_constraints == {}
     else:
-        assert source_constraints == source_constraints
+        assert source_constraints == target_constraints
 
     source_sequences = db_introspection.get_sequences(
         source_table_name, schema_name=source_schema_name
     )
-    source_sequences = db_introspection.get_sequences(
+    target_sequences = db_introspection.get_sequences(
         target_table_name, schema_name=target_schema_name
     )
-    assert source_sequences == source_sequences
+    assert source_sequences == target_sequences
 
     source_storage_settings = db_introspection.get_storage_settings(
         source_table_name,
         schema_name=source_schema_name,
     )
-    source_storage_settings = db_introspection.get_storage_settings(
+    target_storage_settings = db_introspection.get_storage_settings(
         target_table_name, schema_name=target_schema_name
     )
-    assert source_storage_settings == source_storage_settings
+    assert source_storage_settings == target_storage_settings
 
 
 def _list_lock_modes_in_schema(schema_name: str) -> Set[str]:
@@ -108,16 +114,16 @@ def _list_lock_modes_in_schema(schema_name: str) -> Set[str]:
 def _clone_model_into_schema(model):
     schema_name = _create_schema()
 
-    schema_editor = PostgresSchemaEditor(connection)
-    schema_editor.clone_model_structure_to_schema(
-        model, schema_name=schema_name
-    )
-    schema_editor.clone_model_constraints_and_indexes_to_schema(
-        model, schema_name=schema_name
-    )
-    schema_editor.clone_model_foreign_keys_to_schema(
-        model, schema_name=schema_name
-    )
+    with PostgresSchemaEditor(connection) as schema_editor:
+        schema_editor.clone_model_structure_to_schema(
+            model, schema_name=schema_name
+        )
+        schema_editor.clone_model_constraints_and_indexes_to_schema(
+            model, schema_name=schema_name
+        )
+        schema_editor.clone_model_foreign_keys_to_schema(
+            model, schema_name=schema_name
+        )
 
     return schema_name
 
@@ -208,15 +214,17 @@ def test_schema_editor_clone_model_to_schema(
     AccessExclusiveLock on the source table works as expected."""
 
     schema_editor = PostgresSchemaEditor(connection)
-    schema_editor.alter_table_storage_setting(
-        fake_model._meta.db_table, "autovacuum_enabled", "false"
-    )
+
+    with schema_editor:
+        schema_editor.alter_table_storage_setting(
+            fake_model._meta.db_table, "autovacuum_enabled", "false"
+        )
 
     table_name = fake_model._meta.db_table
-    source_schema_name = connection.ops.default_schema_name()
+    source_schema_name = "public"
     target_schema_name = _create_schema()
 
-    with transaction.atomic(durable=True):
+    with schema_editor:
         schema_editor.clone_model_structure_to_schema(
             fake_model, schema_name=target_schema_name
         )
@@ -231,7 +239,7 @@ def test_schema_editor_clone_model_to_schema(
         excluding_constraints_and_indexes=True,
     )
 
-    with transaction.atomic(durable=True):
+    with schema_editor:
         schema_editor.clone_model_constraints_and_indexes_to_schema(
             fake_model, schema_name=target_schema_name
         )
@@ -246,7 +254,7 @@ def test_schema_editor_clone_model_to_schema(
         (target_schema_name, table_name),
     )
 
-    with transaction.atomic(durable=True):
+    with schema_editor:
         schema_editor.clone_model_foreign_keys_to_schema(
             fake_model, schema_name=target_schema_name
         )
@@ -267,13 +275,13 @@ def test_schema_editor_clone_model_to_schema(
     reason=django_32_skip_reason,
 )
 def test_schema_editor_clone_model_to_schema_custom_constraint_names(
-    fake_model,
+    fake_model, fake_model_fk_target_1
 ):
     """Tests that even if constraints were given custom names, the cloned table
     has those same custom names."""
 
     table_name = fake_model._meta.db_table
-    source_schema_name = connection.ops.default_schema_name()
+    source_schema_name = "public"
 
     constraints = db_introspection.get_constraints(table_name)
 
@@ -290,6 +298,7 @@ def test_schema_editor_clone_model_to_schema_custom_constraint_names(
             name
             for name, constraint in constraints.items()
             if constraint["foreign_key"]
+            == (fake_model_fk_target_1._meta.db_table, "id")
         ),
         None,
     )
@@ -297,7 +306,7 @@ def test_schema_editor_clone_model_to_schema_custom_constraint_names(
         (
             name
             for name, constraint in constraints.items()
-            if constraint["check"]
+            if constraint["check"] and constraint["columns"] == ["age"]
         ),
         None,
     )

@@ -9,15 +9,14 @@ from typing import Optional
 
 from django.db import connection
 
+from psqlextra.settings import postgres_set_local
+
 
 @contextmanager
 def introspect(schema_name: Optional[str] = None):
-    default_schema_name = connection.ops.default_schema_name()
-    search_path = [schema_name or default_schema_name]
-
-    with connection.introspection.in_search_path(search_path) as introspection:
+    with postgres_set_local(search_path=schema_name or None):
         with connection.cursor() as cursor:
-            yield introspection, cursor
+            yield connection.introspection, cursor
 
 
 def table_names(
