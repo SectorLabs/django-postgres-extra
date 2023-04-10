@@ -1,4 +1,3 @@
-import uuid
 
 import freezegun
 import pytest
@@ -136,7 +135,7 @@ def test_postgres_schema_delete_not_empty():
     schema = PostgresSchema.create("test")
     assert _does_schema_exist(schema.name)
 
-    with schema.connection.cursor() as cursor:
+    with connection.cursor() as cursor:
         cursor.execute("CREATE TABLE test.bla AS SELECT 'hello'")
 
     with pytest.raises(InternalError) as exc_info:
@@ -150,96 +149,14 @@ def test_postgres_schema_delete_cascade_not_empty():
     schema = PostgresSchema.create("test")
     assert _does_schema_exist(schema.name)
 
-    with schema.connection.cursor() as cursor:
+    with connection.cursor() as cursor:
         cursor.execute("CREATE TABLE test.bla AS SELECT 'hello'")
 
     schema.delete(cascade=True)
     assert not _does_schema_exist(schema.name)
 
 
-def test_postgres_schema_connection():
-    schema = PostgresSchema.create("test")
-
-    with schema.connection.cursor() as cursor:
-        # Creating a table without specifying the schema should create
-        # it in our schema and we should be able to select from it without
-        # specifying the schema.
-        cursor.execute("CREATE TABLE myschematable AS SELECT 'myschema'")
-        cursor.execute("SELECT * FROM myschematable")
-        assert cursor.fetchone() == ("myschema",)
-
-        # Proof that the table was created in our schema even though we
-        # never explicitly told it to do so.
-        cursor.execute(
-            "SELECT table_schema FROM information_schema.tables WHERE table_name = %s",
-            ("myschematable",),
-        )
-        assert cursor.fetchone() == (schema.name,)
-
-        # Creating a table in another schema, we should not be able
-        # to select it without specifying the schema since our
-        # schema scoped connection only looks at our schema by default.
-        cursor.execute(
-            "CREATE TABLE public.otherschematable AS SELECT 'otherschema'"
-        )
-        with pytest.raises(ProgrammingError) as exc_info:
-            cursor.execute("SELECT * FROM otherschematable")
-
-        cursor.execute("ROLLBACK")
-
-        pg_error = extract_postgres_error(exc_info.value)
-        assert pg_error.pgcode == errorcodes.UNDEFINED_TABLE
-
-
-def test_postgres_schema_connection_does_not_affect_default():
-    schema = PostgresSchema.create("test")
-
-    with schema.connection.cursor() as cursor:
-        cursor.execute("SHOW search_path")
-        assert cursor.fetchone() == ("test",)
-
-    with connection.cursor() as cursor:
-        cursor.execute("SHOW search_path")
-        assert cursor.fetchone() == ('"$user", public',)
-
-
-@pytest.mark.django_db(transaction=True)
-def test_postgres_schema_connection_does_not_affect_default_after_throw():
-    schema = PostgresSchema.create(str(uuid.uuid4()))
-
-    with pytest.raises(ProgrammingError):
-        with schema.connection.cursor() as cursor:
-            cursor.execute("COMMIT")
-            cursor.execute("SELECT frombadtable")
-
-    with connection.cursor() as cursor:
-        cursor.execute("ROLLBACK")
-        cursor.execute("SHOW search_path")
-        assert cursor.fetchone() == ('"$user", public',)
-
-
-def test_postgres_schema_connection_schema_editor():
-    schema = PostgresSchema.create("test")
-
-    with schema.connection.schema_editor() as schema_editor:
-        with schema_editor.connection.cursor() as cursor:
-            cursor.execute("SHOW search_path")
-            assert cursor.fetchone() == ("test",)
-
-    with connection.cursor() as cursor:
-        cursor.execute("SHOW search_path")
-        assert cursor.fetchone() == ('"$user", public',)
-
-
-def test_postgres_schema_connection_does_not_catch():
-    schema = PostgresSchema.create("test")
-
-    with pytest.raises(ValueError):
-        with schema.connection.cursor():
-            raise ValueError("test")
-
-
-def test_postgres_schema_connection_no_delete_default():
+def test_postgres_schema_no_delete_default():
     with pytest.raises(SuspiciousOperation):
         PostgresSchema.default.delete()
 
@@ -261,8 +178,10 @@ def test_postgres_temporary_schema():
 def test_postgres_temporary_schema_not_empty():
     with pytest.raises(InternalError) as exc_info:
         with postgres_temporary_schema("temp") as schema:
-            with schema.connection.cursor() as cursor:
-                cursor.execute("CREATE TABLE mytable AS SELECT 'hello world'")
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"CREATE TABLE {schema.name}.mytable AS SELECT 'hello world'"
+                )
 
     pg_error = extract_postgres_error(exc_info.value)
     assert pg_error.pgcode == errorcodes.DEPENDENT_OBJECTS_STILL_EXIST
@@ -270,8 +189,10 @@ def test_postgres_temporary_schema_not_empty():
 
 def test_postgres_temporary_schema_not_empty_cascade():
     with postgres_temporary_schema("temp", cascade=True) as schema:
-        with schema.connection.cursor() as cursor:
-            cursor.execute("CREATE TABLE mytable AS SELECT 'hello world'")
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"CREATE TABLE {schema.name}.mytable AS SELECT 'hello world'"
+            )
 
     assert not _does_schema_exist(schema.name)
 
