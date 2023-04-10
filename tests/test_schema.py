@@ -1,14 +1,8 @@
-
 import freezegun
 import pytest
 
 from django.core.exceptions import SuspiciousOperation, ValidationError
-from django.db import (
-    DEFAULT_DB_ALIAS,
-    InternalError,
-    ProgrammingError,
-    connection,
-)
+from django.db import InternalError, ProgrammingError, connection
 from psycopg2 import errorcodes
 
 from psqlextra.error import extract_postgres_error
@@ -23,7 +17,6 @@ def _does_schema_exist(name: str) -> bool:
 def test_postgres_schema_create():
     schema = PostgresSchema.create("myschema")
     assert schema.name == "myschema"
-    assert schema.using == DEFAULT_DB_ALIAS
 
     assert _does_schema_exist(schema.name)
 

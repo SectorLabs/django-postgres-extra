@@ -16,13 +16,11 @@ class PostgresSchema:
     NAME_MAX_LENGTH = 63
 
     name: str
-    using: str
 
     default: "PostgresSchema"
 
-    def __init__(self, name: str, *, using: str = DEFAULT_DB_ALIAS) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
-        self.using = using
 
     @classmethod
     def create(
@@ -51,7 +49,7 @@ class PostgresSchema:
         with connections[using].schema_editor() as schema_editor:
             schema_editor.create_schema(name)
 
-        return cls(name, using=using)
+        return cls(name)
 
     @classmethod
     def create_time_based(
@@ -116,7 +114,7 @@ class PostgresSchema:
         """
 
         with transaction.atomic(using=using):
-            cls(name, using=using).delete(cascade=cascade)
+            cls(name).delete(cascade=cascade, using=using)
             return cls.create(name, using=using)
 
     @classmethod
@@ -137,7 +135,9 @@ class PostgresSchema:
         with connection.cursor() as cursor:
             return name in connection.introspection.get_schema_list(cursor)
 
-    def delete(self, *, cascade: bool = False) -> None:
+    def delete(
+        self, *, cascade: bool = False, using: str = DEFAULT_DB_ALIAS
+    ) -> None:
         """Deletes the schema and optionally deletes the contents of the schema
         and anything that references it.
 
@@ -156,7 +156,7 @@ class PostgresSchema:
                 "Pretty sure you are about to make a mistake by trying to drop the 'public' schema. I have stopped you. Thank me later."
             )
 
-        with connections[self.using].schema_editor() as schema_editor:
+        with connections[using].schema_editor() as schema_editor:
             schema_editor.delete_schema(self.name, cascade=cascade)
 
     @classmethod
@@ -207,8 +207,8 @@ def postgres_temporary_schema(
         yield schema
     except Exception as e:
         if delete_on_throw:
-            schema.delete(cascade=cascade)
+            schema.delete(cascade=cascade, using=using)
 
         raise e
 
-    schema.delete(cascade=cascade)
+    schema.delete(cascade=cascade, using=using)
