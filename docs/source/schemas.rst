@@ -153,36 +153,3 @@ The ``public`` schema cannot be dropped. This is a Postgres built-in and it is a
 
    schema = PostgresSchema.drop("myprefix")
    schema = PostgresSchema.drop("myprefix", cascade=True)
-
-
-Executing queries within a schema
----------------------------------
-
-By default, a connection operates in the ``public`` schema. The schema offers a connection scoped to that schema that sets the Postgres ``search_path`` to only search within that schema.
-
-.. warning::
-
-   This can be abused to manage Django models in a custom schema. This is not a supported workflow and there might be unexpected issues from attempting to do so.
-
-.. warning::
-
-   Do not use this in the following scenarios:
-
-    1. You access the connection from multiple threads. Scoped connections are **NOT** thread safe.
-
-    2. The underlying database connection is passed through a connection pooler in transaction pooling mode.
-
-.. code-block:: python
-
-   from psqlextra.schema import PostgresSchema
-
-   schema = PostgresSchema.create("myschema")
-
-   with schema.connection.cursor() as cursor:
-       # table gets created within the `myschema` schema, without
-       # explicitly specifying the schema name
-       cursor.execute("CREATE TABLE mytable AS SELECT 'hello'")
-
-    with schema.connection.schema_editor() as schema_editor:
-        # creates a table for the model within the schema
-        schema_editor.create_model(MyModel)

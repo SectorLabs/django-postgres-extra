@@ -2,41 +2,9 @@ import os
 
 from contextlib import contextmanager
 
-import wrapt
-
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
-from django.db.backends.base.base import BaseDatabaseWrapper
-from django.db.backends.utils import CursorWrapper
 from django.utils import timezone
-
-
-class PostgresSchemaConnectionWrapper(wrapt.ObjectProxy):
-    """Wraps a Django database connection and ensures that each cursor operates
-    within the specified schema."""
-
-    def __init__(self, connection, schema) -> None:
-        super().__init__(connection)
-
-        self._self_schema = schema
-
-    @contextmanager
-    def schema_editor(self):
-        with self.__wrapped__.schema_editor() as schema_editor:
-            schema_editor.connection = self
-            yield schema_editor
-
-    @contextmanager
-    def cursor(self) -> CursorWrapper:
-        schema = self._self_schema
-
-        with self.__wrapped__.cursor() as cursor:
-            quoted_name = self.ops.quote_name(schema.name)
-            cursor.execute(f"SET search_path = {quoted_name}")
-            try:
-                yield cursor
-            finally:
-                cursor.execute("SET search_path TO DEFAULT")
 
 
 class PostgresSchema:
@@ -190,20 +158,6 @@ class PostgresSchema:
 
         with connections[self.using].schema_editor() as schema_editor:
             schema_editor.delete_schema(self.name, cascade=cascade)
-
-    @property
-    def connection(self) -> BaseDatabaseWrapper:
-        """Obtains a database connection scoped to this schema.
-
-        Do not use this in the following scenarios:
-
-            1. You access the connection from multiple threads. Scoped
-            connections are NOT thread safe.
-            2. The underlying database connection is passed through a
-            connection pooler in transaction pooling mode.
-        """
-
-        return PostgresSchemaConnectionWrapper(connections[self.using], self)
 
     @classmethod
     def _verify_generated_name_length(cls, prefix: str, suffix: str) -> None:
