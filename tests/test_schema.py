@@ -5,7 +5,7 @@ from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.db import InternalError, ProgrammingError, connection
 from psycopg2 import errorcodes
 
-from psqlextra.error import extract_postgres_error
+from psqlextra.error import extract_postgres_error_code
 from psqlextra.schema import PostgresSchema, postgres_temporary_schema
 
 
@@ -92,8 +92,8 @@ def test_postgres_schema_delete_and_create():
     with pytest.raises(InternalError) as exc_info:
         schema = PostgresSchema.delete_and_create(schema.name)
 
-    pg_error = extract_postgres_error(exc_info.value)
-    assert pg_error.pgcode == errorcodes.DEPENDENT_OBJECTS_STILL_EXIST
+    pg_error = extract_postgres_error_code(exc_info.value)
+    assert pg_error == errorcodes.DEPENDENT_OBJECTS_STILL_EXIST
 
     # Verify that the schema and table still exist
     assert _does_schema_exist(schema.name)
@@ -112,8 +112,8 @@ def test_postgres_schema_delete_and_create():
             cursor.execute("SELECT * FROM test.bla")
             assert cursor.fetchone() == ("hello",)
 
-    pg_error = extract_postgres_error(exc_info.value)
-    assert pg_error.pgcode == errorcodes.UNDEFINED_TABLE
+    pg_error = extract_postgres_error_code(exc_info.value)
+    assert pg_error == errorcodes.UNDEFINED_TABLE
 
 
 def test_postgres_schema_delete():
@@ -134,8 +134,8 @@ def test_postgres_schema_delete_not_empty():
     with pytest.raises(InternalError) as exc_info:
         schema.delete()
 
-    pg_error = extract_postgres_error(exc_info.value)
-    assert pg_error.pgcode == errorcodes.DEPENDENT_OBJECTS_STILL_EXIST
+    pg_error = extract_postgres_error_code(exc_info.value)
+    assert pg_error == errorcodes.DEPENDENT_OBJECTS_STILL_EXIST
 
 
 def test_postgres_schema_delete_cascade_not_empty():
@@ -176,8 +176,8 @@ def test_postgres_temporary_schema_not_empty():
                     f"CREATE TABLE {schema.name}.mytable AS SELECT 'hello world'"
                 )
 
-    pg_error = extract_postgres_error(exc_info.value)
-    assert pg_error.pgcode == errorcodes.DEPENDENT_OBJECTS_STILL_EXIST
+    pg_error = extract_postgres_error_code(exc_info.value)
+    assert pg_error == errorcodes.DEPENDENT_OBJECTS_STILL_EXIST
 
 
 def test_postgres_temporary_schema_not_empty_cascade():
