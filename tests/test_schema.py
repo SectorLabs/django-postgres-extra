@@ -57,9 +57,9 @@ def test_postgres_schema_create_time_based():
 def test_postgres_schema_create_time_based_long_prefix():
     with pytest.raises(ValidationError) as exc_info:
         with freezegun.freeze_time("2023-04-07 13:37:23.4"):
-            PostgresSchema.create_time_based("a" * 100)
+            PostgresSchema.create_time_based("a" * 49)
 
-    assert "is longer than 49 characters" in str(exc_info.value)
+    assert "is longer than 48 characters" in str(exc_info.value)
 
 
 def test_postgres_schema_create_random():
@@ -74,9 +74,9 @@ def test_postgres_schema_create_random():
 
 def test_postgres_schema_create_random_long_prefix():
     with pytest.raises(ValidationError) as exc_info:
-        PostgresSchema.create_random("a" * 100)
+        PostgresSchema.create_random("a" * 55)
 
-    assert "is longer than 55 characters" in str(exc_info.value)
+    assert "is longer than 54 characters" in str(exc_info.value)
 
 
 def test_postgres_schema_delete_and_create():
