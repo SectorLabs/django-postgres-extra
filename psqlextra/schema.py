@@ -71,9 +71,9 @@ class PostgresSchema:
         """
 
         suffix = timezone.now().strftime("%Y%m%d%H%m%S")
-        cls._verify_generated_name_length(prefix, suffix)
+        name = cls._create_generated_name(prefix, suffix)
 
-        return cls.create(f"{prefix}_{suffix}", using=using)
+        return cls.create(name, using=using)
 
     @classmethod
     def create_random(
@@ -91,9 +91,9 @@ class PostgresSchema:
         """
 
         suffix = os.urandom(4).hex()
-        cls._verify_generated_name_length(prefix, suffix)
+        name = cls._create_generated_name(prefix, suffix)
 
-        return cls.create(f"{prefix}_{suffix}", using=using)
+        return cls.create(name, using=using)
 
     @classmethod
     def delete_and_create(
@@ -160,13 +160,17 @@ class PostgresSchema:
             schema_editor.delete_schema(self.name, cascade=cascade)
 
     @classmethod
-    def _verify_generated_name_length(cls, prefix: str, suffix: str) -> None:
-        max_prefix_length = cls.NAME_MAX_LENGTH - len(suffix)
+    def _create_generated_name(cls, prefix: str, suffix: str) -> str:
+        separator = "_"
+        generated_name = f"{prefix}{separator}{suffix}"
+        max_prefix_length = cls.NAME_MAX_LENGTH - len(suffix) - len(separator)
 
-        if len(prefix) > max_prefix_length:
+        if len(generated_name) > cls.NAME_MAX_LENGTH:
             raise ValidationError(
-                f"Schema prefix '{prefix}' is longer than {max_prefix_length} characters. Together with the generated suffix of {len(suffix)} characters, the name would exceed Postgres's limit of {cls.NAME_MAX_LENGTH} characters."
+                f"Schema prefix '{prefix}' is longer than {max_prefix_length} characters. Together with the separator and generated suffix of {len(suffix)} characters, the name would exceed Postgres's limit of {cls.NAME_MAX_LENGTH} characters."
             )
+
+        return generated_name
 
 
 PostgresSchema.default = PostgresSchema("public")
