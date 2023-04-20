@@ -140,7 +140,7 @@ class HStoreRef(expressions.F):
     def resolve_expression(self, *args, **kwargs):
         """Resolves the expression into a :see:HStoreColumn expression."""
 
-        original_expression: expressions.Col = super().resolve_expression(
+        original_expression: expressions.Col = super().resolve_expression(  # type: ignore[annotation-unchecked]
             *args, **kwargs
         )
         expression = HStoreColumn(

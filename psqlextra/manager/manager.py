@@ -8,7 +8,7 @@ from django.db.models import Manager
 from psqlextra.query import PostgresQuerySet
 
 
-class PostgresManager(Manager.from_queryset(PostgresQuerySet)):
+class PostgresManager(Manager.from_queryset(PostgresQuerySet)):  # type: ignore[misc]
     """Adds support for PostgreSQL specifics."""
 
     use_in_migrations = True

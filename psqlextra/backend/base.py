@@ -1,5 +1,7 @@
 import logging
 
+from typing import TYPE_CHECKING
+
 from django.conf import settings
 from django.db import ProgrammingError
 
@@ -8,17 +10,31 @@ from .introspection import PostgresIntrospection
 from .operations import PostgresOperations
 from .schema import PostgresSchemaEditor
 
+from django.db.backends.postgresql.base import (  # isort:skip
+    DatabaseWrapper as PostgresDatabaseWrapper,
+)
+
+
 logger = logging.getLogger(__name__)
 
 
-class DatabaseWrapper(base_impl.backend()):
+if TYPE_CHECKING:
+
+    class Wrapper(PostgresDatabaseWrapper):
+        pass
+
+else:
+    Wrapper = base_impl.backend()
+
+
+class DatabaseWrapper(Wrapper):
     """Wraps the standard PostgreSQL database back-end.
 
     Overrides the schema editor with our custom schema editor and makes
     sure the `hstore` extension is enabled.
     """
 
-    SchemaEditorClass = PostgresSchemaEditor
+    SchemaEditorClass = PostgresSchemaEditor  # type: ignore[assignment]
     introspection_class = PostgresIntrospection
     ops_class = PostgresOperations
 

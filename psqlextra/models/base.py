@@ -1,4 +1,7 @@
+from typing import Any
+
 from django.db import models
+from django.db.models import Manager
 
 from psqlextra.manager import PostgresManager
 
@@ -10,4 +13,4 @@ class PostgresModel(models.Model):
         abstract = True
         base_manager_name = "objects"
 
-    objects = PostgresManager()
+    objects: "Manager[Any]" = PostgresManager()

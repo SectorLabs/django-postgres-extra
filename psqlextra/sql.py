@@ -1,11 +1,11 @@
 from collections import OrderedDict
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import django
 
 from django.core.exceptions import SuspiciousOperation
 from django.db import connections, models
-from django.db.models import sql
+from django.db.models import Expression, sql
 from django.db.models.constants import LOOKUP_SEP
 
 from .compiler import PostgresInsertOnConflictCompiler
@@ -16,6 +16,8 @@ from .types import ConflictAction
 
 
 class PostgresQuery(sql.Query):
+    select: Tuple[Expression, ...]
+
     def chain(self, klass=None):
         """Chains this query to another.
 
@@ -68,7 +70,7 @@ class PostgresQuery(sql.Query):
         self.annotations.clear()
         self.annotations.update(new_annotations)
 
-    def add_fields(self, field_names: List[str], *args, **kwargs) -> None:
+    def add_fields(self, field_names, *args, **kwargs) -> None:
         """Adds the given (model) fields to the select set.
 
         The field names are added in the order specified. This overrides
@@ -100,10 +102,11 @@ class PostgresQuery(sql.Query):
             if len(parts) > 1:
                 column_name, hstore_key = parts[:2]
                 is_hstore, field = self._is_hstore_field(column_name)
-                if is_hstore:
+                if self.model and is_hstore:
                     select.append(
                         HStoreColumn(
-                            self.model._meta.db_table or self.model.name,
+                            self.model._meta.db_table
+                            or self.model.__class__.__name__,
                             field,
                             hstore_key,
                         )
@@ -115,7 +118,7 @@ class PostgresQuery(sql.Query):
         super().add_fields(field_names_without_hstore, *args, **kwargs)
 
         if len(select) > 0:
-            self.set_select(self.select + tuple(select))
+            self.set_select(list(self.select + tuple(select)))
 
     def _is_hstore_field(
         self, field_name: str
@@ -127,8 +130,11 @@ class PostgresQuery(sql.Query):
         instance.
         """
 
+        if not self.model:
+            return (False, None)
+
         field_instance = None
-        for field in self.model._meta.local_concrete_fields:
+        for field in self.model._meta.local_concrete_fields:  # type: ignore[attr-defined]
             if field.name == field_name or field.column == field_name:
                 field_instance = field
                 break
@@ -151,7 +157,7 @@ class PostgresInsertQuery(sql.InsertQuery):
 
         self.update_fields = []
 
-    def values(self, objs: List, insert_fields: List, update_fields: List = []):
+    def values(self, objs, insert_fields, update_fields=[]):
         """Sets the values to be used in this query.
 
         Insert fields are fields that are definitely

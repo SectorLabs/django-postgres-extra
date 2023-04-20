@@ -1,10 +1,20 @@
 from collections import OrderedDict
 from itertools import chain
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Generic,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from django.core.exceptions import SuspiciousOperation
 from django.db import connections, models, router
-from django.db.models import Expression, Q
+from django.db.models import Expression, Q, QuerySet
 from django.db.models.fields import NOT_PROVIDED
 
 from .sql import PostgresInsertQuery, PostgresQuery
@@ -13,7 +23,17 @@ from .types import ConflictAction
 ConflictTarget = List[Union[str, Tuple[str]]]
 
 
-class PostgresQuerySet(models.QuerySet):
+TModel = TypeVar("TModel", bound=models.Model, covariant=True)
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
+    QuerySetBase = QuerySet[TModel]
+else:
+    QuerySetBase = QuerySet
+
+
+class PostgresQuerySet(QuerySetBase, Generic[TModel]):
     """Adds support for PostgreSQL specifics."""
 
     def __init__(self, model=None, query=None, using=None, hints=None):
@@ -28,7 +48,7 @@ class PostgresQuerySet(models.QuerySet):
         self.conflict_update_condition = None
         self.index_predicate = None
 
-    def annotate(self, **annotations):
+    def annotate(self, **annotations) -> "Self":  # type: ignore[valid-type, override]
         """Custom version of the standard annotate function that allows using
         field names as annotated fields.
 
@@ -112,7 +132,7 @@ class PostgresQuerySet(models.QuerySet):
 
     def bulk_insert(
         self,
-        rows: List[dict],
+        rows: Iterable[dict],
         return_model: bool = False,
         using: Optional[str] = None,
     ):
@@ -202,7 +222,10 @@ class PostgresQuerySet(models.QuerySet):
             compiler = self._build_insert_compiler([fields], using=using)
             rows = compiler.execute_sql(return_id=True)
 
-            _, pk_db_column = self.model._meta.pk.get_attname_column()
+            if not self.model or not self.model.pk:
+                return None
+
+            _, pk_db_column = self.model._meta.pk.get_attname_column()  # type: ignore[union-attr]
             if not rows or len(rows) == 0:
                 return None
 
@@ -245,7 +268,7 @@ class PostgresQuerySet(models.QuerySet):
         # preserve the fact that the attribute name
         # might be different than the database column name
         model_columns = {}
-        for field in self.model._meta.local_concrete_fields:
+        for field in self.model._meta.local_concrete_fields:  # type: ignore[attr-defined]
             model_columns[field.column] = field.attname
 
         # strip out any columns/fields returned by the db that
@@ -298,7 +321,9 @@ class PostgresQuerySet(models.QuerySet):
             index_predicate=index_predicate,
             update_condition=update_condition,
         )
-        return self.insert(**fields, using=using)
+
+        kwargs = {**fields, "using": using}
+        return self.insert(**kwargs)
 
     def upsert_and_get(
         self,
@@ -340,7 +365,9 @@ class PostgresQuerySet(models.QuerySet):
             index_predicate=index_predicate,
             update_condition=update_condition,
         )
-        return self.insert_and_get(**fields, using=using)
+
+        kwargs = {**fields, "using": using}
+        return self.insert_and_get(**kwargs)
 
     def bulk_upsert(
         self,
@@ -403,7 +430,7 @@ class PostgresQuerySet(models.QuerySet):
         if apply_converters:
             connection = connections[using]
 
-            for field in self.model._meta.local_concrete_fields:
+            for field in self.model._meta.local_concrete_fields:  # type: ignore[attr-defined]
                 if field.attname not in converted_field_values:
                     continue
 
@@ -447,7 +474,7 @@ class PostgresQuerySet(models.QuerySet):
 
         # ask the db router which connection to use
         using = (
-            using or self._db or router.db_for_write(self.model, **self._hints)
+            using or self._db or router.db_for_write(self.model, **self._hints)  # type: ignore[attr-defined]
         )
 
         # create model objects, we also have to detect cases

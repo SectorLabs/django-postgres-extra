@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Dict, List, Optional, Union
+from typing import Generator, List, Optional, Union
 
 from django.core.exceptions import SuspiciousOperation
 from django.db import DEFAULT_DB_ALIAS, connections
@@ -9,8 +9,8 @@ from django.db import DEFAULT_DB_ALIAS, connections
 def postgres_set_local(
     *,
     using: str = DEFAULT_DB_ALIAS,
-    **options: Dict[str, Optional[Union[str, int, float, List[str]]]],
-) -> None:
+    **options: Optional[Union[str, int, float, List[str]]],
+) -> Generator[None, None, None]:
     """Sets the specified PostgreSQL options using SET LOCAL so that they apply
     to the current transacton only.
 
@@ -29,7 +29,7 @@ def postgres_set_local(
         )
 
     sql = []
-    params = []
+    params: List[Union[str, int, float, List[str]]] = []
     for name, value in options.items():
         if value is None:
             sql.append(f"SET LOCAL {qn(name)} TO DEFAULT")
@@ -78,7 +78,7 @@ def postgres_set_local(
 @contextmanager
 def postgres_set_local_search_path(
     search_path: List[str], *, using: str = DEFAULT_DB_ALIAS
-) -> None:
+) -> Generator[None, None, None]:
     """Sets the search path to the specified schemas."""
 
     with postgres_set_local(search_path=search_path, using=using):
@@ -88,7 +88,7 @@ def postgres_set_local_search_path(
 @contextmanager
 def postgres_prepend_local_search_path(
     search_path: List[str], *, using: str = DEFAULT_DB_ALIAS
-) -> None:
+) -> Generator[None, None, None]:
     """Prepends the current local search path with the specified schemas."""
 
     connection = connections[using]
@@ -111,7 +111,9 @@ def postgres_prepend_local_search_path(
 
 
 @contextmanager
-def postgres_reset_local_search_path(*, using: str = DEFAULT_DB_ALIAS) -> None:
+def postgres_reset_local_search_path(
+    *, using: str = DEFAULT_DB_ALIAS
+) -> Generator[None, None, None]:
     """Resets the local search path to the default."""
 
     with postgres_set_local(search_path=None, using=using):

@@ -1,5 +1,9 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+
+from django.db.backends.postgresql.introspection import (  # type: ignore[import]
+    DatabaseIntrospection,
+)
 
 from psqlextra.types import PostgresPartitioningMethod
 
@@ -45,7 +49,16 @@ class PostgresIntrospectedPartitonedTable:
         )
 
 
-class PostgresIntrospection(base_impl.introspection()):
+if TYPE_CHECKING:
+
+    class Introspection(DatabaseIntrospection):
+        pass
+
+else:
+    Introspection = base_impl.introspection()
+
+
+class PostgresIntrospection(Introspection):
     """Adds introspection features specific to PostgreSQL."""
 
     # TODO: This class is a mess, both here and in the
@@ -66,7 +79,7 @@ class PostgresIntrospection(base_impl.introspection()):
 
     def get_partitioned_tables(
         self, cursor
-    ) -> PostgresIntrospectedPartitonedTable:
+    ) -> List[PostgresIntrospectedPartitonedTable]:
         """Gets a list of partitioned tables."""
 
         cursor.execute(

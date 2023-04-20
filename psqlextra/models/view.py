@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connections
@@ -11,6 +11,9 @@ from psqlextra.types import SQL, SQLWithParams
 
 from .base import PostgresModel
 from .options import PostgresViewOptions
+
+if TYPE_CHECKING:
+    from psqlextra.backend.schema import PostgresSchemaEditor
 
 ViewQueryValue = Union[QuerySet, SQLWithParams, SQL]
 ViewQuery = Optional[Union[ViewQueryValue, Callable[[], ViewQueryValue]]]
@@ -77,22 +80,25 @@ class PostgresViewModelMeta(ModelBase):
                     " to be a valid `django.db.models.query.QuerySet`"
                     " SQL string, or tuple of SQL string and params."
                 )
-                % (model.__name__)
+                % (model.__class__.__name__)
             )
 
         # querysets can easily be converted into sql, params
         if is_query_set(view_query):
-            return view_query.query.sql_with_params()
+            return cast("QuerySet[Any]", view_query).query.sql_with_params()
 
         # query was already specified in the target format
         if is_sql_with_params(view_query):
-            return view_query
+            return cast(SQLWithParams, view_query)
 
-        return view_query, tuple()
+        view_query_sql = cast(str, view_query)
+        return view_query_sql, tuple()
 
 
 class PostgresViewModel(PostgresModel, metaclass=PostgresViewModelMeta):
     """Base class for creating a model that is a view."""
+
+    _view_meta: PostgresViewOptions
 
     class Meta:
         abstract = True
@@ -127,4 +133,6 @@ class PostgresMaterializedViewModel(
         conn_name = using or "default"
 
         with connections[conn_name].schema_editor() as schema_editor:
-            schema_editor.refresh_materialized_view_model(cls, concurrently)
+            cast(
+                "PostgresSchemaEditor", schema_editor
+            ).refresh_materialized_view_model(cls, concurrently)

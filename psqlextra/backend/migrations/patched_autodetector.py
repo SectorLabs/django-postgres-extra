@@ -12,7 +12,7 @@ from django.db.migrations import (
     RenameField,
 )
 from django.db.migrations.autodetector import MigrationAutodetector
-from django.db.migrations.operations.base import Operation
+from django.db.migrations.operations.fields import FieldOperation
 
 from psqlextra.models import (
     PostgresMaterializedViewModel,
@@ -83,7 +83,7 @@ class AddOperationHandler:
 
         return self._transform_view_field_operations(operation)
 
-    def _transform_view_field_operations(self, operation: Operation):
+    def _transform_view_field_operations(self, operation: FieldOperation):
         """Transforms operations on fields on a (materialized) view into state
         only operations.
 
@@ -199,9 +199,15 @@ class AddOperationHandler:
                 )
             )
 
+        partitioned_kwargs = {
+            **kwargs,
+            "partitioning_options": partitioning_options,
+        }
+
         self.add(
             operations.PostgresCreatePartitionedModel(
-                *args, **kwargs, partitioning_options=partitioning_options
+                *args,
+                **partitioned_kwargs,
             )
         )
 
@@ -231,11 +237,9 @@ class AddOperationHandler:
 
         _, args, kwargs = operation.deconstruct()
 
-        self.add(
-            operations.PostgresCreateViewModel(
-                *args, **kwargs, view_options=view_options
-            )
-        )
+        view_kwargs = {**kwargs, "view_options": view_options}
+
+        self.add(operations.PostgresCreateViewModel(*args, **view_kwargs))
 
     def add_delete_view_model(self, operation: DeleteModel):
         """Adds a :see:PostgresDeleteViewModel operation to the list of
@@ -261,9 +265,12 @@ class AddOperationHandler:
 
         _, args, kwargs = operation.deconstruct()
 
+        view_kwargs = {**kwargs, "view_options": view_options}
+
         self.add(
             operations.PostgresCreateMaterializedViewModel(
-                *args, **kwargs, view_options=view_options
+                *args,
+                **view_kwargs,
             )
         )
 

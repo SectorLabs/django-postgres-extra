@@ -1,21 +1,30 @@
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Type, Union
 
 from django import db
 
-try:
-    from psycopg2 import Error as Psycopg2Error
-except ImportError:
-    Psycopg2Error = None
+if TYPE_CHECKING:
+    from psycopg2 import Error as _Psycopg2Error
+
+    Psycopg2Error: Optional[Type[_Psycopg2Error]]
+
+    from psycopg import Error as _Psycopg3Error
+
+    Psycopg3Error: Optional[Type[_Psycopg3Error]]
 
 try:
-    from psycopg import Error as Psycopg3Error
+    from psycopg2 import Error as Psycopg2Error  # type: ignore[no-redef]
 except ImportError:
-    Psycopg3Error = None
+    Psycopg2Error = None  # type: ignore[misc]
+
+try:
+    from psycopg import Error as Psycopg3Error  # type: ignore[no-redef]
+except ImportError:
+    Psycopg3Error = None  # type: ignore[misc]
 
 
 def extract_postgres_error(
     error: db.Error,
-) -> Optional[Union["Psycopg2Error", "Psycopg3Error"]]:
+) -> Optional[Union["_Psycopg2Error", "_Psycopg3Error"]]:
     """Extracts the underlying :see:psycopg2.Error from the specified Django
     database error.
 
