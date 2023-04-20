@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Optional
+from typing import Optional, Type
 
 from psqlextra.backend.schema import PostgresSchemaEditor
 from psqlextra.models import PostgresPartitionedModel
@@ -15,7 +15,7 @@ class PostgresPartition:
     @abstractmethod
     def create(
         self,
-        model: PostgresPartitionedModel,
+        model: Type[PostgresPartitionedModel],
         schema_editor: PostgresSchemaEditor,
         comment: Optional[str] = None,
     ) -> None:
@@ -24,7 +24,7 @@ class PostgresPartition:
     @abstractmethod
     def delete(
         self,
-        model: PostgresPartitionedModel,
+        model: Type[PostgresPartitionedModel],
         schema_editor: PostgresSchemaEditor,
     ) -> None:
         """Deletes this partition from the database."""

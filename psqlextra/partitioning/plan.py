@@ -1,11 +1,14 @@
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional, cast
 
 from django.db import connections, transaction
 
 from .config import PostgresPartitioningConfig
 from .constants import AUTO_PARTITIONED_COMMENT
 from .partition import PostgresPartition
+
+if TYPE_CHECKING:
+    from psqlextra.backend.schema import PostgresSchemaEditor
 
 
 @dataclass
@@ -38,12 +41,15 @@ class PostgresModelPartitioningPlan:
                 for partition in self.creations:
                     partition.create(
                         self.config.model,
-                        schema_editor,
+                        cast("PostgresSchemaEditor", schema_editor),
                         comment=AUTO_PARTITIONED_COMMENT,
                     )
 
                 for partition in self.deletions:
-                    partition.delete(self.config.model, schema_editor)
+                    partition.delete(
+                        self.config.model,
+                        cast("PostgresSchemaEditor", schema_editor),
+                    )
 
     def print(self) -> None:
         """Prints this model plan to the terminal in a readable format."""

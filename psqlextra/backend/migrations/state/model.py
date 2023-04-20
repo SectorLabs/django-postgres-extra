@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Type
+from typing import Tuple, Type, cast
 
 from django.db.migrations.state import ModelState
 from django.db.models import Model
@@ -17,8 +17,8 @@ class PostgresModelState(ModelState):
     """
 
     @classmethod
-    def from_model(
-        cls, model: PostgresModel, *args, **kwargs
+    def from_model(  # type: ignore[override]
+        cls, model: Type[PostgresModel], *args, **kwargs
     ) -> "PostgresModelState":
         """Creates a new :see:PostgresModelState object from the specified
         model.
@@ -29,28 +29,32 @@ class PostgresModelState(ModelState):
         We also need to patch up the base class for the model.
         """
 
-        model_state = super().from_model(model, *args, **kwargs)
-        model_state = cls._pre_new(model, model_state)
+        model_state = super().from_model(
+            cast(Type[Model], model), *args, **kwargs
+        )
+        model_state = cls._pre_new(
+            model, cast("PostgresModelState", model_state)
+        )
 
         # django does not add abstract bases as a base in migrations
         # because it assumes the base does not add anything important
         # in a migration.. but it does, so we replace the Model
         # base with the actual base
-        bases = tuple()
+        bases: Tuple[Type[Model], ...] = tuple()
         for base in model_state.bases:
             if issubclass(base, Model):
                 bases += (cls._get_base_model_class(),)
             else:
                 bases += (base,)
 
-        model_state.bases = bases
+        model_state.bases = cast(Tuple[Type[Model]], bases)
         return model_state
 
     def clone(self) -> "PostgresModelState":
         """Gets an exact copy of this :see:PostgresModelState."""
 
         model_state = super().clone()
-        return self._pre_clone(model_state)
+        return self._pre_clone(cast(PostgresModelState, model_state))
 
     def render(self, apps):
         """Renders this state into an actual model."""
@@ -95,7 +99,9 @@ class PostgresModelState(ModelState):
 
     @classmethod
     def _pre_new(
-        cls, model: PostgresModel, model_state: "PostgresModelState"
+        cls,
+        model: Type[PostgresModel],
+        model_state: "PostgresModelState",
     ) -> "PostgresModelState":
         """Called when a new model state is created from the specified
         model."""

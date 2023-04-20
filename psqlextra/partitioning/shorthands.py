@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Type
 
 from dateutil.relativedelta import relativedelta
 
@@ -10,7 +10,7 @@ from .time_partition_size import PostgresTimePartitionSize
 
 
 def partition_by_current_time(
-    model: PostgresPartitionedModel,
+    model: Type[PostgresPartitionedModel],
     count: int,
     years: Optional[int] = None,
     months: Optional[int] = None,

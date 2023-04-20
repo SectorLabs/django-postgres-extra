@@ -119,7 +119,7 @@ jobs:
     steps:
       - checkout
       - install-dependencies:
-          extra: analysis
+          extra: analysis, test
       - run:
           name: Verify
           command: python setup.py verify

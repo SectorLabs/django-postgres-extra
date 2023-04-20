@@ -1,10 +1,15 @@
 import os
 
 from contextlib import contextmanager
+from typing import TYPE_CHECKING, Generator, cast
 
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 from django.utils import timezone
+
+if TYPE_CHECKING:
+    from psqlextra.backend.introspection import PostgresIntrospection
+    from psqlextra.backend.schema import PostgresSchemaEditor
 
 
 class PostgresSchema:
@@ -47,7 +52,7 @@ class PostgresSchema:
             )
 
         with connections[using].schema_editor() as schema_editor:
-            schema_editor.create_schema(name)
+            cast("PostgresSchemaEditor", schema_editor).create_schema(name)
 
         return cls(name)
 
@@ -133,7 +138,9 @@ class PostgresSchema:
         connection = connections[using]
 
         with connection.cursor() as cursor:
-            return name in connection.introspection.get_schema_list(cursor)
+            return name in cast(
+                "PostgresIntrospection", connection.introspection
+            ).get_schema_list(cursor)
 
     def delete(
         self, *, cascade: bool = False, using: str = DEFAULT_DB_ALIAS
@@ -157,7 +164,9 @@ class PostgresSchema:
             )
 
         with connections[using].schema_editor() as schema_editor:
-            schema_editor.delete_schema(self.name, cascade=cascade)
+            cast("PostgresSchemaEditor", schema_editor).delete_schema(
+                self.name, cascade=cascade
+            )
 
     @classmethod
     def _create_generated_name(cls, prefix: str, suffix: str) -> str:
@@ -183,7 +192,7 @@ def postgres_temporary_schema(
     cascade: bool = False,
     delete_on_throw: bool = False,
     using: str = DEFAULT_DB_ALIAS,
-) -> PostgresSchema:
+) -> Generator[PostgresSchema, None, None]:
     """Creates a temporary schema that only lives in the context of this
     context manager.
 

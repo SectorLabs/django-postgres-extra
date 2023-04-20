@@ -3,6 +3,14 @@ import importlib
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import DEFAULT_DB_ALIAS, connections
+from django.db.backends.postgresql.base import DatabaseWrapper
+from django.db.backends.postgresql.introspection import (  # type: ignore[import]
+    DatabaseIntrospection,
+)
+from django.db.backends.postgresql.operations import DatabaseOperations
+from django.db.backends.postgresql.schema import (  # type: ignore[import]
+    DatabaseSchemaEditor,
+)
 
 from django.db.backends.postgresql.base import (  # isort:skip
     DatabaseWrapper as Psycopg2DatabaseWrapper,
@@ -68,13 +76,13 @@ def base_backend_instance():
     return base_instance
 
 
-def backend():
+def backend() -> DatabaseWrapper:
     """Gets the base class for the database back-end."""
 
     return base_backend_instance().__class__
 
 
-def schema_editor():
+def schema_editor() -> DatabaseSchemaEditor:
     """Gets the base class for the schema editor.
 
     We have to use the configured base back-end's schema editor for
@@ -84,7 +92,7 @@ def schema_editor():
     return base_backend_instance().SchemaEditorClass
 
 
-def introspection():
+def introspection() -> DatabaseIntrospection:
     """Gets the base class for the introspection class.
 
     We have to use the configured base back-end's introspection class
@@ -94,7 +102,7 @@ def introspection():
     return base_backend_instance().introspection.__class__
 
 
-def operations():
+def operations() -> DatabaseOperations:
     """Gets the base class for the operations class.
 
     We have to use the configured base back-end's operations class for

@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Type
+from typing import TYPE_CHECKING, Any, List, Optional, Type, cast
 from unittest import mock
 
 import django
@@ -10,6 +10,9 @@ from django.core.exceptions import (
 )
 from django.db import transaction
 from django.db.backends.ddl_references import Statement
+from django.db.backends.postgresql.schema import (  # type: ignore[import]
+    DatabaseSchemaEditor,
+)
 from django.db.models import Field, Model
 
 from psqlextra.settings import (
@@ -26,7 +29,13 @@ from .side_effects import (
     HStoreUniqueSchemaEditorSideEffect,
 )
 
-SchemaEditor = base_impl.schema_editor()
+if TYPE_CHECKING:
+
+    class SchemaEditor(DatabaseSchemaEditor):
+        pass
+
+else:
+    SchemaEditor = base_impl.schema_editor()
 
 
 class PostgresSchemaEditor(SchemaEditor):
@@ -72,9 +81,9 @@ class PostgresSchemaEditor(SchemaEditor):
     sql_delete_partition = "DROP TABLE %s"
     sql_table_comment = "COMMENT ON TABLE %s IS %s"
 
-    side_effects = [
-        HStoreUniqueSchemaEditorSideEffect(),
-        HStoreRequiredSchemaEditorSideEffect(),
+    side_effects: List[DatabaseSchemaEditor] = [
+        cast(DatabaseSchemaEditor, HStoreUniqueSchemaEditorSideEffect()),
+        cast(DatabaseSchemaEditor, HStoreRequiredSchemaEditorSideEffect()),
     ]
 
     def __init__(self, connection, collect_sql=False, atomic=True):
@@ -231,7 +240,7 @@ class PostgresSchemaEditor(SchemaEditor):
             [schema_name], using=self.connection.alias
         ):
             for constraint in model._meta.constraints:
-                self.add_constraint(model, constraint)
+                self.add_constraint(model, constraint)  # type: ignore[attr-defined]
 
             for index in model._meta.indexes:
                 self.add_index(model, index)
@@ -246,14 +255,14 @@ class PostgresSchemaEditor(SchemaEditor):
                     model, tuple(), model._meta.index_together
                 )
 
-            for field in model._meta.local_concrete_fields:
+            for field in model._meta.local_concrete_fields:  # type: ignore[attr-defined]
                 # Django creates primary keys later added to the model with
                 # a custom name. We want the name as it was created originally.
                 if field.primary_key:
                     with postgres_reset_local_search_path(
                         using=self.connection.alias
                     ):
-                        [primary_key_name] = self._constraint_names(
+                        [primary_key_name] = self._constraint_names(  # type: ignore[attr-defined]
                             model, primary_key=True
                         )
 
@@ -278,7 +287,7 @@ class PostgresSchemaEditor(SchemaEditor):
                     with postgres_reset_local_search_path(
                         using=self.connection.alias
                     ):
-                        [fk_name] = self._constraint_names(
+                        [fk_name] = self._constraint_names(  # type: ignore[attr-defined]
                             model, [field.column], foreign_key=True
                         )
 
@@ -304,7 +313,7 @@ class PostgresSchemaEditor(SchemaEditor):
                     with postgres_reset_local_search_path(
                         using=self.connection.alias
                     ):
-                        [field_check_name] = self._constraint_names(
+                        [field_check_name] = self._constraint_names(  # type: ignore[attr-defined]
                             model,
                             [field.column],
                             check=True,
@@ -315,7 +324,7 @@ class PostgresSchemaEditor(SchemaEditor):
                         )
 
                     self.execute(
-                        self._create_check_sql(
+                        self._create_check_sql(  # type: ignore[attr-defined]
                             model, field_check_name, field_check
                         )
                     )
@@ -361,7 +370,7 @@ class PostgresSchemaEditor(SchemaEditor):
                 resides.
         """
 
-        constraint_names = self._constraint_names(model, foreign_key=True)
+        constraint_names = self._constraint_names(model, foreign_key=True)  # type: ignore[attr-defined]
 
         with postgres_prepend_local_search_path(
             [schema_name], using=self.connection.alias
@@ -569,7 +578,7 @@ class PostgresSchemaEditor(SchemaEditor):
                 if not constraint_options["definition"]:
                     raise SuspiciousOperation(
                         "Table %s has a constraint '%s' that no definition could be generated for",
-                        (model._meta.db_tabel, constraint_name),
+                        (model._meta.db_table, constraint_name),
                     )
 
                 self.execute(constraint_options["definition"])
@@ -597,7 +606,7 @@ class PostgresSchemaEditor(SchemaEditor):
 
         # create a composite key that includes the partitioning key
         sql = sql.replace(" PRIMARY KEY", "")
-        if model._meta.pk.name not in meta.key:
+        if model._meta.pk and model._meta.pk.name not in meta.key:
             sql = sql[:-1] + ", PRIMARY KEY (%s, %s))" % (
                 self.quote_name(model._meta.pk.name),
                 partitioning_key_sql,
@@ -927,7 +936,9 @@ class PostgresSchemaEditor(SchemaEditor):
         """
 
         columns = [
-            field.column for field in fields if field.concrete and field.column
+            field.column
+            for field in fields
+            if getattr(field, "concrete", False) and field.column
         ]
         self.vacuum_table(model._meta.db_table, columns, **kwargs)
 
@@ -1080,8 +1091,8 @@ class PostgresSchemaEditor(SchemaEditor):
         cloned_field.model = field.model
         cloned_field.set_attributes_from_name(field.name)
 
-        if cloned_field.remote_field:
+        if cloned_field.remote_field and field.remote_field:
             cloned_field.remote_field.model = field.remote_field.model
-            cloned_field.set_attributes_from_rel()
+            cloned_field.set_attributes_from_rel()  # type: ignore[attr-defined]
 
         return cloned_field

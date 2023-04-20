@@ -57,7 +57,7 @@ class Command(BaseCommand):
             default=False,
         )
 
-    def handle(
+    def handle(  # type: ignore[override]
         self,
         dry: bool,
         yes: bool,

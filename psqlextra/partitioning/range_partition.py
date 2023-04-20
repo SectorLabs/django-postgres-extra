@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Type
 
 from psqlextra.backend.schema import PostgresSchemaEditor
 from psqlextra.models import PostgresPartitionedModel
@@ -23,7 +23,7 @@ class PostgresRangePartition(PostgresPartition):
 
     def create(
         self,
-        model: PostgresPartitionedModel,
+        model: Type[PostgresPartitionedModel],
         schema_editor: PostgresSchemaEditor,
         comment: Optional[str] = None,
     ) -> None:
@@ -37,7 +37,7 @@ class PostgresRangePartition(PostgresPartition):
 
     def delete(
         self,
-        model: PostgresPartitionedModel,
+        model: Type[PostgresPartitionedModel],
         schema_editor: PostgresSchemaEditor,
     ) -> None:
         schema_editor.delete_partition(model, self.name())
