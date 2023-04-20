@@ -40,6 +40,7 @@ setup(
     name="django-postgres-extra",
     version=__version__,
     packages=find_packages(exclude=["tests"]),
+    package_data={"psqlextra": ["py.typed"]},
     include_package_data=True,
     license="MIT License",
     description="Bringing all of PostgreSQL's awesomeness to Django.",
