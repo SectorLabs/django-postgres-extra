@@ -20,7 +20,11 @@ from django.db.models.fields import NOT_PROVIDED
 from .sql import PostgresInsertQuery, PostgresQuery
 from .types import ConflictAction
 
-ConflictTarget = List[Union[str, Tuple[str]]]
+if TYPE_CHECKING:
+    from django.db.models.constraints import BaseConstraint
+    from django.db.models.indexes import Index
+
+ConflictTarget = Union[List[Union[str, Tuple[str]]], "BaseConstraint", "Index"]
 
 
 TModel = TypeVar("TModel", bound=models.Model, covariant=True)

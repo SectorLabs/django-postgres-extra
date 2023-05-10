@@ -87,6 +87,41 @@ Specifying multiple columns is necessary in case of a constraint that spans mult
    )
 
 
+Specific constraint
+*******************
+
+Alternatively, instead of specifying the columns the constraint you're targetting applies to, you can also specify the exact constraint to use:
+
+.. code-block:: python
+
+   from django.db import models
+   from psqlextra.models import PostgresModel
+
+   class MyModel(PostgresModel)
+       class Meta:
+           constraints = [
+               models.UniqueConstraint(
+                   name="myconstraint",
+                   fields=["first_name", "last_name"]
+               ),
+           ]
+
+       first_name = models.CharField(max_length=255)
+       last_name = models.CharField(max_length=255)
+
+   constraint = next(
+       constraint
+       for constraint in MyModel._meta.constraints
+       if constraint.name == "myconstraint"
+    ), None)
+
+   obj = (
+       MyModel.objects
+       .on_conflict(constraint, ConflictAction.UPDATE)
+       .insert_and_get(first_name='Henk', last_name='Jansen')
+   )
+
+
 HStore keys
 ***********
 Catching conflicts in columns with a ``UNIQUE`` constraint on a :class:`~psqlextra.fields.HStoreField` key is also supported:
