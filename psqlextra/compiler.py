@@ -243,11 +243,11 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
         # build the conflict target, the columns to watch
         # for conflicts
-        conflict_target = self._build_conflict_target()
+        on_conflict_clause = self._build_on_conflict_clause()
         index_predicate = self.query.index_predicate  # type: ignore[attr-defined]
         update_condition = self.query.conflict_update_condition  # type: ignore[attr-defined]
 
-        rewritten_sql = f"{sql} ON CONFLICT {conflict_target}"
+        rewritten_sql = f"{sql} {on_conflict_clause}"
 
         if index_predicate:
             expr_sql, expr_params = self._compile_expression(index_predicate)
@@ -269,6 +269,21 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
         rewritten_sql += f" RETURNING {returning}"
 
         return (rewritten_sql, params)
+
+    def _build_on_conflict_clause(self):
+        if django.VERSION >= (2, 2):
+            from django.db.models.constraints import BaseConstraint
+            from django.db.models.indexes import Index
+
+            if isinstance(
+                self.query.conflict_target, BaseConstraint
+            ) or isinstance(self.query.conflict_target, Index):
+                return "ON CONFLICT ON CONSTRAINT %s" % self.qn(
+                    self.query.conflict_target.name
+                )
+
+        conflict_target = self._build_conflict_target()
+        return f"ON CONFLICT {conflict_target}"
 
     def _build_conflict_target(self):
         """Builds the `conflict_target` for the ON CONFLICT clause."""
