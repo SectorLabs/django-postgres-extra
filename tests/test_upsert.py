@@ -8,6 +8,7 @@ from django.db.models.expressions import CombinedExpression, Value
 from psqlextra.expressions import ExcludedCol
 from psqlextra.fields import HStoreField
 from psqlextra.query import ConflictAction
+from psqlextra.types import UpsertOperation
 
 from .fake_model import get_fake_model
 
@@ -257,6 +258,43 @@ def test_upsert_bulk_no_rows():
     model.objects.on_conflict(ConflictAction.UPDATE, ["name"]).bulk_insert(
         rows=None
     )
+
+
+def test_upsert_bulk_returns_operation_type():
+    """Tests whether bulk_upsert works properly with the return_operation_type flag."""
+
+    model = get_fake_model(
+        {
+            "first_name": models.CharField(
+                max_length=255, null=True, unique=True
+            ),
+            "last_name": models.CharField(max_length=255, null=True),
+        }
+    )
+
+    rows = model.objects.bulk_upsert(
+        conflict_target=["first_name"],
+        rows=[
+            dict(first_name="Swen", last_name="Kooij"),
+            dict(first_name="Henk", last_name="Test"),
+        ],
+        return_operation_type=True,
+    )
+
+    for row in rows:
+        assert row["_operation_type"] == UpsertOperation.INSERT.value
+
+    rows = model.objects.bulk_upsert(
+        conflict_target=["first_name"],
+        rows=[
+            dict(first_name="Swen", last_name="Test"),
+            dict(first_name="Henk", last_name="Kooij"),
+        ],
+        return_operation_type=True,
+    )
+
+    for row in rows:
+        assert row["_operation_type"] == UpsertOperation.UPDATE.value
 
 
 def test_bulk_upsert_return_models():

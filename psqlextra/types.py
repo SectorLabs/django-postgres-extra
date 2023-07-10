@@ -29,6 +29,17 @@ class ConflictAction(Enum):
         return [choice for choice in cls]
 
 
+class UpsertOperation(StrEnum):
+    """Possible operations to take on an upsert."""
+
+    INSERT = "INSERT"
+    UPDATE = "UPDATE"
+
+    @classmethod
+    def all(cls) -> List["UpsertOperation"]:
+        return [choice for choice in cls]
+
+
 class PostgresPartitioningMethod(StrEnum):
     """Methods of partitioning supported by PostgreSQL 11.x native support for
     table partitioning."""

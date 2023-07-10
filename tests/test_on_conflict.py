@@ -9,6 +9,7 @@ from django.utils import timezone
 from psqlextra.fields import HStoreField
 from psqlextra.models import PostgresModel
 from psqlextra.query import ConflictAction
+from psqlextra.types import UpsertOperation
 
 from .fake_model import get_fake_model
 
@@ -395,6 +396,37 @@ def test_bulk_return():
 
     for index, obj in enumerate(objs, 1):
         assert obj["id"] == index
+
+
+def test_bulk_return_with_operation_type():
+    """Tests if the _operation_type is properly returned from 'bulk_insert'."""
+
+    model = get_fake_model(
+        {
+            "id": models.BigAutoField(primary_key=True),
+            "name": models.CharField(max_length=255, unique=True),
+        }
+    )
+
+    rows = [dict(name="John Smith"), dict(name="Jane Doe")]
+
+    objs = model.objects.on_conflict(
+        ["name"], ConflictAction.UPDATE
+    ).bulk_insert(rows, return_operation_type=True)
+
+    for index, obj in enumerate(objs, 1):
+        assert obj["id"] == index
+        assert obj["_operation_type"] == UpsertOperation.INSERT.value
+
+    # Add objects again, update should return the same ids
+    # as we're just updating.
+    objs = model.objects.on_conflict(
+        ["name"], ConflictAction.UPDATE
+    ).bulk_insert(rows, return_operation_type=True)
+
+    for index, obj in enumerate(objs, 1):
+        assert obj["id"] == index
+        assert obj["_operation_type"] == UpsertOperation.UPDATE.value
 
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())

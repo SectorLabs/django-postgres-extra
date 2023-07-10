@@ -3,22 +3,22 @@ import os
 import sys
 
 from collections.abc import Iterable
-from typing import Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import django
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
-from django.db.models import Expression, Model, Q
+from django.db.models import Expression, Field, Model, Q
 from django.db.models.fields.related import RelatedField
 from django.db.models.sql import compiler as django_compiler
 from django.db.utils import ProgrammingError
 
 from .expressions import HStoreValue
-from .types import ConflictAction
+from .types import ConflictAction, UpsertOperation
 
 
-def append_caller_to_sql(sql):
+def append_caller_to_sql(sql) -> str:
     """Append the caller to SQL queries.
 
     Adds the calling file and function as an SQL comment to each query.
@@ -162,26 +162,43 @@ class SQLInsertCompiler(django_compiler.SQLInsertCompiler):  # type: ignore [nam
 class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # type: ignore [name-defined]
     """Compiler for SQL INSERT statements."""
 
+    RETURNING_OPERATION_TYPE_CLAUSE = (
+        f"CASE WHEN xmax::text::int > 0 "
+        f"THEN '{UpsertOperation.UPDATE.value}' "
+        f"ELSE '{UpsertOperation.INSERT.value}' END"
+    )
+    RETURNING_OPERATION_TYPE_FIELD = "_operation_type"
+
     def __init__(self, *args, **kwargs):
         """Initializes a new instance of
         :see:PostgresInsertOnConflictCompiler."""
         super().__init__(*args, **kwargs)
         self.qn = self.connection.ops.quote_name
 
-    def as_sql(self, return_id=False, *args, **kwargs):
+    def as_sql(
+        self,
+        return_id: bool = False,
+        return_operation_type: bool = False,
+        *args,
+        **kwargs,
+    ):
         """Builds the SQL INSERT statement."""
         queries = [
-            self._rewrite_insert(sql, params, return_id)
+            self._rewrite_insert(sql, params, return_id, return_operation_type)
             for sql, params in super().as_sql(*args, **kwargs)
         ]
 
         return queries
 
-    def execute_sql(self, return_id=False):
+    def execute_sql(
+        self,
+        return_id: bool = False,
+        return_operation_type: bool = False,
+    ) -> List[dict]:
         # execute all the generate queries
         with self.connection.cursor() as cursor:
             rows = []
-            for sql, params in self.as_sql(return_id):
+            for sql, params in self.as_sql(return_id, return_operation_type):
                 cursor.execute(sql, params)
                 try:
                     rows.extend(cursor.fetchall())
@@ -199,7 +216,13 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
             for row in rows
         ]
 
-    def _rewrite_insert(self, sql, params, return_id=False):
+    def _rewrite_insert(
+        self,
+        sql: str,
+        params: list,
+        return_id: bool = False,
+        return_operation_type: bool = False,
+    ) -> Tuple[str, list]:
         """Rewrites a formed SQL INSERT query to include the ON CONFLICT
         clause.
 
@@ -221,16 +244,27 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
         returning = (
             self.qn(self.query.model._meta.pk.attname) if return_id else "*"
         )
+        # Return metadata about the row, so we can tell if it was inserted or
+        # updated by checking the `xmax` Postgres system column.
+        if return_operation_type:
+            returning += f", ({self.RETURNING_OPERATION_TYPE_CLAUSE}) AS {self.RETURNING_OPERATION_TYPE_FIELD}"
 
         (sql, params) = self._rewrite_insert_on_conflict(
-            sql, params, self.query.conflict_action.value, returning
+            sql,
+            params,
+            self.query.conflict_action.value,
+            returning,
         )
 
         return append_caller_to_sql(sql), params
 
     def _rewrite_insert_on_conflict(
-        self, sql, params, conflict_action: ConflictAction, returning
-    ):
+        self,
+        sql: str,
+        params: list,
+        conflict_action: ConflictAction,
+        returning: str,
+    ) -> Tuple[str, list]:
         """Rewrites a normal SQL INSERT query to add the 'ON CONFLICT'
         clause."""
 
@@ -256,7 +290,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
         rewritten_sql += f" DO {conflict_action}"
 
-        if conflict_action == "UPDATE":
+        if conflict_action == ConflictAction.UPDATE.value:
             rewritten_sql += f" SET {update_columns}"
 
             if update_condition:
@@ -270,7 +304,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
         return (rewritten_sql, params)
 
-    def _build_on_conflict_clause(self):
+    def _build_on_conflict_clause(self) -> str:
         if django.VERSION >= (2, 2):
             from django.db.models.constraints import BaseConstraint
             from django.db.models.indexes import Index
@@ -285,7 +319,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
         conflict_target = self._build_conflict_target()
         return f"ON CONFLICT {conflict_target}"
 
-    def _build_conflict_target(self):
+    def _build_conflict_target(self) -> str:
         """Builds the `conflict_target` for the ON CONFLICT clause."""
 
         if not isinstance(self.query.conflict_target, Iterable):
@@ -304,7 +338,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
         return self._build_conflict_target_by_fields()
 
-    def _build_conflict_target_by_fields(self):
+    def _build_conflict_target_by_fields(self) -> str:
         """Builds the `conflict_target` for the ON CONFLICT clauses by matching
         the fields specified in the specified conflict target against the
         model's fields.
@@ -329,7 +363,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
         return "(%s)" % ",".join(conflict_target)
 
-    def _build_conflict_target_by_index(self):
+    def _build_conflict_target_by_index(self) -> Optional[str]:
         """Builds the `conflict_target` for the ON CONFLICT clause by trying to
         find an index that matches the specified conflict target on the query.
 
@@ -353,7 +387,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
             stmt = matching_index.create_sql(self.query.model, schema_editor)
             return "(%s)" % stmt.parts["columns"]
 
-    def _get_model_field(self, name: str):
+    def _get_model_field(self, name: str) -> Optional[Field]:
         """Gets the field on a model with the specified name.
 
         Arguments:
@@ -432,7 +466,8 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
         )
 
     def _compile_expression(
-        self, expression: Union[Expression, Q, str]
+        self,
+        expression: Union[Expression, Q, str],
     ) -> Tuple[str, Union[tuple, list]]:
         """Compiles an expression, Q object or raw SQL string into SQL and
         tuple of parameters."""
@@ -452,7 +487,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
         return expression, tuple()
 
-    def _assert_valid_field(self, field_name: str):
+    def _assert_valid_field(self, field_name: str) -> None:
         """Asserts that a field with the specified name exists on the model and
         raises :see:SuspiciousOperation if it does not."""
 
