@@ -213,15 +213,10 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             return_operation_type=return_operation_type and not return_model,
         )
         if return_model:
-            models = []
-            for row, obj in zip(deduped_rows, objs):
-                models.append(
-                    self._create_model_instance(
-                        dict(row, **obj),
-                        compiler.using,
-                    )
-                )
-            return models
+            return [
+                self._create_model_instance(dict(row, **obj), compiler.using)
+                for row, obj in zip(deduped_rows, objs)
+            ]
 
         return [dict(row, **obj) for row, obj in zip(deduped_rows, objs)]
 
