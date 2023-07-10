@@ -17,10 +17,7 @@ from django.db import connections, models, router
 from django.db.models import Expression, Q, QuerySet
 from django.db.models.fields import NOT_PROVIDED
 
-from .sql import (
-    PostgresInsertQuery,
-    PostgresQuery,
-)
+from .sql import PostgresInsertQuery, PostgresQuery
 from .types import ConflictAction
 
 if TYPE_CHECKING:
