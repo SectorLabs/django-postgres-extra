@@ -3,7 +3,7 @@ import os
 import sys
 
 from collections.abc import Iterable
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import django
 
@@ -177,8 +177,8 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
     def as_sql(
         self,
-        return_id: bool = False,
-        return_operation_type: bool = False,
+        return_id=False,
+        return_operation_type=False,
         *args,
         **kwargs,
     ):
@@ -190,11 +190,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
         return queries
 
-    def execute_sql(
-        self,
-        return_id: bool = False,
-        return_operation_type: bool = False,
-    ) -> List[dict]:
+    def execute_sql(self, return_id=False, return_operation_type=False):
         # execute all the generate queries
         with self.connection.cursor() as cursor:
             rows = []
@@ -217,12 +213,8 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
         ]
 
     def _rewrite_insert(
-        self,
-        sql: str,
-        params: list,
-        return_id: bool = False,
-        return_operation_type: bool = False,
-    ) -> Tuple[str, list]:
+        self, sql, params, return_id=False, return_operation_type=False
+    ):
         """Rewrites a formed SQL INSERT query to include the ON CONFLICT
         clause.
 
@@ -304,7 +296,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
         return (rewritten_sql, params)
 
-    def _build_on_conflict_clause(self) -> str:
+    def _build_on_conflict_clause(self):
         if django.VERSION >= (2, 2):
             from django.db.models.constraints import BaseConstraint
             from django.db.models.indexes import Index
@@ -319,7 +311,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
         conflict_target = self._build_conflict_target()
         return f"ON CONFLICT {conflict_target}"
 
-    def _build_conflict_target(self) -> str:
+    def _build_conflict_target(self):
         """Builds the `conflict_target` for the ON CONFLICT clause."""
 
         if not isinstance(self.query.conflict_target, Iterable):
@@ -338,7 +330,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
         return self._build_conflict_target_by_fields()
 
-    def _build_conflict_target_by_fields(self) -> str:
+    def _build_conflict_target_by_fields(self):
         """Builds the `conflict_target` for the ON CONFLICT clauses by matching
         the fields specified in the specified conflict target against the
         model's fields.
@@ -363,7 +355,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
         return "(%s)" % ",".join(conflict_target)
 
-    def _build_conflict_target_by_index(self) -> Optional[str]:
+    def _build_conflict_target_by_index(self):
         """Builds the `conflict_target` for the ON CONFLICT clause by trying to
         find an index that matches the specified conflict target on the query.
 
@@ -418,7 +410,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
         return None
 
-    def _format_field_name(self, field_name) -> str:
+    def _format_field_name(self, field_name):
         """Formats a field's name for usage in SQL.
 
         Arguments:
@@ -433,7 +425,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
         field = self._get_model_field(field_name)
         return self.qn(field.column)
 
-    def _format_field_value(self, field_name) -> str:
+    def _format_field_value(self, field_name):
         """Formats a field's value for usage in SQL.
 
         Arguments:

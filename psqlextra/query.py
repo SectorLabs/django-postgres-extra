@@ -2,7 +2,6 @@ from collections import OrderedDict
 from itertools import chain
 from typing import (
     TYPE_CHECKING,
-    Any,
     Dict,
     Generic,
     Iterable,
@@ -19,7 +18,6 @@ from django.db.models import Expression, Q, QuerySet
 from django.db.models.fields import NOT_PROVIDED
 
 from .sql import (
-    PostgresInsertOnConflictCompiler,
     PostgresInsertQuery,
     PostgresQuery,
 )
@@ -145,7 +143,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         return_model: bool = False,
         using: Optional[str] = None,
         return_operation_type: bool = False,
-    ) -> Union[List[Dict], List[TModel]]:
+    ):
         """Creates multiple new records in the database.
 
         This allows specifying custom conflict behavior using .on_conflict().
@@ -220,11 +218,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
 
         return [dict(row, **obj) for row, obj in zip(deduped_rows, objs)]
 
-    def insert(
-        self,
-        using: Optional[str] = None,
-        **fields: Any,
-    ) -> Optional[int]:
+    def insert(self, using: Optional[str] = None, **fields):
         """Creates a new record in the database.
 
         This allows specifying custom conflict behavior using .on_conflict().
@@ -258,9 +252,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         # no special action required, use the standard Django create(..)
         return super().create(**fields).pk
 
-    def insert_and_get(
-        self, using: Optional[str] = None, **fields: Any
-    ) -> Optional[TModel]:
+    def insert_and_get(self, using: Optional[str] = None, **fields):
         """Creates a new record in the database and then gets the entire row.
 
         This allows specifying custom conflict behavior using .on_conflict().
@@ -406,7 +398,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         using: Optional[str] = None,
         update_condition: Optional[Union[Expression, Q, str]] = None,
         return_operation_type: bool = False,
-    ) -> Union[List[Dict], List[TModel]]:
+    ):
         """Creates a set of new records or updates the existing ones with the
         specified data.
 
@@ -459,7 +451,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
 
     def _create_model_instance(
         self, field_values: dict, using: str, apply_converters: bool = True
-    ) -> TModel:
+    ):
         """Creates a new instance of the model with the specified field.
 
         Use this after the row was inserted/updated into the database.
@@ -496,10 +488,8 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         return instance
 
     def _build_insert_compiler(
-        self,
-        rows: Iterable[Dict],
-        using: Optional[str] = None,
-    ) -> PostgresInsertOnConflictCompiler:
+        self, rows: Iterable[Dict], using: Optional[str] = None
+    ):
         """Builds the SQL compiler for a insert query.
 
         Arguments:
