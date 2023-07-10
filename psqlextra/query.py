@@ -258,7 +258,9 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         # no special action required, use the standard Django create(..)
         return super().create(**fields).pk
 
-    def insert_and_get(self, using: Optional[str] = None, **fields: Any) -> Optional[TModel]:
+    def insert_and_get(
+        self, using: Optional[str] = None, **fields: Any
+    ) -> Optional[TModel]:
         """Creates a new record in the database and then gets the entire row.
 
         This allows specifying custom conflict behavior using .on_conflict().
@@ -281,7 +283,9 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             return super().create(**fields)
 
         compiler = self._build_insert_compiler([fields], using=using)
-        rows = compiler.execute_sql(return_id=False, return_operation_type=False)
+        rows = compiler.execute_sql(
+            return_id=False, return_operation_type=False
+        )
 
         if not rows:
             return None
@@ -454,10 +458,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         )
 
     def _create_model_instance(
-        self,
-        field_values: dict,
-        using: str,
-        apply_converters: bool = True
+        self, field_values: dict, using: str, apply_converters: bool = True
     ) -> TModel:
         """Creates a new instance of the model with the specified field.
 
