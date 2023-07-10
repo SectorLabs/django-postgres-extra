@@ -261,7 +261,8 @@ def test_upsert_bulk_no_rows():
 
 
 def test_upsert_bulk_returns_operation_type():
-    """Tests whether bulk_upsert works properly with the return_operation_type flag."""
+    """Tests whether bulk_upsert works properly with the return_operation_type
+    flag."""
 
     model = get_fake_model(
         {

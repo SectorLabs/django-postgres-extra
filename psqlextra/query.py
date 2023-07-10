@@ -462,8 +462,8 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
     ) -> TModel:
         """Creates a new instance of the model with the specified field.
 
-        Use this after the row was inserted/updated into the database. The new
-        instance will be marked as "saved".
+        Use this after the row was inserted/updated into the database.
+        The new instance will be marked as "saved".
         """
 
         converted_field_values = field_values.copy()
