@@ -9,7 +9,6 @@ from django.db.models import Expression, sql
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.expressions import Ref
 
-
 from .compiler import PostgresInsertOnConflictCompiler
 from .compiler import SQLUpdateCompiler as PostgresUpdateCompiler
 from .expressions import HStoreColumn
@@ -68,18 +67,20 @@ class PostgresQuery(sql.Query):
             if new_name and self.annotation_select_mask:
                 self.annotation_select_mask.discard(old_name)
                 self.annotation_select_mask.add(new_name)
-            
+
         if isinstance(self.group_by, tuple):
             self.rename_groupby_references(annotations=annotations)
 
         self.annotations.clear()
         self.annotations.update(new_annotations)
-    
+
     def rename_groupby_references(self, annotations):
         for group_by_statement in self.group_by:
             if isinstance(group_by_statement, Ref):
                 if group_by_statement.refs in annotations:
-                    group_by_statement.refs = annotations[group_by_statement.refs]
+                    group_by_statement.refs = annotations[
+                        group_by_statement.refs
+                    ]
 
     def add_fields(self, field_names, *args, **kwargs) -> None:
         """Adds the given (model) fields to the select set.
