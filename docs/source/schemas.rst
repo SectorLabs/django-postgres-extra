@@ -141,7 +141,7 @@ Deleting a schema
 
 Any schema can be dropped, including ones not created by :class:`~psqlextra.schema.PostgresSchema`.
 
-The ``public`` schema cannot be dropped. This is a Postgres built-in and it is almost always a mistake to drop it. A :class:`~django.core.exceptions.SuspiciousOperation` erorr will be raised if you attempt to drop the ``public`` schema.
+The ``public`` schema cannot be dropped. This is a Postgres built-in and it is almost always a mistake to drop it. A :class:`~django.core.exceptions.SuspiciousOperation` error will be raised if you attempt to drop the ``public`` schema.
 
 .. warning::
 

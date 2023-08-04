@@ -139,6 +139,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         rows: Iterable[dict],
         return_model: bool = False,
         using: Optional[str] = None,
+        return_operation_type: bool = False,
     ):
         """Creates multiple new records in the database.
 
@@ -157,6 +158,13 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             using:
                 Optional name of the database connection to use for
                 this query.
+
+            return_operation_type (default: False):
+                If the operation type should be returned for each row.
+                This is only supported when return_model is False.
+                The operation_type is either 'INSERT' or 'UPDATE' and
+                the value will be contained in the '_operation_type' key
+                of the returned dict.
 
         Returns:
             A list of either the dicts of the rows inserted, including the pk or
@@ -195,7 +203,10 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
                 deduped_rows.append(row)
 
         compiler = self._build_insert_compiler(deduped_rows, using=using)
-        objs = compiler.execute_sql(return_id=not return_model)
+        objs = compiler.execute_sql(
+            return_id=not return_model,
+            return_operation_type=return_operation_type and not return_model,
+        )
         if return_model:
             return [
                 self._create_model_instance(dict(row, **obj), compiler.using)
@@ -261,7 +272,9 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             return super().create(**fields)
 
         compiler = self._build_insert_compiler([fields], using=using)
-        rows = compiler.execute_sql(return_id=False)
+        rows = compiler.execute_sql(
+            return_id=False, return_operation_type=False
+        )
 
         if not rows:
             return None
@@ -293,7 +306,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         index_predicate: Optional[Union[Expression, Q, str]] = None,
         using: Optional[str] = None,
         update_condition: Optional[Union[Expression, Q, str]] = None,
-    ) -> int:
+    ) -> Optional[int]:
         """Creates a new record or updates the existing one with the specified
         data.
 
@@ -336,7 +349,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         index_predicate: Optional[Union[Expression, Q, str]] = None,
         using: Optional[str] = None,
         update_condition: Optional[Union[Expression, Q, str]] = None,
-    ):
+    ) -> Optional[TModel]:
         """Creates a new record or updates the existing one with the specified
         data and then gets the row.
 
@@ -381,6 +394,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         return_model: bool = False,
         using: Optional[str] = None,
         update_condition: Optional[Union[Expression, Q, str]] = None,
+        return_operation_type: bool = False,
     ):
         """Creates a set of new records or updates the existing ones with the
         specified data.
@@ -407,6 +421,13 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             update_condition:
                 Only update if this SQL expression evaluates to true.
 
+            return_operation_type (default: False):
+                If the operation type should be returned for each row.
+                This is only supported when return_model is False.
+                The operation_type is either 'INSERT' or 'UPDATE' and
+                the value will be contained in the '_operation_type' key
+                of the returned dict.
+
         Returns:
             A list of either the dicts of the rows upserted, including the pk or
             the models of the rows upserted
@@ -418,15 +439,20 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             index_predicate=index_predicate,
             update_condition=update_condition,
         )
-        return self.bulk_insert(rows, return_model, using=using)
+        return self.bulk_insert(
+            rows,
+            return_model,
+            using=using,
+            return_operation_type=return_operation_type,
+        )
 
     def _create_model_instance(
         self, field_values: dict, using: str, apply_converters: bool = True
     ):
         """Creates a new instance of the model with the specified field.
 
-        Use this after the row was inserted into the database. The new
-        instance will marked as "saved".
+        Use this after the row was inserted/updated into the database.
+        The new instance will be marked as "saved".
         """
 
         converted_field_values = field_values.copy()

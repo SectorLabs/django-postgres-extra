@@ -29,6 +29,13 @@ class ConflictAction(Enum):
         return [choice for choice in cls]
 
 
+class UpsertOperation(StrEnum):
+    """Possible operations to take on an upsert."""
+
+    INSERT = "INSERT"
+    UPDATE = "UPDATE"
+
+
 class PostgresPartitioningMethod(StrEnum):
     """Methods of partitioning supported by PostgreSQL 11.x native support for
     table partitioning."""
