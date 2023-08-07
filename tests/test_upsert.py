@@ -1,7 +1,7 @@
 import django
 import pytest
 
-from django.db import models
+from django.db import connection, models
 from django.db.models import F, Q
 from django.db.models.expressions import CombinedExpression, Value
 
@@ -410,3 +410,68 @@ def test_bulk_upsert_update_values():
     )
 
     assert all([obj for obj in objs if obj.count == 1])
+
+
+@pytest.mark.parametrize("return_model", [True])
+def test_bulk_upsert_extra_columns_in_schema(return_model):
+    """Tests that extra columns being returned by the database that aren't
+    known by Django don't make the bulk upsert crash."""
+
+    model = get_fake_model(
+        {
+            "name": models.CharField(max_length=255, unique=True),
+        }
+    )
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"ALTER TABLE {model._meta.db_table} ADD COLUMN new_name text NOT NULL DEFAULT %s",
+            ("newjoe",),
+        )
+
+    objs = model.objects.bulk_upsert(
+        conflict_target=["name"],
+        rows=[
+            dict(name="joe"),
+        ],
+        return_model=return_model,
+    )
+
+    assert len(objs) == 1
+
+    if return_model:
+        assert objs[0].name == "joe"
+    else:
+        assert objs[0]["name"] == "joe"
+        assert sorted(list(objs[0].keys())) == ["id", "name"]
+
+
+def test_upsert_extra_columns_in_schema():
+    """Tests that extra columns being returned by the database that aren't
+    known by Django don't make the upsert crash."""
+
+    model = get_fake_model(
+        {
+            "name": models.CharField(max_length=255, unique=True),
+        }
+    )
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"ALTER TABLE {model._meta.db_table} ADD COLUMN new_name text NOT NULL DEFAULT %s",
+            ("newjoe",),
+        )
+
+    obj_id = model.objects.upsert(
+        conflict_target=["name"],
+        fields=dict(name="joe"),
+    )
+
+    assert obj_id == 1
+
+    obj = model.objects.upsert_and_get(
+        conflict_target=["name"],
+        fields=dict(name="joe"),
+    )
+
+    assert obj.name == "joe"
