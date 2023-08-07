@@ -14,11 +14,13 @@ from typing import (
 )
 
 from django.core.exceptions import SuspiciousOperation
-from django.db import connections, models, router
+from django.db import models, router
+from django.db.backends.utils import CursorWrapper
 from django.db.models import Expression, Q, QuerySet
 from django.db.models.fields import NOT_PROVIDED
 
 from .expressions import ExcludedCol
+from .introspect import model_from_cursor, models_from_cursor
 from .sql import PostgresInsertQuery, PostgresQuery
 from .types import ConflictAction
 
@@ -146,7 +148,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
 
     def bulk_insert(
         self,
-        rows: Iterable[dict],
+        rows: Iterable[Dict[str, Any]],
         return_model: bool = False,
         using: Optional[str] = None,
     ):
@@ -205,14 +207,17 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
                 deduped_rows.append(row)
 
         compiler = self._build_insert_compiler(deduped_rows, using=using)
-        objs = compiler.execute_sql(return_id=not return_model)
-        if return_model:
-            return [
-                self._create_model_instance(dict(row, **obj), compiler.using)
-                for row, obj in zip(deduped_rows, objs)
-            ]
 
-        return [dict(row, **obj) for row, obj in zip(deduped_rows, objs)]
+        with compiler.connection.cursor() as cursor:
+            for sql, params in compiler.as_sql(return_id=not return_model):
+                cursor.execute(sql, params)
+
+                if return_model:
+                    return list(models_from_cursor(self.model, cursor))
+
+                return self._consume_cursor_as_dicts(
+                    cursor, original_rows=deduped_rows
+                )
 
     def insert(self, using: Optional[str] = None, **fields):
         """Creates a new record in the database.
@@ -233,17 +238,20 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         """
 
         if self.conflict_target or self.conflict_action:
-            compiler = self._build_insert_compiler([fields], using=using)
-            rows = compiler.execute_sql(return_id=True)
-
             if not self.model or not self.model.pk:
                 return None
 
-            _, pk_db_column = self.model._meta.pk.get_attname_column()  # type: ignore[union-attr]
-            if not rows or len(rows) == 0:
-                return None
+            compiler = self._build_insert_compiler([fields], using=using)
 
-            return rows[0][pk_db_column]
+            with compiler.connection.cursor() as cursor:
+                for sql, params in compiler.as_sql(return_id=True):
+                    cursor.execute(sql, params)
+
+                row = cursor.fetchone()
+                if not row:
+                    return None
+
+            return row[0]
 
         # no special action required, use the standard Django create(..)
         return super().create(**fields).pk
@@ -271,30 +279,12 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             return super().create(**fields)
 
         compiler = self._build_insert_compiler([fields], using=using)
-        rows = compiler.execute_sql(return_id=False)
 
-        if not rows:
-            return None
+        with compiler.connection.cursor() as cursor:
+            for sql, params in compiler.as_sql(return_id=False):
+                cursor.execute(sql, params)
 
-        columns = rows[0]
-
-        # get a list of columns that are officially part of the model and
-        # preserve the fact that the attribute name
-        # might be different than the database column name
-        model_columns = {}
-        for field in self.model._meta.local_concrete_fields:  # type: ignore[attr-defined]
-            model_columns[field.column] = field.attname
-
-        # strip out any columns/fields returned by the db that
-        # are not present in the model
-        model_init_fields = {}
-        for column_name, column_value in columns.items():
-            try:
-                model_init_fields[model_columns[column_name]] = column_value
-            except KeyError:
-                pass
-
-        return self._create_model_instance(model_init_fields, compiler.using)
+            return model_from_cursor(self.model, cursor)
 
     def upsert(
         self,
@@ -452,43 +442,23 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
 
         return self.bulk_insert(rows, return_model, using=using)
 
-    def _create_model_instance(
-        self, field_values: dict, using: str, apply_converters: bool = True
-    ):
-        """Creates a new instance of the model with the specified field.
+    @staticmethod
+    def _consume_cursor_as_dicts(
+        cursor: CursorWrapper, *, original_rows: Iterable[Dict[str, Any]]
+    ) -> List[dict]:
+        cursor_description = cursor.description
 
-        Use this after the row was inserted into the database. The new
-        instance will marked as "saved".
-        """
-
-        converted_field_values = field_values.copy()
-
-        if apply_converters:
-            connection = connections[using]
-
-            for field in self.model._meta.local_concrete_fields:  # type: ignore[attr-defined]
-                if field.attname not in converted_field_values:
-                    continue
-
-                # converters can be defined on the field, or by
-                # the database back-end we're using
-                field_column = field.get_col(self.model._meta.db_table)
-                converters = field.get_db_converters(
-                    connection
-                ) + connection.ops.get_db_converters(field_column)
-
-                for converter in converters:
-                    converted_field_values[field.attname] = converter(
-                        converted_field_values[field.attname],
-                        field_column,
-                        connection,
-                    )
-
-        instance = self.model(**converted_field_values)
-        instance._state.db = using
-        instance._state.adding = False
-
-        return instance
+        return [
+            {
+                **original_row,
+                **{
+                    column.name: row[column_index]
+                    for column_index, column in enumerate(cursor_description)
+                    if row
+                },
+            }
+            for original_row, row in zip(original_rows, cursor)
+        ]
 
     def _build_insert_compiler(
         self, rows: Iterable[Dict], using: Optional[str] = None
@@ -532,9 +502,10 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
                     ).format(index)
                 )
 
-            objs.append(
-                self._create_model_instance(row, using, apply_converters=False)
-            )
+            obj = self.model(**row.copy())
+            obj._state.db = using
+            obj._state.adding = False
+            objs.append(obj)
 
         # get the fields to be used during update/insert
         insert_fields, update_values = self._get_upsert_fields(first_row)

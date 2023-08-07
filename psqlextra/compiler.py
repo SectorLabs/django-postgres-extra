@@ -3,7 +3,7 @@ import os
 import sys
 
 from collections.abc import Iterable
-from typing import Tuple, Union
+from typing import TYPE_CHECKING, Tuple, Union, cast
 
 import django
 
@@ -12,10 +12,12 @@ from django.core.exceptions import SuspiciousOperation
 from django.db.models import Expression, Model, Q
 from django.db.models.fields.related import RelatedField
 from django.db.models.sql import compiler as django_compiler
-from django.db.utils import ProgrammingError
 
 from .expressions import HStoreValue
 from .types import ConflictAction
+
+if TYPE_CHECKING:
+    from .sql import PostgresInsertQuery
 
 
 def append_caller_to_sql(sql):
@@ -161,6 +163,8 @@ class SQLInsertCompiler(django_compiler.SQLInsertCompiler):  # type: ignore [nam
 class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # type: ignore [name-defined]
     """Compiler for SQL INSERT statements."""
 
+    query: "PostgresInsertQuery"
+
     def __init__(self, *args, **kwargs):
         """Initializes a new instance of
         :see:PostgresInsertOnConflictCompiler."""
@@ -169,34 +173,13 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
 
     def as_sql(self, return_id=False, *args, **kwargs):
         """Builds the SQL INSERT statement."""
+
         queries = [
             self._rewrite_insert(sql, params, return_id)
             for sql, params in super().as_sql(*args, **kwargs)
         ]
 
         return queries
-
-    def execute_sql(self, return_id=False):
-        # execute all the generate queries
-        with self.connection.cursor() as cursor:
-            rows = []
-            for sql, params in self.as_sql(return_id):
-                cursor.execute(sql, params)
-                try:
-                    rows.extend(cursor.fetchall())
-                except ProgrammingError:
-                    pass
-            description = cursor.description
-
-        # create a mapping between column names and column value
-        return [
-            {
-                column.name: row[column_index]
-                for column_index, column in enumerate(description)
-                if row
-            }
-            for row in rows
-        ]
 
     def _rewrite_insert(self, sql, params, return_id=False):
         """Rewrites a formed SQL INSERT query to include the ON CONFLICT
@@ -209,9 +192,9 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
             params:
                 The parameters passed to the query.
 
-            returning:
-                What to put in the `RETURNING` clause
-                of the resulting query.
+            return_id:
+                Whether to only return the ID or all
+                columns.
 
         Returns:
             A tuple of the rewritten SQL query and new params.
@@ -284,7 +267,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # ty
         # the compiler and the queries.
         from .sql import PostgresUpdateQuery
 
-        query = self.query.chain(PostgresUpdateQuery)
+        query = cast(PostgresUpdateQuery, self.query.chain(PostgresUpdateQuery))
         query.add_update_values(self.query.update_values)
 
         sql, params = query.get_compiler(self.connection.alias).as_sql()
