@@ -591,7 +591,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             has_default = field.default != NOT_PROVIDED
             if field.name in kwargs or field.column in kwargs:
                 insert_fields.append(field)
-                update_values[field.name] = ExcludedCol(field.column)
+                update_values[field.name] = ExcludedCol(field)
                 continue
             elif has_default:
                 insert_fields.append(field)
@@ -602,13 +602,13 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             # instead of a concrete field, we have to handle that
             if field.primary_key is True and "pk" in kwargs:
                 insert_fields.append(field)
-                update_values[field.name] = ExcludedCol(field.column)
+                update_values[field.name] = ExcludedCol(field)
                 continue
 
             if self._is_magical_field(model_instance, field, is_insert=True):
                 insert_fields.append(field)
 
             if self._is_magical_field(model_instance, field, is_insert=False):
-                update_values[field.name] = ExcludedCol(field.column)
+                update_values[field.name] = ExcludedCol(field)
 
         return insert_fields, update_values
