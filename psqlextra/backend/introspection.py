@@ -23,6 +23,7 @@ class PostgresIntrospectedPartitionTable:
     name: str
     full_name: str
     comment: Optional[str]
+    constraints: Optional[list[str]] = None
 
 
 @dataclass
@@ -127,7 +128,8 @@ class PostgresIntrospection(Introspection):
         sql = """
             SELECT
                 child.relname,
-                pg_description.description
+                pg_description.description,
+                array_agg(pg_constraint.conname) as constraints
             FROM pg_inherits
             JOIN
                 pg_class parent
@@ -145,12 +147,18 @@ class PostgresIntrospection(Introspection):
                 pg_namespace nmsp_child
             ON
                 nmsp_child.oid = child.relnamespace
+            JOIN
+                pg_constraint
+            ON 
+                pg_constraint.conrelid = child.oid
             LEFT JOIN
                 pg_description
             ON
                 pg_description.objoid = child.oid
             WHERE
                 parent.relname = %s
+            GROUP BY 
+                child.relname, pg_description.description
         """
 
         cursor.execute(sql, (table_name,))
@@ -160,6 +168,7 @@ class PostgresIntrospection(Introspection):
                 name=row[0].replace(f"{table_name}_", ""),
                 full_name=row[0],
                 comment=row[1] or None,
+                constraints=list(row[2])
             )
             for row in cursor.fetchall()
         ]

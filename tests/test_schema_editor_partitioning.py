@@ -1,11 +1,11 @@
 import pytest
-
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection, models
+from django.db.models import UniqueConstraint, CheckConstraint, Q
+from django.utils.timezone import now
 
 from psqlextra.backend.schema import PostgresSchemaEditor
 from psqlextra.types import PostgresPartitioningMethod
-
 from . import db_introspection
 from .fake_model import define_fake_partitioned_model
 
@@ -20,7 +20,14 @@ def test_schema_editor_create_delete_partitioned_model_range():
 
     model = define_fake_partitioned_model(
         {"name": models.TextField(), "timestamp": models.DateTimeField()},
-        {"method": method, "key": key},
+        {
+            "method": method,
+            "key": key,
+            "per_partition_constraints": (
+                UniqueConstraint(fields=("name",), name="test_unique_constraint"),
+                CheckConstraint(check=Q(timestamp__gt=now()), name="test_check_constraint")
+            ),
+        },
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -33,6 +40,9 @@ def test_schema_editor_create_delete_partitioned_model_range():
     assert table.method == method
     assert table.key == key
     assert table.partitions[0].full_name == model._meta.db_table + "_pt1"
+    assert len(table.partitions[0].constraints) == 3
+    for constraint in model._partitioning_meta.per_partition_constraints:
+        assert constraint.name in table.partitions[0].constraints
 
     schema_editor.delete_partitioned_model(model)
 
@@ -52,8 +62,15 @@ def test_schema_editor_create_delete_partitioned_model_list():
     key = ["category"]
 
     model = define_fake_partitioned_model(
-        {"name": models.TextField(), "category": models.TextField()},
-        {"method": method, "key": key},
+        {"name": models.TextField(), "category": models.TextField(), "timestamp": models.DateTimeField()},
+        {
+            "method": method,
+            "key": key,
+            "per_partition_constraints": (
+                UniqueConstraint(fields=("name",), name="test_unique_constraint"),
+                CheckConstraint(check=Q(timestamp__gt=now()), name="test_check_constraint")
+            ),
+        },
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -66,6 +83,9 @@ def test_schema_editor_create_delete_partitioned_model_list():
     assert table.method == method
     assert table.key == key
     assert table.partitions[0].full_name == model._meta.db_table + "_pt1"
+    assert len(table.partitions[0].constraints) == 3
+    for constraint in model._partitioning_meta.per_partition_constraints:
+        assert constraint.name in table.partitions[0].constraints
 
     schema_editor.delete_partitioned_model(model)
 
@@ -85,8 +105,15 @@ def test_schema_editor_create_delete_partitioned_model_hash(key):
     method = PostgresPartitioningMethod.HASH
 
     model = define_fake_partitioned_model(
-        {"name": models.TextField()},
-        {"method": method, "key": key},
+        {"name": models.TextField(), "timestamp": models.DateTimeField()},
+        {
+            "method": method,
+            "key": key,
+            "per_partition_constraints": (
+                UniqueConstraint(fields=("name",), name="test_unique_constraint"),
+                CheckConstraint(check=Q(timestamp__gt=now()), name="test_check_constraint")
+            ),
+        },
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -99,6 +126,9 @@ def test_schema_editor_create_delete_partitioned_model_hash(key):
     assert table.method == method
     assert table.key == key
     assert table.partitions[0].full_name == model._meta.db_table + "_pt1"
+    assert len(table.partitions[0].constraints) == 3
+    for constraint in model._partitioning_meta.per_partition_constraints:
+        assert constraint.name in table.partitions[0].constraints
 
     schema_editor.delete_partitioned_model(model)
 
@@ -187,7 +217,13 @@ def test_schema_editor_add_range_partition():
 
     model = define_fake_partitioned_model(
         {"name": models.TextField(), "timestamp": models.DateTimeField()},
-        {"key": ["timestamp"]},
+        {
+            "key": ["timestamp"],
+            "per_partition_constraints": (
+                UniqueConstraint(fields=("name",), name="test_unique_constraint"),
+                CheckConstraint(check=Q(timestamp__gt=now()), name="test_check_constraint")
+            ),
+        },
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -208,6 +244,9 @@ def test_schema_editor_add_range_partition():
         table.partitions[0].full_name == f"{model._meta.db_table}_mypartition"
     )
     assert table.partitions[0].comment == "test"
+    assert len(table.partitions[0].constraints) == 3
+    for constraint in model._partitioning_meta.per_partition_constraints:
+        assert constraint.name in table.partitions[0].constraints
 
     schema_editor.delete_partition(model, "mypartition")
     table = db_introspection.get_partitioned_table(model._meta.db_table)
@@ -219,8 +258,15 @@ def test_schema_editor_add_list_partition():
     """Tests whether adding a list partition works."""
 
     model = define_fake_partitioned_model(
-        {"name": models.TextField()},
-        {"method": PostgresPartitioningMethod.LIST, "key": ["name"]},
+        {"name": models.TextField(), "timestamp": models.DateTimeField()},
+        {
+            "method": PostgresPartitioningMethod.LIST,
+            "key": ["name"],
+            "per_partition_constraints": (
+                UniqueConstraint(fields=("name",), name="test_unique_constraint"),
+                CheckConstraint(check=Q(timestamp__gt=now()), name="test_check_constraint")
+            ),
+        },
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -237,6 +283,9 @@ def test_schema_editor_add_list_partition():
         table.partitions[0].full_name == f"{model._meta.db_table}_mypartition"
     )
     assert table.partitions[0].comment == "test"
+    assert len(table.partitions[0].constraints) == 3
+    for constraint in model._partitioning_meta.per_partition_constraints:
+        assert constraint.name in table.partitions[0].constraints
 
     schema_editor.delete_partition(model, "mypartition")
     table = db_introspection.get_partitioned_table(model._meta.db_table)
@@ -254,7 +303,14 @@ def test_schema_editor_add_list_partition():
 def test_schema_editor_add_default_partition(method, key):
     model = define_fake_partitioned_model(
         {"name": models.TextField(), "timestamp": models.DateTimeField()},
-        {"method": method, "key": key},
+        {
+            "method": method,
+            "key": key,
+            "per_partition_constraints": (
+                UniqueConstraint(fields=("name",), name="test_unique_constraint"),
+                CheckConstraint(check=Q(timestamp__gt=now()), name="test_check_constraint")
+            ),
+        },
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -271,6 +327,9 @@ def test_schema_editor_add_default_partition(method, key):
         table.partitions[0].full_name == f"{model._meta.db_table}_mypartition"
     )
     assert table.partitions[0].comment == "test"
+    assert len(table.partitions[0].constraints) == 3
+    for constraint in model._partitioning_meta.per_partition_constraints:
+        assert constraint.name in table.partitions[0].constraints
 
     schema_editor.delete_partition(model, "mypartition")
     table = db_introspection.get_partitioned_table(model._meta.db_table)
