@@ -28,11 +28,11 @@ def _construct_model(
     apply_converters: bool = True
 ) -> TModel:
     fields_by_name_and_column = {}
-    for field in inspect_model_local_concrete_fields(model):
-        fields_by_name_and_column[field.attname] = field
+    for concrete_field in inspect_model_local_concrete_fields(model):
+        fields_by_name_and_column[concrete_field.attname] = concrete_field
 
-        if field.db_column:
-            fields_by_name_and_column[field.db_column] = field
+        if concrete_field.db_column:
+            fields_by_name_and_column[concrete_field.db_column] = concrete_field
 
     indexable_columns = list(columns)
 
@@ -41,9 +41,12 @@ def _construct_model(
     for index, value in enumerate(values):
         column = indexable_columns[index]
         try:
-            field = cast(Field, model._meta.get_field(column))
+            field: Optional[Field] = cast(Field, model._meta.get_field(column))
         except FieldDoesNotExist:
-            field = fields_by_name_and_column[column]
+            field = fields_by_name_and_column.get(column)
+
+        if not field:
+            continue
 
         field_column_expression = field.get_col(model._meta.db_table)
 

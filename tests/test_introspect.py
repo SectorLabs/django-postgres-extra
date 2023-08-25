@@ -415,3 +415,48 @@ def test_models_from_cursor_generator_efficiency(
 
         assert not next(instances_generator, None)
         assert cursor.rownumber == 2
+
+
+@pytest.mark.skipif(
+    django.VERSION < (3, 1),
+    reason=django_31_skip_reason,
+)
+def test_models_from_cursor_tolerates_additional_columns(
+    mocked_model_foreign_keys, mocked_model_varying_fields
+):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"ALTER TABLE {mocked_model_foreign_keys._meta.db_table} ADD COLUMN new_col text DEFAULT NULL"
+        )
+        cursor.execute(
+            f"ALTER TABLE {mocked_model_varying_fields._meta.db_table} ADD COLUMN new_col text DEFAULT NULL"
+        )
+
+    instance = mocked_model_foreign_keys.objects.create(
+        varying_fields=mocked_model_varying_fields.objects.create(
+            title="test", updated_at=timezone.now()
+        ),
+        single_field=None,
+    )
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""
+            SELECT fk_t.*, vf_t.* FROM {mocked_model_foreign_keys._meta.db_table} fk_t
+            INNER JOIN {mocked_model_varying_fields._meta.db_table} vf_t ON vf_t.id = fk_t.varying_fields_id
+        """
+        )
+
+        queried_instances = list(
+            models_from_cursor(
+                mocked_model_foreign_keys,
+                cursor,
+                related_fields=["varying_fields"],
+            )
+        )
+
+        assert len(queried_instances) == 1
+        assert queried_instances[0].id == instance.id
+        assert (
+            queried_instances[0].varying_fields.id == instance.varying_fields.id
+        )
