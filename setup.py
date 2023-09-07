@@ -81,6 +81,8 @@ setup(
             "pytest-benchmark==3.4.1",
             "pytest-django==4.4.0",
             "pytest-cov==3.0.0",
+            "pytest-lazy-fixture==0.6.3",
+            "pytest-freezegun==0.4.2",
             "tox==3.24.4",
             "freezegun==1.1.0",
             "coveralls==3.3.0",
