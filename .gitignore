@@ -29,3 +29,6 @@ build/
 
 # Ignore PyCharm / IntelliJ files
 .idea/
+build/
+.python-version
+docker-compose.yml
