@@ -13,6 +13,7 @@ class PostgresTimePartitionUnit(enum.Enum):
     MONTHS = "months"
     WEEKS = "weeks"
     DAYS = "days"
+    HOURS = "hours"
 
 
 class PostgresTimePartitionSize:
@@ -27,8 +28,9 @@ class PostgresTimePartitionSize:
         months: Optional[int] = None,
         weeks: Optional[int] = None,
         days: Optional[int] = None,
+        hours: Optional[int] = None,
     ) -> None:
-        sizes = [years, months, weeks, days]
+        sizes = [years, months, weeks, days, hours]
 
         if not any(sizes):
             raise PostgresPartitioningError("Partition cannot be 0 in size.")
@@ -50,6 +52,9 @@ class PostgresTimePartitionSize:
         elif days:
             self.unit = PostgresTimePartitionUnit.DAYS
             self.value = days
+        elif hours:
+            self.unit = PostgresTimePartitionUnit.HOURS
+            self.value = hours
         else:
             raise PostgresPartitioningError(
                 "Unsupported time partitioning unit"
@@ -68,6 +73,9 @@ class PostgresTimePartitionSize:
         if self.unit == PostgresTimePartitionUnit.DAYS:
             return relativedelta(days=self.value)
 
+        if self.unit == PostgresTimePartitionUnit.HOURS:
+            return relativedelta(hours=self.value)
+
         raise PostgresPartitioningError(
             "Unsupported time partitioning unit: %s" % self.unit
         )
@@ -81,12 +89,15 @@ class PostgresTimePartitionSize:
 
         if self.unit == PostgresTimePartitionUnit.WEEKS:
             return self._ensure_datetime(dt - relativedelta(days=dt.weekday()))
+        
+        if self.unit == PostgresTimePartitionUnit.DAYS:
+            return self._ensure_datetime(dt)
 
-        return self._ensure_datetime(dt)
+        return self._ensure_datetime(dt.replace(hour=0))
 
     @staticmethod
     def _ensure_datetime(dt: Union[date, datetime]) -> datetime:
-        return datetime(year=dt.year, month=dt.month, day=dt.day)
+        return datetime(year=dt.year, month=dt.month, day=dt.day, hour = dt.hour)
 
     def __repr__(self) -> str:
         return "PostgresTimePartitionSize<%s, %s>" % (self.unit, self.value)

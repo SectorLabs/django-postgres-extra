@@ -174,6 +174,17 @@ Time-based partitioning
                count=12,
            ),
        ),
+
+       # 24 partitions ahead, each partition is 1 hour
+       # old partitions are never deleted, `max_age` is not set
+       # partitions will be named `[table_name]_[year]_[month]_[month day number]_[hour (24h)]`.
+       PostgresPartitioningConfig(
+           model=MyPartitionedModel,
+           strategy=PostgresCurrentTimePartitioningStrategy(
+               size=PostgresTimePartitionSize(hours=1),
+               count=24,
+           ),
+       ),
    ])
 
 
