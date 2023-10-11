@@ -16,7 +16,7 @@ class PostgresCurrentTimePartitioningStrategy(
 
     All buckets will be equal in size and start at the start of the
     unit. With monthly partitioning, partitions start on the 1st and
-    with weekly partitioning, partitions start on monday, with hourly 
+    with weekly partitioning, partitions start on monday, with hourly
     partitioning, partitions start at 00:00.
     """
 

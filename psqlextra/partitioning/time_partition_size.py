@@ -89,7 +89,7 @@ class PostgresTimePartitionSize:
 
         if self.unit == PostgresTimePartitionUnit.WEEKS:
             return self._ensure_datetime(dt - relativedelta(days=dt.weekday()))
-        
+
         if self.unit == PostgresTimePartitionUnit.DAYS:
             return self._ensure_datetime(dt)
 
@@ -97,7 +97,7 @@ class PostgresTimePartitionSize:
 
     @staticmethod
     def _ensure_datetime(dt: Union[date, datetime]) -> datetime:
-        return datetime(year=dt.year, month=dt.month, day=dt.day, hour = dt.hour)
+        return datetime(year=dt.year, month=dt.month, day=dt.day, hour=dt.hour)
 
     def __repr__(self) -> str:
         return "PostgresTimePartitionSize<%s, %s>" % (self.unit, self.value)

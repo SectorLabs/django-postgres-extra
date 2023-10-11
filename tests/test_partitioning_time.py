@@ -254,7 +254,6 @@ def test_partitioning_time_daily_apply():
     assert table.partitions[6].name == "2019_jun_04"
 
 
-
 @pytest.mark.postgres_version(lt=110000)
 def test_partitioning_time_hourly_apply():
     """Tests whether automatically creating new partitions ahead hourly works as
@@ -446,7 +445,7 @@ def test_partitioning_time_hourly_apply_insert():
     assert len(table.partitions) == 2
 
     model.objects.create(timestamp=datetime.datetime(2019, 1, 7, 0))
-    model.objects.create(timestamp=datetime.datetime(2019, 1, 7 , 1))
+    model.objects.create(timestamp=datetime.datetime(2019, 1, 7, 1))
 
     with transaction.atomic():
         with pytest.raises(IntegrityError):
