@@ -4,6 +4,7 @@ import pytest
 from django.db import connection, models
 from django.db.models import F, Q
 from django.db.models.expressions import CombinedExpression, Value
+from django.test.utils import CaptureQueriesContext
 
 from psqlextra.expressions import ExcludedCol
 from psqlextra.fields import HStoreField
@@ -142,6 +143,35 @@ def test_upsert_with_update_condition():
     assert obj1.pk == obj1_pk
     assert obj1.priority == 2
     assert obj1.active
+
+
+@pytest.mark.parametrize("update_condition_value", [0, False])
+def test_upsert_with_update_condition_false(update_condition_value):
+    """Tests that an expression can be used as an upsert update condition."""
+
+    model = get_fake_model(
+        {
+            "name": models.TextField(unique=True),
+            "priority": models.IntegerField(),
+            "active": models.BooleanField(),
+        }
+    )
+
+    obj1 = model.objects.create(name="joe", priority=1, active=False)
+
+    with CaptureQueriesContext(connection) as ctx:
+        upsert_result = model.objects.upsert(
+            conflict_target=["name"],
+            update_condition=update_condition_value,
+            fields=dict(name="joe", priority=2, active=True),
+        )
+        assert upsert_result is None
+        assert len(ctx) == 1
+        assert 'ON CONFLICT ("name") DO NOTHING' in ctx[0]["sql"]
+
+    obj1.refresh_from_db()
+    assert obj1.priority == 1
+    assert not obj1.active
 
 
 def test_upsert_with_update_values():
