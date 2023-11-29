@@ -327,7 +327,9 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
 
         self.on_conflict(
             conflict_target,
-            ConflictAction.UPDATE,
+            ConflictAction.UPDATE
+            if (update_condition or update_condition is None)
+            else ConflictAction.NOTHING,
             index_predicate=index_predicate,
             update_condition=update_condition,
             update_values=update_values,
