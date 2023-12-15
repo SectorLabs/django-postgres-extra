@@ -199,6 +199,12 @@ workflows:
               only: /.*/
             branches:
               only: /.*/
+      - test-python312:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
       - analysis:
           filters:
             tags:
