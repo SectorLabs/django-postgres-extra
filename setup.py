@@ -1,13 +1,21 @@
-import distutils.cmd
 import os
 import subprocess
 
 from setuptools import find_packages, setup
 
+try:
+    # distutils module is deprecated since Python 3.10
+    # and removed in Python 3.12
+    # https://peps.python.org/pep-0632/
+    import distutils.cmd as distutils_cmd
+except ImportError:
+    import setuptools.command as distutils_cmd
+
+
 exec(open("psqlextra/_version.py").read())
 
 
-class BaseCommand(distutils.cmd.Command):
+class BaseCommand(distutils_cmd.Command):
     user_options = []
 
     def initialize_options(self):
