@@ -106,6 +106,17 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 311
+
+  test-python312:
+    executor:
+      name: python
+      version: "3.12"
+    steps:
+      - checkout
+      - install-dependencies:
+          extra: test
+      - run-tests:
+          pyversion: 312
       - store_test_results:
           path: reports
       - run:
