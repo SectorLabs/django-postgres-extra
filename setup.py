@@ -4,9 +4,9 @@ import subprocess
 from setuptools import find_packages, setup
 
 try:
-    import distutils.cmd.Command as Command
+    from distutils.cmd import Command as Command
 except ImportError:
-    import setuptools.Command as Command
+    from setuptools import Command as Command
 
 exec(open("psqlextra/_version.py").read())
 
