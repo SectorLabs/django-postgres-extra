@@ -12,6 +12,17 @@ executors:
           POSTGRES_DB: 'psqlextra'
           POSTGRES_USER: 'psqlextra'
           POSTGRES_PASSWORD: 'psqlextra'
+  python-rc:
+    parameters:
+      version:
+        type: string
+    docker:
+      - image: python:<< parameters.version >>-rc-buster
+      - image: postgres:16.0
+        environment:
+          POSTGRES_DB: 'psqlextra'
+          POSTGRES_USER: 'psqlextra'
+          POSTGRES_PASSWORD: 'psqlextra'
 
 commands:
   install-dependencies:
@@ -106,6 +117,17 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 311
+
+  test-python312:
+    executor:
+      name: python-rc
+      version: "3.12"
+    steps:
+      - checkout
+      - install-dependencies:
+          extra: test
+      - run-tests:
+          pyversion: 312
       - store_test_results:
           path: reports
       - run:
@@ -183,6 +205,12 @@ workflows:
             branches:
               only: /.*/
       - test-python311:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+      - test-python312:
           filters:
             tags:
               only: /.*/
