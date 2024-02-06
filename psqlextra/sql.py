@@ -64,8 +64,15 @@ class PostgresQuery(sql.Query):
             new_annotations[new_name or old_name] = annotation
 
             if new_name and self.annotation_select_mask:
-                self.annotation_select_mask.discard(old_name)
-                self.annotation_select_mask.add(new_name)
+                # It's a set in all versions prior to Django 5.x
+                # and a list in Django 5.x and newer.
+                # https://github.com/django/django/commit/d6b6e5d0fd4e6b6d0183b4cf6e4bd4f9afc7bf67
+                if isinstance(self.annotation_select_mask, set):
+                    self.annotation_select_mask.discard(old_name)
+                    self.annotation_select_mask.add(new_name)
+                elif isinstance(self.annotation_select_mask, list):
+                    self.annotation_select_mask.remove(old_name)
+                    self.annotation_select_mask.append(new_name)
 
         self.annotations.clear()
         self.annotations.update(new_annotations)
