@@ -7,6 +7,7 @@ from typing import (
     Optional,
     Type,
     TypeVar,
+    Union,
     cast,
 )
 
@@ -115,9 +116,10 @@ def models_from_cursor(
             )
 
             for index, related_field_name in enumerate(related_fields):
-                related_model = model._meta.get_field(
-                    related_field_name
-                ).related_model
+                related_model = cast(
+                    Union[Type[Model], None],
+                    model._meta.get_field(related_field_name).related_model,
+                )
                 if not related_model:
                     continue
 
