@@ -1,13 +1,12 @@
-import distutils.cmd
 import os
 import subprocess
 
-from setuptools import find_packages, setup
+from setuptools import Command, find_packages, setup
 
 exec(open("psqlextra/_version.py").read())
 
 
-class BaseCommand(distutils.cmd.Command):
+class BaseCommand(Command):
     user_options = []
 
     def initialize_options(self):
