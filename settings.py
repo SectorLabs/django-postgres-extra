@@ -24,3 +24,6 @@ INSTALLED_APPS = (
     'psqlextra',
     'tests',
 )
+
+USE_TZ = True
+TIME_ZONE = 'UTC'

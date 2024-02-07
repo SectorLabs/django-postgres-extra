@@ -1,5 +1,8 @@
+from datetime import datetime, timezone
+
 from django.db import connection, models
-from django.db.models import Case, F, Q, Value, When
+from django.db.models import Case, F, Min, Q, Value, When
+from django.db.models.functions.datetime import TruncSecond
 from django.test.utils import CaptureQueriesContext, override_settings
 
 from psqlextra.expressions import HStoreRef
@@ -94,6 +97,40 @@ def test_query_annotate_in_expression():
 
     assert result.real_name == "henk"
     assert result.is_he_henk == "really henk"
+
+
+def test_query_annotate_group_by():
+    """Tests whether annotations with GROUP BY clauses are properly renamed
+    when the annotation overwrites a field name."""
+
+    model = get_fake_model(
+        {
+            "name": models.TextField(),
+            "timestamp": models.DateTimeField(null=False),
+            "value": models.IntegerField(),
+        }
+    )
+
+    timestamp = datetime(2024, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+
+    model.objects.create(name="me", timestamp=timestamp, value=1)
+
+    result = (
+        model.objects.values("name")
+        .annotate(
+            timestamp=TruncSecond("timestamp", tzinfo=timezone.utc),
+            value=Min("value"),
+        )
+        .values_list(
+            "name",
+            "value",
+            "timestamp",
+        )
+        .order_by("name")
+        .first()
+    )
+
+    assert result == ("me", 1, timestamp)
 
 
 def test_query_hstore_value_update_f_ref():

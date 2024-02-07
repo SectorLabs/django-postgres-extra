@@ -97,7 +97,7 @@ setup(
             "docformatter==1.4",
             "mypy==1.2.0; python_version > '3.6'",
             "mypy==0.971; python_version <= '3.6'",
-            "django-stubs==1.16.0; python_version > '3.6'",
+            "django-stubs==4.2.7; python_version > '3.6'",
             "django-stubs==1.9.0; python_version <= '3.6'",
             "typing-extensions==4.5.0; python_version > '3.6'",
             "typing-extensions==4.1.0; python_version <= '3.6'",
