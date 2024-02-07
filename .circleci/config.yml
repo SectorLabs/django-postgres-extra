@@ -142,8 +142,8 @@ jobs:
           name: Publish package
           command: >
             python -m twine upload
-            --username "${PYPI_REPO_USERNAME}"
-            --password "${PYPI_REPO_PASSWORD}"
+            --username "__token__"
+            --password "${PYPI_API_TOKEN}"
             --verbose
             --non-interactive
             --disable-progress-bar
