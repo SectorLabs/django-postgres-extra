@@ -1,8 +1,8 @@
+import re
 from typing import TYPE_CHECKING, Any, List, Optional, Type, cast
 from unittest import mock
 
 import django
-
 from django.core.exceptions import (
     FieldDoesNotExist,
     ImproperlyConfigured,
@@ -13,7 +13,7 @@ from django.db.backends.ddl_references import Statement
 from django.db.backends.postgresql.schema import (  # type: ignore[import]
     DatabaseSchemaEditor,
 )
-from django.db.models import Field, Model
+from django.db.models import Field, Model, BaseConstraint
 
 from psqlextra.settings import (
     postgres_prepend_local_search_path,
@@ -21,7 +21,6 @@ from psqlextra.settings import (
 )
 from psqlextra.type_assertions import is_sql_with_params
 from psqlextra.types import PostgresPartitioningMethod
-
 from . import base_impl
 from .introspection import PostgresIntrospection
 from .side_effects import (
@@ -199,10 +198,10 @@ class PostgresSchemaEditor(SchemaEditor):
                     % {
                         "table": quoted_table_fqn,
                         "changes": self.sql_alter_column_default
-                        % {
-                            "column": quoted_column_name,
-                            "default": "nextval('%s')" % quoted_sequence_fqn,
-                        },
+                                   % {
+                                       "column": quoted_column_name,
+                                       "default": "nextval('%s')" % quoted_sequence_fqn,
+                                   },
                     }
                 )
 
@@ -675,6 +674,7 @@ class PostgresSchemaEditor(SchemaEditor):
 
         with transaction.atomic():
             self.execute(sql, (from_values, to_values))
+            self.add_constraints_to_partition(model=model, table_name=table_name)
 
             if comment:
                 self.set_comment_on_table(table_name, comment)
@@ -718,6 +718,7 @@ class PostgresSchemaEditor(SchemaEditor):
 
         with transaction.atomic():
             self.execute(sql, values)
+            self.add_constraints_to_partition(model=model, table_name=table_name)
 
             if comment:
                 self.set_comment_on_table(table_name, comment)
@@ -764,13 +765,12 @@ class PostgresSchemaEditor(SchemaEditor):
 
         with transaction.atomic():
             self.execute(sql, (modulus, remainder))
+            self.add_constraints_to_partition(model=model, table_name=table_name)
 
             if comment:
                 self.set_comment_on_table(table_name, comment)
 
-    def add_default_partition(
-        self, model: Type[Model], name: str, comment: Optional[str] = None
-    ) -> None:
+    def add_default_partition(self, model: Type[Model], name: str, comment: Optional[str] = None, ) -> None:
         """Creates a new default partition for the specified partitioned model.
 
         A default partition is a partition where rows are routed to when
@@ -801,9 +801,33 @@ class PostgresSchemaEditor(SchemaEditor):
 
         with transaction.atomic():
             self.execute(sql)
+            self.add_constraints_to_partition(model=model, table_name=table_name)
 
             if comment:
                 self.set_comment_on_table(table_name, comment)
+
+    def add_constraints_to_partition(
+        self,
+        model: Type[Model],
+        table_name: str,
+    ):
+        constraints_sql = list(map(
+            lambda c: self._get_partition_add_constraint_sql(model=model, table_name=table_name, constraint=c),
+            model._partitioning_meta.per_partition_constraints or []
+        ))
+
+        for constraint_sql in constraints_sql:
+            self.execute(constraint_sql)
+
+    def _get_partition_add_constraint_sql(
+        self,
+        model: Type[Model],
+        table_name: str,
+        constraint: BaseConstraint
+    ) -> str:
+        sql = str(constraint.create_sql(model=model, schema_editor=self))
+        sql = sql.replace(re.search('ALTER TABLE "(.*)" ADD', sql).groups()[0], table_name)
+        return sql
 
     def delete_partition(self, model: Type[Model], name: str) -> None:
         """Deletes the partition with the specified name."""

@@ -2,7 +2,6 @@ from typing import Any, Optional, Type
 
 from psqlextra.backend.schema import PostgresSchemaEditor
 from psqlextra.models import PostgresPartitionedModel
-
 from .partition import PostgresPartition
 
 

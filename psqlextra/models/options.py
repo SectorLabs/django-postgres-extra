@@ -1,5 +1,7 @@
 from typing import Dict, List, Optional, Union
 
+from django.db.models import BaseConstraint
+
 from psqlextra.types import PostgresPartitioningMethod, SQLWithParams
 
 
@@ -10,12 +12,15 @@ class PostgresPartitionedModelOptions:
     are held.
     """
 
-    def __init__(self, method: PostgresPartitioningMethod, key: List[str]):
+    def __init__(
+            self, method: PostgresPartitioningMethod, key: List[str], per_partition_constraints: list[BaseConstraint]
+    ):
         self.method = method
         self.key = key
         self.original_attrs: Dict[
             str, Union[PostgresPartitioningMethod, List[str]]
         ] = dict(method=method, key=key)
+        self.per_partition_constraints = per_partition_constraints or []
 
 
 class PostgresViewOptions:
