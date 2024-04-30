@@ -75,6 +75,7 @@ class PostgresSchemaEditor(SchemaEditor):
     sql_add_range_partition = (
         "CREATE TABLE %s PARTITION OF %s FOR VALUES FROM (%s) TO (%s)"
     )
+    sql_detach_partition = "ALTER TABLE %s DETACH PARTITION %s"
     sql_add_list_partition = (
         "CREATE TABLE %s PARTITION OF %s FOR VALUES IN (%s)"
     )
@@ -807,11 +808,16 @@ class PostgresSchemaEditor(SchemaEditor):
 
     def delete_partition(self, model: Type[Model], name: str) -> None:
         """Deletes the partition with the specified name."""
-
-        sql = self.sql_delete_partition % self.quote_name(
-            self.create_partition_table_name(model, name)
+        partition_table_name = self.create_partition_table_name(model, name)
+        detach_sql = self.sql_detach_partition % (
+            self.quote_name(model._meta.db_table),
+            self.quote_name(partition_table_name),
         )
-        self.execute(sql)
+        delete_sql = self.sql_delete_partition % self.quote_name(
+            partition_table_name
+        )
+        self.execute(detach_sql)
+        self.execute(delete_sql)
 
     def alter_db_table(
         self, model: Type[Model], old_db_table: str, new_db_table: str

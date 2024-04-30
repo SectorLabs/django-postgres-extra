@@ -28,3 +28,4 @@ dist/
 
 # Ignore PyCharm / IntelliJ files
 .idea/
+*.iml

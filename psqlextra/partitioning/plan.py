@@ -1,5 +1,7 @@
+import contextlib
+
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List, Optional, cast
+from typing import TYPE_CHECKING, ContextManager, List, Optional, Union, cast
 
 from django.db import connections, transaction
 
@@ -36,8 +38,15 @@ class PostgresModelPartitioningPlan:
 
         connection = connections[using or "default"]
 
-        with transaction.atomic():
-            with connection.schema_editor() as schema_editor:
+        cm: Union[transaction.Atomic, ContextManager[None]] = (
+            transaction.atomic()
+            if self.config.atomic
+            else contextlib.nullcontext()
+        )
+        with cm:
+            with connection.schema_editor(
+                atomic=self.config.atomic
+            ) as schema_editor:
                 for partition in self.creations:
                     partition.create(
                         self.config.model,
