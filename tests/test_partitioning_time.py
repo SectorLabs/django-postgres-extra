@@ -458,6 +458,7 @@ def test_partitioning_time_delete(kwargs, timepoints):
             assert len(table.partitions) == partition_count
 
 
+@pytest.mark.postgres_version(lt=110000)
 def test_partitioning_time_when_non_atomic():
     model = define_fake_partitioned_model(
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
