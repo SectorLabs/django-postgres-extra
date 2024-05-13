@@ -467,7 +467,15 @@ def test_partitioning_time_when_non_atomic():
     schema_editor.create_partitioned_model(model)
 
     manager = PostgresPartitioningManager(
-        [partition_by_current_time(model=model, count=6, days=7, atomic=False)]
+        [
+            partition_by_current_time(
+                model=model,
+                count=6,
+                days=7,
+                max_age=relativedelta(weeks=1),
+                atomic=False,
+            )
+        ]
     )
 
     with freezegun.freeze_time("2019-1-1"):
