@@ -179,8 +179,15 @@ def test_on_conflict_nothing_duplicate_rows():
 
     rows = [dict(amount=1), dict(amount=1)]
 
-    (
-        model.objects.on_conflict(
-            ["amount"], ConflictAction.NOTHING
-        ).bulk_insert(rows)
-    )
+    inserted_rows = model.objects.on_conflict(
+        ["amount"], ConflictAction.NOTHING
+    ).bulk_insert(rows)
+
+    assert len(inserted_rows) == 1
+
+    rows = iter([dict(amount=2), dict(amount=2)])
+    inserted_rows = model.objects.on_conflict(
+        ["amount"], ConflictAction.NOTHING
+    ).bulk_insert(rows)
+
+    assert len(inserted_rows) == 1
