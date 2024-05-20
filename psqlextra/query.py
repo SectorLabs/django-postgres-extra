@@ -174,11 +174,19 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
             A list of either the dicts of the rows inserted, including the pk or
             the models of the rows inserted with defaults for any fields not specified
         """
+        if rows is None:
+            return []
 
-        def is_empty(r):
-            return all([False for _ in r])
+        def peek(iterable):
+            try:
+                first = next(iterable)
+            except StopIteration:
+                return None
+            return list(chain([first], iterable))
 
-        if not rows or is_empty(rows):
+        rows = peek(iter(rows))
+
+        if not rows:
             return []
 
         if not self.conflict_target and not self.conflict_action:
