@@ -48,3 +48,28 @@ By default, Postgres will raise an error if any other table is referencing one o
    MyModel.objects.truncate(cascade=True)
    print(MyModel1.objects.count()) # zero records left
    print(MyModel2.objects.count()) # zero records left
+
+
+Restart identity
+****************
+
+If specified, any sequences on the table will be restarted.
+
+.. code-block:: python
+
+   from django.db import models
+   from psqlextra.models import PostgresModel
+
+   class MyModel(PostgresModel):
+      pass
+
+   mymodel = MyModel.objects.create()
+   assert mymodel.id == 1
+
+   MyModel.objects.truncate(restart_identity=True) # table is empty after this
+   print(MyModel.objects.count()) # zero records left
+
+   # Create a new row, it should get ID 1 again because
+   # the sequence got restarted.
+   mymodel = MyModel.objects.create()
+   assert mymodel.id == 1
