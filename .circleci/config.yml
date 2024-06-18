@@ -6,7 +6,7 @@ executors:
       version:
         type: string
     docker:
-      - image: python:<< parameters.version >>-buster
+      - image: python:<< parameters.version >>-bullseye
       - image: postgres:13.0
         environment:
           POSTGRES_DB: 'psqlextra'
@@ -22,7 +22,7 @@ commands:
     steps:
       - run:
           name: Install packages
-          command: apt-get update && apt-get install -y --no-install-recommends postgresql-client-11 libpq-dev build-essential git
+          command: apt-get update && apt-get install -y --no-install-recommends postgresql-client-13 libpq-dev build-essential git
 
       - run:
           name: Install Python packages
@@ -112,6 +112,17 @@ jobs:
           name: Upload coverage report
           command: coveralls
 
+  test-python312:
+    executor:
+      name: python
+      version: "3.12"
+    steps:
+      - checkout
+      - install-dependencies:
+          extra: test
+      - run-tests:
+          pyversion: 312
+
   analysis:
     executor:
       name: python
@@ -183,6 +194,12 @@ workflows:
             branches:
               only: /.*/
       - test-python311:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+      - test-python312:
           filters:
             tags:
               only: /.*/
