@@ -18,6 +18,7 @@ def partition_by_current_time(
     days: Optional[int] = None,
     max_age: Optional[relativedelta] = None,
     name_format: Optional[str] = None,
+    atomic: bool = True,
 ) -> PostgresPartitioningConfig:
     """Short-hand for generating a partitioning config that partitions the
     specified model by time.
@@ -53,6 +54,9 @@ def partition_by_current_time(
         name_format:
             The datetime format which is being passed to datetime.strftime
             to generate the partition name.
+
+        atomic:
+            If set to True, the partitioning operations will be run inside a transaction.
     """
 
     size = PostgresTimePartitionSize(
@@ -61,6 +65,7 @@ def partition_by_current_time(
 
     return PostgresPartitioningConfig(
         model=model,
+        atomic=atomic,
         strategy=PostgresCurrentTimePartitioningStrategy(
             size=size,
             count=count,

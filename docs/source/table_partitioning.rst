@@ -177,6 +177,16 @@ Time-based partitioning
    ])
 
 
+Running management operations in a non atomic way
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Partitions creation and deletion can be done in a non-atomic way.
+This can be useful to reduce lock contention when performing partition operations on a table while it is under heavy load.
+Note that obviously this can lead to partially created/deleted partitions if something goes wrong during the operations.
+By default all operations are done in an atomic way.
+
+You can disable atomic operations by setting the `atomic` parameter to `False` in the `PostgresPartitioningConfig` constructor.
+
 Changing a time partitioning strategy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

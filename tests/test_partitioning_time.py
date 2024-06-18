@@ -459,6 +459,37 @@ def test_partitioning_time_delete(kwargs, timepoints):
 
 
 @pytest.mark.postgres_version(lt=110000)
+def test_partitioning_time_when_non_atomic():
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    manager = PostgresPartitioningManager(
+        [
+            partition_by_current_time(
+                model=model,
+                count=6,
+                days=7,
+                max_age=relativedelta(weeks=1),
+                atomic=False,
+            )
+        ]
+    )
+
+    with freezegun.freeze_time("2019-1-1"):
+        manager.plan().apply()
+
+    with freezegun.freeze_time("2019-1-15"):
+        manager.plan(skip_create=True).apply()
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 4
+
+
+@pytest.mark.postgres_version(lt=110000)
 def test_partitioning_time_delete_ignore_manual():
     """Tests whether partitions that were created manually are ignored.
 
