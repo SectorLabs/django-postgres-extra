@@ -41,6 +41,14 @@ else:
     QuerySetBase = QuerySet
 
 
+def peek_iterator(iterable):
+    try:
+        first = next(iterable)
+    except StopIteration:
+        return None
+    return list(chain([first], iterable))
+
+
 class PostgresQuerySet(QuerySetBase, Generic[TModel]):
     """Adds support for PostgreSQL specifics."""
 
@@ -177,14 +185,7 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         if rows is None:
             return []
 
-        def peek(iterable):
-            try:
-                first = next(iterable)
-            except StopIteration:
-                return None
-            return list(chain([first], iterable))
-
-        rows = peek(iter(rows))
+        rows = peek_iterator(iter(rows))
 
         if not rows:
             return []
