@@ -231,7 +231,7 @@ class PostgresIntrospection(Introspection):
         # standard Django implementation does not return the definition
         # for indexes, only for constraints, let's patch that up
         cursor.execute(
-            "SELECT indexname, indexdef FROM pg_indexes WHERE tablename = %s",
+            "SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = current_schema() AND tablename = %s",
             (table_name,),
         )
         for index_name, definition in cursor.fetchall():
