@@ -604,9 +604,9 @@ class PostgresSchemaEditor(SchemaEditor):
             self.quote_name(field_name) for field_name in meta.key
         )
 
-        if meta.primary_key:
+        if meta.sub_key:
             primary_key_sql = ", ".join(
-                self.quote_name(field_name) for field_name in meta.primary_key
+                self.quote_name(field_name) for field_name in meta.sub_key
             )
         else:
             primary_key_sql=partitioning_key_sql
