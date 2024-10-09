@@ -1,5 +1,3 @@
-from re import sub
-from token import OP
 from typing import Dict, List, Optional, Union
 
 from psqlextra.types import PostgresPartitioningMethod, SQLWithParams
@@ -12,13 +10,18 @@ class PostgresPartitionedModelOptions:
     are held.
     """
 
-    def __init__(self, method: PostgresPartitioningMethod, key: List[str], sub_key: List[str]):
+    def __init__(
+        self,
+        method: PostgresPartitioningMethod,
+        key: List[str],
+        sub_key: List[str],
+    ):
         self.method = method
         self.key = key
-        self.sub_key =  sub_key
+        self.sub_key = sub_key
         self.original_attrs: Dict[
             str, Union[PostgresPartitioningMethod, List[str]]
-        ] = dict(method=method, key=key,sub_key=sub_key)
+        ] = dict(method=method, key=key, sub_key=sub_key)
 
 
 class PostgresViewOptions:

@@ -30,19 +30,25 @@ from .migrations import apply_migration, make_migration
         dict(
             fields={"category": models.TextField()},
             partitioning_options=dict(
-                method=PostgresPartitioningMethod.LIST, key="category"
+                method=PostgresPartitioningMethod.LIST,
+                key="category",
+                sub_key=[],
             ),
         ),
         dict(
             fields={"timestamp": models.DateTimeField()},
             partitioning_options=dict(
-                method=PostgresPartitioningMethod.RANGE, key="timestamp"
+                method=PostgresPartitioningMethod.RANGE,
+                key="timestamp",
+                sub_key=[],
             ),
         ),
         dict(
             fields={"artist_id": models.IntegerField()},
             partitioning_options=dict(
-                method=PostgresPartitioningMethod.HASH, key="artist_id"
+                method=PostgresPartitioningMethod.HASH,
+                key="artist_id",
+                sub_key=[],
             ),
         ),
     ],

@@ -609,8 +609,8 @@ class PostgresSchemaEditor(SchemaEditor):
                 self.quote_name(field_name) for field_name in meta.sub_key
             )
         else:
-            primary_key_sql=partitioning_key_sql
-            
+            primary_key_sql = partitioning_key_sql
+
         # create a composite key that includes the partitioning key
         sql = sql.replace(" PRIMARY KEY", "")
         if model._meta.pk and model._meta.pk.name not in meta.key:
