@@ -54,7 +54,7 @@ class PostgresModelPartitioningPlan:
     def print(self) -> None:
         """Prints this model plan to the terminal in a readable format."""
 
-        print(f"{self.config.model.__name__}: ")
+        print(f"{self.config.model.__name__}:")
 
         for partition in self.deletions:
             print("  - %s" % partition.name())
