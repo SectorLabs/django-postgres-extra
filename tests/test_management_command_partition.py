@@ -101,6 +101,7 @@ def test_management_command_partition_dry_run(
     create/delete partitions."""
 
     config = fake_partitioning_manager.find_config_for_model(fake_model)
+
     snapshot.assert_match(run(args))
 
     config.strategy.createable_partition.create.assert_not_called()

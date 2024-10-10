@@ -78,6 +78,7 @@ class PostgresSchemaEditor(SchemaEditor):
     sql_add_list_partition = (
         "CREATE TABLE %s PARTITION OF %s FOR VALUES IN (%s)"
     )
+    sql_add_list_sub_partition = "CREATE TABLE %s PARTITION OF %s FOR VALUES IN (%s) PARTITION BY LIST (%s)"
     sql_delete_partition = "DROP TABLE %s"
     sql_table_comment = "COMMENT ON TABLE %s IS %s"
 
@@ -604,15 +605,22 @@ class PostgresSchemaEditor(SchemaEditor):
             self.quote_name(field_name) for field_name in meta.key
         )
 
+        if meta.sub_key:
+            primary_key_sql = ", ".join(
+                self.quote_name(field_name) for field_name in meta.sub_key
+            )
+        else:
+            primary_key_sql = partitioning_key_sql
+
         # create a composite key that includes the partitioning key
         sql = sql.replace(" PRIMARY KEY", "")
         if model._meta.pk and model._meta.pk.name not in meta.key:
             sql = sql[:-1] + ", PRIMARY KEY (%s, %s))" % (
                 self.quote_name(model._meta.pk.name),
-                partitioning_key_sql,
+                primary_key_sql,
             )
         else:
-            sql = sql[:-1] + ", PRIMARY KEY (%s))" % (partitioning_key_sql,)
+            sql = sql[:-1] + ", PRIMARY KEY (%s))" % (primary_key_sql,)
 
         # extend the standard CREATE TABLE statement with
         # 'PARTITION BY ...'
@@ -721,6 +729,50 @@ class PostgresSchemaEditor(SchemaEditor):
 
             if comment:
                 self.set_comment_on_table(table_name, comment)
+
+    def add_list_sub_partition(
+        self,
+        model: Type[Model],
+        name: str,
+        values: List[Any],
+        sub_key: str,
+        comment: Optional[str] = None,
+    ) -> None:
+        """Creates a new list sub partition for the specified partitioned
+        model.
+
+        Arguments:
+            model:
+                Partitioned model to create a partition for.
+
+            name:
+                Name to give to the new partition.
+                Final name will be "{table_name}_{partition_name}"
+
+            values:
+                Partition key values that should be
+                stored in this partition.
+
+            comment:
+                Optionally, a comment to add on this
+                partition table.
+        """
+
+        # asserts the model is a model set up for partitioning
+        self._partitioning_properties_for_model(model)
+
+        sql = self.sql_add_list_sub_partition % (
+            self.quote_name(name),
+            self.quote_name(model._meta.db_table),
+            ",".join(["%s" for _ in range(len(values))]),
+            self.quote_name(sub_key),
+        )
+
+        with transaction.atomic():
+            self.execute(sql, values)
+
+            if comment:
+                self.set_comment_on_table(name, comment)
 
     def add_hash_partition(
         self,

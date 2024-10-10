@@ -25,12 +25,15 @@ class PostgresPartitionedModelMeta(ModelBase):
 
         method = getattr(meta_class, "method", None)
         key = getattr(meta_class, "key", None)
+        sub_key = getattr(meta_class, "sub_key", None)
 
-        patitioning_meta = PostgresPartitionedModelOptions(
-            method=method or cls.default_method, key=key or cls.default_key
+        partitioning_meta = PostgresPartitionedModelOptions(
+            method=method or cls.default_method,
+            key=key or cls.default_key,
+            sub_key=sub_key or cls.default_key,
         )
 
-        new_class.add_to_class("_partitioning_meta", patitioning_meta)
+        new_class.add_to_class("_partitioning_meta", partitioning_meta)
         return new_class
 
 
