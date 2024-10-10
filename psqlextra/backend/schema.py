@@ -761,8 +761,6 @@ class PostgresSchemaEditor(SchemaEditor):
         # asserts the model is a model set up for partitioning
         self._partitioning_properties_for_model(model)
 
-        # table_name = self.create_partition_table_name(model, name)
-
         sql = self.sql_add_list_sub_partition % (
             self.quote_name(name),
             self.quote_name(model._meta.db_table),
