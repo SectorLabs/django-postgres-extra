@@ -774,6 +774,52 @@ class PostgresSchemaEditor(SchemaEditor):
             if comment:
                 self.set_comment_on_table(name, comment)
 
+    def add_custom_list_partition(
+        self,
+        partition_table_name: str,
+        source_table: str,
+        values: List[Any],
+        comment: Optional[str] = None,
+    ) -> None:
+        """Creates a new list partition for the specified source_table.
+        Bypasses the need for a model instance, since sub partitioning doesn't
+        cleanly fit into the model-based partitioning system.
+
+        Arguments:
+            partition_table_name:
+                Name to give to the new partition table.
+
+            source_table:
+                The table to partition.
+
+            values:
+                Partition key values that should be
+                stored in this partition.
+
+            comment:
+                Optionally, a comment to add on this
+                partition table.
+        """
+
+        sql = self.sql_add_list_partition % (
+            self.quote_name(partition_table_name),
+            self.quote_name(source_table),
+            ",".join(["%s" for _ in range(len(values))]),
+        )
+
+        with transaction.atomic():
+            self.execute(sql, values)
+
+            if comment:
+                self.set_comment_on_table(partition_table_name, comment)
+
+    def delete_custom_partition(self, name: str) -> None:
+        """Deletes the partition with the specified name."""
+
+        sql = self.sql_delete_partition % self.quote_name(name)
+
+        self.execute(sql)
+
     def add_hash_partition(
         self,
         model: Type[Model],
