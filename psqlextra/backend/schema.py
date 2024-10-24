@@ -80,6 +80,7 @@ class PostgresSchemaEditor(SchemaEditor):
     )
     sql_add_list_sub_partition = "CREATE TABLE %s PARTITION OF %s FOR VALUES IN (%s) PARTITION BY LIST (%s)"
     sql_delete_partition = "DROP TABLE %s"
+    sql_truncate_partition = "TRUNCATE TABLE %s"
     sql_table_comment = "COMMENT ON TABLE %s IS %s"
 
     side_effects: List[DatabaseSchemaEditor] = [
@@ -817,6 +818,13 @@ class PostgresSchemaEditor(SchemaEditor):
         """Deletes the partition with the specified name."""
 
         sql = self.sql_delete_partition % self.quote_name(name)
+
+        self.execute(sql)
+
+    def truncate_custom_partition(self, name: str) -> None:
+        """Deletes the partition with the specified name."""
+
+        sql = self.sql_truncate_partition % self.quote_name(name)
 
         self.execute(sql)
 
