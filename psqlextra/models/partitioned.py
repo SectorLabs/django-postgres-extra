@@ -1,5 +1,3 @@
-from typing import Iterable
-
 from django.db.models.base import ModelBase
 
 from psqlextra.types import PostgresPartitioningMethod
@@ -17,7 +15,7 @@ class PostgresPartitionedModelMeta(ModelBase):
     """
 
     default_method = PostgresPartitioningMethod.RANGE
-    default_key: Iterable[str] = []
+    default_key = []
 
     def __new__(cls, name, bases, attrs, **kwargs):
         new_class = super().__new__(cls, name, bases, attrs, **kwargs)
@@ -34,13 +32,9 @@ class PostgresPartitionedModelMeta(ModelBase):
         return new_class
 
 
-class PostgresPartitionedModel(
-    PostgresModel, metaclass=PostgresPartitionedModelMeta
-):
+class PostgresPartitionedModel(PostgresModel, metaclass=PostgresPartitionedModelMeta):
     """Base class for taking advantage of PostgreSQL's 11.x native support for
     table partitioning."""
-
-    _partitioning_meta: PostgresPartitionedModelOptions
 
     class Meta:
         abstract = True

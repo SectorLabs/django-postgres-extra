@@ -8,7 +8,7 @@ from django.db.models import Manager
 from psqlextra.query import PostgresQuerySet
 
 
-class PostgresManager(Manager.from_queryset(PostgresQuerySet)):  # type: ignore[misc]
+class PostgresManager(Manager.from_queryset(PostgresQuerySet)):
     """Adds support for PostgreSQL specifics."""
 
     use_in_migrations = True
@@ -37,10 +37,7 @@ class PostgresManager(Manager.from_queryset(PostgresQuerySet)):  # type: ignore[
             )
 
     def truncate(
-        self,
-        cascade: bool = False,
-        restart_identity: bool = False,
-        using: Optional[str] = None,
+        self, cascade: bool = False, using: Optional[str] = None
     ) -> None:
         """Truncates this model/table using the TRUNCATE statement.
 
@@ -54,19 +51,14 @@ class PostgresManager(Manager.from_queryset(PostgresQuerySet)):  # type: ignore[
                 False, an error will be raised if there
                 are rows in other tables referencing
                 the rows you're trying to delete.
-            restart_identity:
-                Automatically restart sequences owned by
-                columns of the truncated table(s).
         """
 
         connection = connections[using or "default"]
         table_name = connection.ops.quote_name(self.model._meta.db_table)
 
         with connection.cursor() as cursor:
-            sql = f"TRUNCATE TABLE {table_name}"
+            sql = "TRUNCATE TABLE %s" % table_name
             if cascade:
                 sql += " CASCADE"
-            if restart_identity:
-                sql += " RESTART IDENTITY"
 
             cursor.execute(sql)
