@@ -1,101 +1,89 @@
+# django-pg-extra-extended (Fork for Django 5+)
+
 <h1 align="center">
   <img width="400" src="https://i.imgur.com/79S6OVM.png" alt="django-postgres-extra">
 </h1>
-  
+
+This is a fork of `django-postgres-extra`, updated to support Django 5+ while maintaining PostgreSQL enhancements for the Django ORM.
+
 |  |  |  |
 |--------------------|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| :white_check_mark: | **Tests** | [![CircleCI](https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master.svg?style=svg)](https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master) |
 | :memo: | **License** | [![License](https://img.shields.io/:license-mit-blue.svg)](http://doge.mit-license.org) |
-| :package: | **PyPi** | [![PyPi](https://badge.fury.io/py/django-postgres-extra.svg)](https://pypi.python.org/pypi/django-postgres-extra) |
-| :four_leaf_clover: | **Code coverage** | [![Coverage Status](https://coveralls.io/repos/github/SectorLabs/django-postgres-extra/badge.svg?branch=coveralls)](https://coveralls.io/github/SectorLabs/django-postgres-extra?branch=master) |
-| <img src="https://cdn.iconscout.com/icon/free/png-256/django-1-282754.png" width="22px" height="22px" align="center" /> | **Django Versions** | 2.0, 2.1, 2.2, 3.0, 3.1, 3.2, 4.0, 4.1, 4.2, 5.0 |
-| <img src="https://cdn3.iconfinder.com/data/icons/logos-and-brands-adobe/512/267_Python-512.png" width="22px" height="22px" align="center" /> | **Python Versions** | 3.6, 3.7, 3.8, 3.9, 3.10, 3.11 |
+| :package: | **PyPi** | (Coming soon) |
+| <img src="https://cdn.iconscout.com/icon/free/png-256/django-1-282754.png" width="22px" height="22px" align="center" /> | **Django Versions** | 5.0+ |
+| <img src="https://cdn3.iconfinder.com/data/icons/logos-and-brands-adobe/512/267_Python-512.png" width="22px" height="22px" align="center" /> | **Python Versions** | 3.8, 3.9, 3.10, 3.11, 3.12 |
 | <img src="https://pbs.twimg.com/profile_images/1152122059/psycopg-100_400x400.png" width="22px" height="22px" align="center" /> | **Psycopg Versions** | 2, 3 |
-| :book: | **Documentation** | [Read The Docs](https://django-postgres-extra.readthedocs.io/en/master/) |
-| :warning: | **Upgrade** | [Upgrade from v1.x](https://django-postgres-extra.readthedocs.io/en/master/major_releases.html#new-features)
-| :checkered_flag: | **Installation** | [Installation Guide](https://django-postgres-extra.readthedocs.io/en/master/installation.html) |
-| :fire: | **Features** | [Features & Documentation](https://django-postgres-extra.readthedocs.io/en/master/index.html#features) |
-| :droplet: | **Future enhancements** | [Potential features](https://github.com/SectorLabs/django-postgres-extra/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement) |
+| :book: | **Documentation** | (Coming soon) |
+| :fire: | **Features** | [Features & Documentation](https://github.com/MONSTER-HARSH/django-pg-extra-extended/) |
+| :droplet: | **Future enhancements** | [Potential features](https://github.com/MONSTER-HARSH/django-pg-extra-extended/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement) |
 
-`django-postgres-extra` aims to make all of PostgreSQL's awesome features available through the Django ORM. We do this by taking care of all the hassle. As opposed to the many small packages that are available to try to bring a single feature to Django with minimal effort. ``django-postgres-extra`` goes the extra mile, with well tested implementations, seamless migrations and much more.
- 
-With seamless we mean that any features we add will work truly seamlessly. You should not have to manually modify your migrations to work with fields and objects provided by this package.
+## About
 
----
+This fork of `django-postgres-extra` extends support for Django 5+, keeping all the powerful PostgreSQL features, including:
 
-:warning: **This README is for v2. See the `v1` branch for v1.x.**
+- **Native upserts** with bulk support
+- **Extended support for HStoreField** (unique constraints, null constraints, etc.)
+- **Declarative table partitioning** for PostgreSQL 11+
+- **Faster deletes** using table truncation
+- **Advanced indexing options** (conditional and case-sensitive unique indexes)
 
----
+## Installation
 
-## Major features
+Coming soon to PyPI.
 
-[See the full list](http://django-postgres-extra.readthedocs.io/#features)
+For now, install directly from GitHub:
 
-* **Native upserts**
+```sh
+pip install git+https://github.com/MONSTER-HARSH/django-pg-extra-extended.git
+```
 
-    * Single query
-    * Concurrency safe
-    * With bulk support (single query)
-
-* **Extended support for HStoreField**
-
-    * Unique constraints
-    * Null constraints
-    * Select individual keys using ``.values()`` or ``.values_list()``
-
-* **PostgreSQL 11.x declarative table partitioning**
-
-    * Supports both range and list partitioning
-
-* **Faster deletes**
-
-    * Truncate tables (with cascade)
-
-* **Indexes**
-
-    * Conditional unique index.
-    * Case sensitive unique index.
-
-## Working with the code
-### Prerequisites
-
-* PostgreSQL 10 or newer.
-* Django 2.0 or newer (including 3.x, 4.x).
-* Python 3.6 or newer.
-
-### Getting started
+## Getting Started
 
 1. Clone the repository:
 
-        λ git clone https://github.com/SectorLabs/django-postgres-extra.git
+   ```sh
+   git clone https://github.com/MONSTER-HARSH/django-pg-extra-extended.git
+   ```
 
 2. Create a virtual environment:
 
-       λ cd django-postgres-extra
-       λ virtualenv env
-       λ source env/bin/activate
+   ```sh
+   cd django-pg-extra-extended
+   python -m venv env
+   source env/bin/activate
+   ```
 
-3. Create a postgres user for use in tests (skip if your default user is a postgres superuser):
+3. Create a PostgreSQL user for testing:
 
-       λ createuser --superuser psqlextra --pwprompt
-       λ export DATABASE_URL=postgres://psqlextra:<password>@localhost/psqlextra
+   ```sh
+   createuser --superuser psqlextra --pwprompt
+   export DATABASE_URL=postgres://psqlextra:<password>@localhost/psqlextra
+   ```
 
-   Hint: if you're using virtualenvwrapper, you might find it beneficial to put
-   the ``export`` line in ``$VIRTUAL_ENV/bin/postactivate`` so that it's always
-   available when using this virtualenv.
+4. Install dependencies:
 
-4. Install the development/test dependencies:
+   ```sh
+   pip install .[test] .[analysis]
+   ```
 
-       λ pip install .[test] .[analysis]
+5. Run tests:
 
-5. Run the tests:
+   ```sh
+   tox
+   ```
 
-       λ tox
+## Migration from Original django-postgres-extra
 
-6. Run the benchmarks:
+If you're upgrading from `django-postgres-extra` (SectorLabs version), ensure that:
 
-       λ py.test -c pytest-benchmark.ini
+- You update the package source to this fork.
+- You check for any API changes due to Django 5+ compatibility adjustments.
 
-7. Auto-format code, sort imports and auto-fix linting errors:
+## Contributing
 
-       λ python setup.py fix
+Contributions are welcome! Please open an issue or submit a pull request.
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
+
