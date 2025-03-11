@@ -1,14 +1,12 @@
 from collections import OrderedDict
-from collections.abc import Iterable
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import django
 
 from django.core.exceptions import SuspiciousOperation
 from django.db import connections, models
-from django.db.models import Expression, sql
+from django.db.models import sql
 from django.db.models.constants import LOOKUP_SEP
-from django.db.models.expressions import Ref
 
 from .compiler import PostgresInsertOnConflictCompiler
 from .compiler import SQLUpdateCompiler as PostgresUpdateCompiler
@@ -18,8 +16,6 @@ from .types import ConflictAction
 
 
 class PostgresQuery(sql.Query):
-    select: Tuple[Expression, ...]
-
     def chain(self, klass=None):
         """Chains this query to another.
 
@@ -66,28 +62,13 @@ class PostgresQuery(sql.Query):
             new_annotations[new_name or old_name] = annotation
 
             if new_name and self.annotation_select_mask:
-                # It's a set in all versions prior to Django 5.x
-                # and a list in Django 5.x and newer.
-                # https://github.com/django/django/commit/d6b6e5d0fd4e6b6d0183b4cf6e4bd4f9afc7bf67
-                if isinstance(self.annotation_select_mask, set):
-                    self.annotation_select_mask.discard(old_name)
-                    self.annotation_select_mask.add(new_name)
-                elif isinstance(self.annotation_select_mask, list):
-                    self.annotation_select_mask.remove(old_name)
-                    self.annotation_select_mask.append(new_name)
-
-        if isinstance(self.group_by, Iterable):
-            for statement in self.group_by:
-                if not isinstance(statement, Ref):
-                    continue
-
-                if statement.refs in annotations:  # type: ignore[attr-defined]
-                    statement.refs = annotations[statement.refs]  # type: ignore[attr-defined]
+                self.annotation_select_mask.discard(old_name)
+                self.annotation_select_mask.add(new_name)
 
         self.annotations.clear()
         self.annotations.update(new_annotations)
 
-    def add_fields(self, field_names, *args, **kwargs) -> None:
+    def add_fields(self, field_names: List[str], *args, **kwargs) -> None:
         """Adds the given (model) fields to the select set.
 
         The field names are added in the order specified. This overrides
@@ -119,11 +100,10 @@ class PostgresQuery(sql.Query):
             if len(parts) > 1:
                 column_name, hstore_key = parts[:2]
                 is_hstore, field = self._is_hstore_field(column_name)
-                if self.model and is_hstore:
+                if is_hstore:
                     select.append(
                         HStoreColumn(
-                            self.model._meta.db_table
-                            or self.model.__class__.__name__,
+                            self.model._meta.db_table or self.model.name,
                             field,
                             hstore_key,
                         )
@@ -135,7 +115,7 @@ class PostgresQuery(sql.Query):
         super().add_fields(field_names_without_hstore, *args, **kwargs)
 
         if len(select) > 0:
-            self.set_select(list(self.select + tuple(select)))
+            self.set_select(self.select + tuple(select))
 
     def _is_hstore_field(
         self, field_name: str
@@ -147,11 +127,8 @@ class PostgresQuery(sql.Query):
         instance.
         """
 
-        if not self.model:
-            return (False, None)
-
         field_instance = None
-        for field in self.model._meta.local_concrete_fields:  # type: ignore[attr-defined]
+        for field in self.model._meta.local_concrete_fields:
             if field.name == field_name or field.column == field_name:
                 field_instance = field
                 break
@@ -171,14 +148,10 @@ class PostgresInsertQuery(sql.InsertQuery):
         self.conflict_action = ConflictAction.UPDATE
         self.conflict_update_condition = None
         self.index_predicate = None
-        self.update_values = {}
 
-    def insert_on_conflict_values(
-        self,
-        objs: List,
-        insert_fields: List,
-        update_values: Dict[str, Union[Any, Expression]] = {},
-    ):
+        self.update_fields = []
+
+    def values(self, objs: List, insert_fields: List, update_fields: List = []):
         """Sets the values to be used in this query.
 
         Insert fields are fields that are definitely
@@ -197,13 +170,12 @@ class PostgresInsertQuery(sql.InsertQuery):
             insert_fields:
                 The fields to use in the INSERT statement
 
-            update_values:
-                Expressions/values to use when a conflict
-                occurs and an UPDATE is performed.
+            update_fields:
+                The fields to only use in the UPDATE statement.
         """
 
         self.insert_values(insert_fields, objs, raw=False)
-        self.update_values = update_values
+        self.update_fields = update_fields
 
     def get_compiler(self, using=None, connection=None):
         if using:

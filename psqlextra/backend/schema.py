@@ -1045,7 +1045,7 @@ class PostgresSchemaEditor(SchemaEditor):
                 % (model.__name__, meta.method)
             )
 
-        if not isinstance(meta.key, (list, tuple)):
+        if not isinstance(meta.key, list):
             raise ImproperlyConfigured(
                 (
                     "Model '%s' is not properly configured to be partitioned."
