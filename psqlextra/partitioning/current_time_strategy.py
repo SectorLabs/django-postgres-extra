@@ -11,7 +11,7 @@ from .time_partition_size import PostgresTimePartitionSize
 class PostgresCurrentTimePartitioningStrategy(
     PostgresRangePartitioningStrategy
 ):
-    """Implments a time based partitioning strategy where each partition
+    """Implements a time based partitioning strategy where each partition
     contains values for a specific time period.
 
     All buckets will be equal in size and start at the start of the
