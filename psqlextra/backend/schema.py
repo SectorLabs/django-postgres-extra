@@ -250,7 +250,7 @@ class PostgresSchemaEditor(SchemaEditor):
                     model, tuple(), model._meta.unique_together
                 )
 
-            if django.VERSION < (5, 2):
+            if django.VERSION < (5, 1):
                 if model._meta.index_together:
                     self.alter_index_together(
                         model, tuple(), model._meta.index_together

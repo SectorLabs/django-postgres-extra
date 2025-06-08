@@ -177,7 +177,7 @@ def fake_model(fake_model_fk_target_1, fake_model_fk_target_2):
         ),
     }
 
-    if django.VERSION < (5, 2):
+    if django.VERSION < (5, 1):
         meta_options["index_together"] = (
             "blob",
             "age",
