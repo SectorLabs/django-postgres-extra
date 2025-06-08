@@ -73,9 +73,9 @@ class PostgresQuerySet(QuerySetBase, Generic[TModel]):
         name of an existing field on the model as the alias name. This
         version of the function does allow that.
 
-        This is done by temporarily renaming the fields in order to avoid the
-        check for conflicts that the base class does.
-        We rename all fields instead of the ones that already exist because
+        This is done by temporarily renaming the fields in order to
+        avoid the check for conflicts that the base class does. We
+        rename all fields instead of the ones that already exist because
         the annotations are stored in an OrderedDict. Renaming only the
         conflicts will mess up the order.
         """

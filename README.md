@@ -59,9 +59,11 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 ## Working with the code
 ### Prerequisites
 
-* PostgreSQL 10 or newer.
-* Django 2.0 or newer (including 3.x, 4.x).
-* Python 3.6 or newer.
+* PostgreSQL 14 or newer.
+* Django 5.x or newer.
+* Python 3.11 or newer.
+
+These are just for local development. CI for code analysis etc runs against these. Tests will pass on all Python, Django and PostgreSQL versions documented. Linting, formatting and type-checking the code might not work on other Python and/or Django versions.
 
 ### Getting started
 
@@ -86,16 +88,16 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 
 4. Install the development/test dependencies:
 
-       λ pip install .[test] .[analysis]
+       λ pip install -r requirements-test.txt
 
 5. Run the tests:
 
-       λ tox
+       λ poe test
 
 6. Run the benchmarks:
 
-       λ py.test -c pytest-benchmark.ini
+       λ poe benchmark
 
 7. Auto-format code, sort imports and auto-fix linting errors:
 
-       λ python setup.py fix
+       λ poe fix

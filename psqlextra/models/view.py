@@ -54,8 +54,8 @@ class PostgresViewModelMeta(ModelBase):
 
         When copying the meta options from the model, we convert any
         from the above to a raw SQL query with bind parameters. We do
-        this is because it is what the SQL driver understands and
-        we can easily serialize it into a migration.
+        this is because it is what the SQL driver understands and we can
+        easily serialize it into a migration.
         """
 
         # might be a callable to support delayed imports
