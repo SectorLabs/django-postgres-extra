@@ -93,6 +93,8 @@ class PostgresIntrospection(Introspection):
                 pg_class
             ON
                 pg_class.oid = pg_partitioned_table.partrelid
+            ORDER BY
+                pg_partitioned_table.partrelid
         """
         )
 
@@ -151,6 +153,9 @@ class PostgresIntrospection(Introspection):
                 pg_description.objoid = child.oid
             WHERE
                 parent.relname = %s
+            ORDER BY
+                child.oid,
+                child.relname
         """
 
         cursor.execute(sql, (table_name,))
@@ -196,6 +201,9 @@ class PostgresIntrospection(Introspection):
                 AND ordinal_position = pt.column_index
             WHERE
                 table_name = %s
+            ORDER BY
+                col.ordinal_position,
+                col.column_name
         """
 
         cursor.execute(sql, (table_name,))
@@ -213,6 +221,9 @@ class PostgresIntrospection(Introspection):
                 schema_name
             FROM
                 information_schema.schemata
+            ORDER BY
+                schema_name,
+                catalog_name
             """,
             tuple(),
         )
