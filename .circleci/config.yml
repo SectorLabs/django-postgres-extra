@@ -3,11 +3,14 @@ version: 2.1
 executors:
   python:
     parameters:
-      version:
+      pyversion:
         type: string
+      pgversion:
+        type: string
+        default: "16.0"
     docker:
-      - image: python:<< parameters.version >>-buster
-      - image: postgres:13.0
+      - image: python:<< parameters.pyversion >>-buster
+      - image: postgres:<< parameters.pgversion >>
         environment:
           POSTGRES_DB: 'psqlextra'
           POSTGRES_USER: 'psqlextra'
@@ -44,7 +47,8 @@ jobs:
   test-python36:
     executor:
       name: python
-      version: "3.6"
+      pyversion: "3.6"
+      pgversion: "13.0"
     steps:
       - checkout
       - install-dependencies:
@@ -55,7 +59,8 @@ jobs:
   test-python37:
     executor:
       name: python
-      version: "3.7"
+      pyversion: "3.7"
+      pgversion: "13.0"
     steps:
       - checkout
       - install-dependencies:
@@ -66,7 +71,8 @@ jobs:
   test-python38:
     executor:
       name: python
-      version: "3.8"
+      pyversion: "3.8"
+      pgversion: "13.0"
     steps:
       - checkout
       - install-dependencies:
@@ -77,7 +83,8 @@ jobs:
   test-python39:
     executor:
       name: python
-      version: "3.9"
+      pyversion: "3.9"
+      pgversion: "13.0"
     steps:
       - checkout
       - install-dependencies:
@@ -88,7 +95,8 @@ jobs:
   test-python310:
     executor:
       name: python
-      version: "3.10"
+      pyversion: "3.10"
+      pgversion: "16.0"
     steps:
       - checkout
       - install-dependencies:
@@ -99,7 +107,8 @@ jobs:
   test-python311:
     executor:
       name: python
-      version: "3.11"
+      pyversion: "3.11"
+      pgversion: "16.0"
     steps:
       - checkout
       - install-dependencies:
@@ -115,7 +124,7 @@ jobs:
   analysis:
     executor:
       name: python
-      version: "3.9"
+      pyversion: "3.10"
     steps:
       - checkout
       - install-dependencies:
@@ -127,7 +136,7 @@ jobs:
   publish:
     executor:
       name: python
-      version: "3.9"
+      pyversion: "3.10"
     steps:
       - checkout
       - install-dependencies:
