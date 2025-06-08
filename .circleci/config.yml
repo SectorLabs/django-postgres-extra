@@ -115,6 +115,18 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 311
+
+  test-python312:
+    executor:
+      name: python
+      pyversion: "3.12"
+      pgversion: "16.0"
+    steps:
+      - checkout
+      - install-dependencies:
+          extra: test
+      - run-tests:
+          pyversion: 312
       - store_test_results:
           path: reports
       - run:
@@ -192,6 +204,12 @@ workflows:
             branches:
               only: /.*/
       - test-python311:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+      - test-python312:
           filters:
             tags:
               only: /.*/
