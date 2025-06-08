@@ -28,7 +28,7 @@ commands:
     steps:
       - run:
           name: Install packages
-          command: apt-get update && apt-get install -y --no-install-recommends postgresql-client-11 libpq-dev build-essential git
+          command: apt-get update && apt-get install -y --no-install-recommends postgresql-client libpq-dev build-essential git
 
       - run:
           name: Install Python packages
