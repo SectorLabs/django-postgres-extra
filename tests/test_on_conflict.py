@@ -1,4 +1,5 @@
 import django
+import freezegun
 import pytest
 
 from django.core.exceptions import SuspiciousOperation
@@ -130,13 +131,16 @@ def test_on_conflict_partial_get():
         }
     )
 
-    obj1 = model.objects.on_conflict(
-        ["title"], ConflictAction.UPDATE
-    ).insert_and_get(title="beer", purpose="for-sale")
+    with freezegun.freeze_time("2020-1-1 12:00:00.0") as fg:
+        obj1 = model.objects.on_conflict(
+            ["title"], ConflictAction.UPDATE
+        ).insert_and_get(title="beer", purpose="for-sale")
 
-    obj2 = model.objects.on_conflict(
-        ["title"], ConflictAction.UPDATE
-    ).insert_and_get(title="beer")
+        fg.tick()
+
+        obj2 = model.objects.on_conflict(
+            ["title"], ConflictAction.UPDATE
+        ).insert_and_get(title="beer")
 
     obj2.refresh_from_db()
 
