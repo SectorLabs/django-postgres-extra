@@ -75,7 +75,9 @@ setup(
         ':python_version <= "3.6"': ["dataclasses"],
         "docs": ["Sphinx==2.2.0", "sphinx-rtd-theme==0.4.3", "docutils<0.18"],
         "test": [
-            "psycopg2==2.9.10",
+            "psycopg2==2.9.10; python_version >= '3.8'",
+            "psycopg2==2.9.9; python_version >= '3.7'",
+            "psycopg2==2.9.8; python_version >= '3.6'",
             "dj-database-url==0.5.0",
             "pytest==6.2.5",
             "pytest-benchmark==3.4.1",
