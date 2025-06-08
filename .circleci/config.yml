@@ -127,6 +127,18 @@ jobs:
           extra: test
       - run-tests:
           pyversion: 312
+
+  test-python313:
+    executor:
+      name: python
+      pyversion: "3.13"
+      pgversion: "16.0"
+    steps:
+      - checkout
+      - install-dependencies:
+          extra: test
+      - run-tests:
+          pyversion: 313
       - store_test_results:
           path: reports
       - run:
@@ -136,7 +148,7 @@ jobs:
   analysis:
     executor:
       name: python
-      pyversion: "3.10"
+      pyversion: "3.11"
     steps:
       - checkout
       - install-dependencies:
@@ -148,7 +160,7 @@ jobs:
   publish:
     executor:
       name: python
-      pyversion: "3.10"
+      pyversion: "3.11"
     steps:
       - checkout
       - install-dependencies:
@@ -210,6 +222,12 @@ workflows:
             branches:
               only: /.*/
       - test-python312:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+      - test-python313:
           filters:
             tags:
               only: /.*/
