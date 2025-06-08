@@ -571,7 +571,7 @@ class PostgresSchemaEditor(SchemaEditor):
                 cursor, model._meta.db_table
             )
 
-        with transaction.atomic():
+        with transaction.atomic(using=self.connection.alias):
             self.delete_materialized_view_model(model)
             self.create_materialized_view_model(model)
 
@@ -674,7 +674,7 @@ class PostgresSchemaEditor(SchemaEditor):
             "%s",
         )
 
-        with transaction.atomic():
+        with transaction.atomic(using=self.connection.alias):
             self.execute(sql, (from_values, to_values))
 
             if comment:
@@ -717,7 +717,7 @@ class PostgresSchemaEditor(SchemaEditor):
             ",".join(["%s" for _ in range(len(values))]),
         )
 
-        with transaction.atomic():
+        with transaction.atomic(using=self.connection.alias):
             self.execute(sql, values)
 
             if comment:
@@ -763,7 +763,7 @@ class PostgresSchemaEditor(SchemaEditor):
             "%s",
         )
 
-        with transaction.atomic():
+        with transaction.atomic(using=self.connection.alias):
             self.execute(sql, (modulus, remainder))
 
             if comment:
@@ -800,7 +800,7 @@ class PostgresSchemaEditor(SchemaEditor):
             self.quote_name(model._meta.db_table),
         )
 
-        with transaction.atomic():
+        with transaction.atomic(using=self.connection.alias):
             self.execute(sql)
 
             if comment:
