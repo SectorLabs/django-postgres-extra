@@ -8,8 +8,11 @@ executors:
       pgversion:
         type: string
         default: "16.0"
+      debiandist:
+        type: string
+        default: "buster"
     docker:
-      - image: python:<< parameters.pyversion >>-buster
+      - image: python:<< parameters.pyversion >>-<< parameters.debiandist >>
       - image: postgres:<< parameters.pgversion >>
         environment:
           POSTGRES_DB: 'psqlextra'
@@ -121,6 +124,7 @@ jobs:
       name: python
       pyversion: "3.12"
       pgversion: "16.0"
+      debiandist: "bullseye"
     steps:
       - checkout
       - install-dependencies:
@@ -133,6 +137,7 @@ jobs:
       name: python
       pyversion: "3.13"
       pgversion: "16.0"
+      debiandist: "bullseye"
     steps:
       - checkout
       - install-dependencies:
