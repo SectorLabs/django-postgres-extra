@@ -37,8 +37,8 @@ add_operation = MigrationAutodetector.add_operation
 class AddOperationHandler:
     """Handler for when operations are being added to a new migration.
 
-    This is where we intercept operations such as
-    :see:CreateModel to replace it with our own.
+    This is where we intercept operations such as :see:CreateModel to
+    replace it with our own.
     """
 
     def __init__(self, autodetector, app_label, args, kwargs):

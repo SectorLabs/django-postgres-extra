@@ -1,4 +1,5 @@
 import django
+import freezegun
 import pytest
 
 from django.contrib.postgres.fields import ArrayField
@@ -51,13 +52,14 @@ def mocked_model_foreign_keys(
 
 
 @pytest.fixture
-def mocked_model_varying_fields_instance(freezer, mocked_model_varying_fields):
-    return mocked_model_varying_fields.objects.create(
-        title="hello world",
-        updated_at=timezone.now(),
-        content={"a": 1},
-        items=["a", "b"],
-    )
+def mocked_model_varying_fields_instance(mocked_model_varying_fields):
+    with freezegun.freeze_time("2020-1-1 12:00:00.0"):
+        return mocked_model_varying_fields.objects.create(
+            title="hello world",
+            updated_at=timezone.now(),
+            content={"a": 1},
+            items=["a", "b"],
+        )
 
 
 @pytest.fixture
@@ -78,17 +80,22 @@ def models_from_cursor_wrapper_single():
     reason=django_31_skip_reason,
 )
 @pytest.mark.parametrize(
-    "models_from_cursor_wrapper",
+    "models_from_cursor_wrapper_name",
     [
-        pytest.lazy_fixture("models_from_cursor_wrapper_multiple"),
-        pytest.lazy_fixture("models_from_cursor_wrapper_single"),
+        "models_from_cursor_wrapper_multiple",
+        "models_from_cursor_wrapper_single",
     ],
 )
 def test_models_from_cursor_applies_converters(
+    request,
     mocked_model_varying_fields,
     mocked_model_varying_fields_instance,
-    models_from_cursor_wrapper,
+    models_from_cursor_wrapper_name,
 ):
+    models_from_cursor_wrapper = request.getfixturevalue(
+        models_from_cursor_wrapper_name
+    )
+
     with connection.cursor() as cursor:
         cursor.execute(
             *mocked_model_varying_fields.objects.all().query.sql_with_params()
@@ -114,17 +121,22 @@ def test_models_from_cursor_applies_converters(
     reason=django_31_skip_reason,
 )
 @pytest.mark.parametrize(
-    "models_from_cursor_wrapper",
+    "models_from_cursor_wrapper_name",
     [
-        pytest.lazy_fixture("models_from_cursor_wrapper_multiple"),
-        pytest.lazy_fixture("models_from_cursor_wrapper_single"),
+        "models_from_cursor_wrapper_multiple",
+        "models_from_cursor_wrapper_single",
     ],
 )
 def test_models_from_cursor_handles_field_order(
+    request,
     mocked_model_varying_fields,
     mocked_model_varying_fields_instance,
-    models_from_cursor_wrapper,
+    models_from_cursor_wrapper_name,
 ):
+    models_from_cursor_wrapper = request.getfixturevalue(
+        models_from_cursor_wrapper_name
+    )
+
     with connection.cursor() as cursor:
         cursor.execute(
             f'SELECT content, items, id, title, updated_at FROM "{mocked_model_varying_fields._meta.db_table}"',
@@ -151,17 +163,22 @@ def test_models_from_cursor_handles_field_order(
     reason=django_31_skip_reason,
 )
 @pytest.mark.parametrize(
-    "models_from_cursor_wrapper",
+    "models_from_cursor_wrapper_name",
     [
-        pytest.lazy_fixture("models_from_cursor_wrapper_multiple"),
-        pytest.lazy_fixture("models_from_cursor_wrapper_single"),
+        "models_from_cursor_wrapper_multiple",
+        "models_from_cursor_wrapper_single",
     ],
 )
 def test_models_from_cursor_handles_partial_fields(
+    request,
     mocked_model_varying_fields,
     mocked_model_varying_fields_instance,
-    models_from_cursor_wrapper,
+    models_from_cursor_wrapper_name,
 ):
+    models_from_cursor_wrapper = request.getfixturevalue(
+        models_from_cursor_wrapper_name
+    )
+
     with connection.cursor() as cursor:
         cursor.execute(
             f'SELECT id FROM "{mocked_model_varying_fields._meta.db_table}"',
@@ -183,15 +200,19 @@ def test_models_from_cursor_handles_partial_fields(
     reason=django_31_skip_reason,
 )
 @pytest.mark.parametrize(
-    "models_from_cursor_wrapper",
+    "models_from_cursor_wrapper_name",
     [
-        pytest.lazy_fixture("models_from_cursor_wrapper_multiple"),
-        pytest.lazy_fixture("models_from_cursor_wrapper_single"),
+        "models_from_cursor_wrapper_multiple",
+        "models_from_cursor_wrapper_single",
     ],
 )
 def test_models_from_cursor_handles_null(
-    mocked_model_varying_fields, models_from_cursor_wrapper
+    request, mocked_model_varying_fields, models_from_cursor_wrapper_name
 ):
+    models_from_cursor_wrapper = request.getfixturevalue(
+        models_from_cursor_wrapper_name
+    )
+
     instance = mocked_model_varying_fields.objects.create()
 
     with connection.cursor() as cursor:
@@ -214,17 +235,22 @@ def test_models_from_cursor_handles_null(
     reason=django_31_skip_reason,
 )
 @pytest.mark.parametrize(
-    "models_from_cursor_wrapper",
+    "models_from_cursor_wrapper_name",
     [
-        pytest.lazy_fixture("models_from_cursor_wrapper_multiple"),
-        pytest.lazy_fixture("models_from_cursor_wrapper_single"),
+        "models_from_cursor_wrapper_multiple",
+        "models_from_cursor_wrapper_single",
     ],
 )
 def test_models_from_cursor_foreign_key(
+    request,
     mocked_model_single_field,
     mocked_model_foreign_keys,
-    models_from_cursor_wrapper,
+    models_from_cursor_wrapper_name,
 ):
+    models_from_cursor_wrapper = request.getfixturevalue(
+        models_from_cursor_wrapper_name
+    )
+
     instance = mocked_model_foreign_keys.objects.create(
         varying_fields=None,
         single_field=mocked_model_single_field.objects.create(name="test"),
@@ -254,18 +280,23 @@ def test_models_from_cursor_foreign_key(
     reason=django_31_skip_reason,
 )
 @pytest.mark.parametrize(
-    "models_from_cursor_wrapper",
+    "models_from_cursor_wrapper_name",
     [
-        pytest.lazy_fixture("models_from_cursor_wrapper_multiple"),
-        pytest.lazy_fixture("models_from_cursor_wrapper_single"),
+        "models_from_cursor_wrapper_multiple",
+        "models_from_cursor_wrapper_single",
     ],
 )
 def test_models_from_cursor_related_fields(
+    request,
     mocked_model_varying_fields,
     mocked_model_single_field,
     mocked_model_foreign_keys,
-    models_from_cursor_wrapper,
+    models_from_cursor_wrapper_name,
 ):
+    models_from_cursor_wrapper = request.getfixturevalue(
+        models_from_cursor_wrapper_name
+    )
+
     instance = mocked_model_foreign_keys.objects.create(
         varying_fields=mocked_model_varying_fields.objects.create(
             title="test", updated_at=timezone.now()
@@ -321,21 +352,26 @@ def test_models_from_cursor_related_fields(
     reason=django_31_skip_reason,
 )
 @pytest.mark.parametrize(
-    "models_from_cursor_wrapper",
+    "models_from_cursor_wrapper_name",
     [
-        pytest.lazy_fixture("models_from_cursor_wrapper_multiple"),
-        pytest.lazy_fixture("models_from_cursor_wrapper_single"),
+        "models_from_cursor_wrapper_multiple",
+        "models_from_cursor_wrapper_single",
     ],
 )
 @pytest.mark.parametrize(
     "selected", [True, False], ids=["selected", "not_selected"]
 )
 def test_models_from_cursor_related_fields_optional(
+    request,
     mocked_model_varying_fields,
     mocked_model_foreign_keys,
-    models_from_cursor_wrapper,
+    models_from_cursor_wrapper_name,
     selected,
 ):
+    models_from_cursor_wrapper = request.getfixturevalue(
+        models_from_cursor_wrapper_name
+    )
+
     instance = mocked_model_foreign_keys.objects.create(
         varying_fields=mocked_model_varying_fields.objects.create(
             title="test", updated_at=timezone.now()

@@ -6,7 +6,7 @@ exclude = '''
     | .env
     | env
     | venv
-    | tests/snapshots
+    | tests/__snapshots__
   )/
 )
 '''
@@ -25,3 +25,61 @@ ignore_missing_imports = true
 
 [tool.django-stubs]
 django_settings_module = "settings"
+
+[tool.poe.tasks]
+_autoflake = "python3 -m autoflake --remove-all -i -r setup.py psqlextra tests"
+_autopep8 = "autopep8 -i -r setup.py psqlextra tests"
+_isort_setup_py = "isort setup.py"
+_isort_psqlextra = "isort psqlextra"
+_isort_tests = "isort tests"
+_isort_verify_setup_py = "isort -c setup.py"
+_isort_verify_psqlextra = "isort -c psqlextra"
+_isort_verify_tests = "isort -c tests"
+
+[tool.poe.tasks.lint]
+cmd = "python3 -m flake8 --builtin=__version__ setup.py psqlextra tests"
+help = "Lints all the code."
+
+[tool.poe.tasks.lint_fix]
+sequence = ["_autoflake", "_autopep8"]
+help = "Auto-fixes linter errors."
+
+[tool.poe.tasks.lint_types]
+cmd = "mypy --package psqlextra --pretty --show-error-codes"
+help = "Type-checks the code."
+
+[tool.poe.tasks.format]
+cmd = "black setup.py psqlextra tests"
+help = "Auto-formats the code."
+
+[tool.poe.tasks.format_verify]
+cmd = "black --check setup.py psqlextra tests"
+help = "Verifies that the code was formatted properly."
+
+[tool.poe.tasks.format_docstrings]
+cmd = "docformatter -r -i ."
+help = "Auto-formats doc strings."
+
+[tool.poe.tasks.format_docstrings_verify]
+cmd = "docformatter -r -c ."
+help = "Verifies all doc strings are properly formatted."
+
+[tool.poe.tasks.sort_imports]
+sequence = ["_isort_setup_py", "_isort_psqlextra", "_isort_tests"]
+help = "Auto-sorts the imports."
+
+[tool.poe.tasks.sort_imports_verify]
+sequence = ["_isort_verify_setup_py", "_isort_verify_psqlextra", "_isort_verify_tests"]
+help = "Verifies that the imports are properly sorted."
+
+[tool.poe.tasks.fix]
+sequence = ["format", "format_docstrings", "sort_imports", "lint_fix", "lint", "lint_types"]
+help = "Automatically format code and fix linting errors."
+
+[tool.poe.tasks.verify]
+sequence = ["format_verify", "format_docstrings_verify", "sort_imports_verify", "lint", "lint_types"]
+help = "Automatically format code and fix linting errors."
+
+[tool.poe.tasks.test]
+cmd = "pytest --cov=psqlextra --cov-report=term --cov-report=xml:reports/xml --cov-report=html:reports/html --junitxml=reports/junit/tests.xml --reuse-db -vv"
+help = "Runs all the tests."

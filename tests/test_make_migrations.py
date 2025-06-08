@@ -208,7 +208,9 @@ def test_make_migration_field_operations_view_models(
 def test_autodetect_fk_issue(fake_app, method):
     """Test whether Django can perform ForeignKey optimization.
 
-    Fixes https://github.com/SectorLabs/django-postgres-extra/issues/123 for Django >= 2.2
+    Fixes
+    https://github.com/SectorLabs/django-postgres-extra/issues/123
+    for Django >= 2.2
     """
     meta_options = {"app_label": fake_app.name}
     partitioning_options = {"method": method, "key": "artist_id"}

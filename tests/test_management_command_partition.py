@@ -6,6 +6,7 @@ import pytest
 
 from django.db import models
 from django.test import override_settings
+from syrupy.extensions.json import JSONSnapshotExtension
 
 from psqlextra.backend.introspection import (
     PostgresIntrospectedPartitionTable,
@@ -18,6 +19,11 @@ from psqlextra.partitioning.partition import PostgresPartition
 from psqlextra.partitioning.strategy import PostgresPartitioningStrategy
 
 from .fake_model import define_fake_partitioned_model
+
+
+@pytest.fixture
+def snapshot(snapshot):
+    return snapshot.use_extension(JSONSnapshotExtension)
 
 
 @pytest.fixture
@@ -88,12 +94,12 @@ def run(capsys):
         command.add_arguments(parser)
         command.handle(**vars(parser.parse_args(args)))
 
-        return capsys.readouterr()
+        return capsys.readouterr().out
 
     return _run
 
 
-@pytest.mark.parametrize("args", ["-d", "--dry"])
+@pytest.mark.parametrize("args", ["-d", "--dry"], ids=["d", "dry"])
 def test_management_command_partition_dry_run(
     args, snapshot, run, fake_model, fake_partitioning_manager
 ):
@@ -101,7 +107,7 @@ def test_management_command_partition_dry_run(
     create/delete partitions."""
 
     config = fake_partitioning_manager.find_config_for_model(fake_model)
-    snapshot.assert_match(run(args))
+    assert run(args) == snapshot()
 
     config.strategy.createable_partition.create.assert_not_called()
     config.strategy.createable_partition.delete.assert_not_called()
@@ -109,7 +115,7 @@ def test_management_command_partition_dry_run(
     config.strategy.deleteable_partition.delete.assert_not_called()
 
 
-@pytest.mark.parametrize("args", ["-y", "--yes"])
+@pytest.mark.parametrize("args", ["-y", "--yes"], ids=["y", "yes"])
 def test_management_command_partition_auto_confirm(
     args, snapshot, run, fake_model, fake_partitioning_manager
 ):
@@ -117,7 +123,7 @@ def test_management_command_partition_auto_confirm(
     creating/deleting partitions."""
 
     config = fake_partitioning_manager.find_config_for_model(fake_model)
-    snapshot.assert_match(run(args))
+    assert run(args) == snapshot
 
     config.strategy.createable_partition.create.assert_called_once()
     config.strategy.createable_partition.delete.assert_not_called()
@@ -125,7 +131,11 @@ def test_management_command_partition_auto_confirm(
     config.strategy.deleteable_partition.delete.assert_called_once()
 
 
-@pytest.mark.parametrize("answer", ["y", "Y", "yes", "YES"])
+@pytest.mark.parametrize(
+    "answer",
+    ["y", "Y", "yes", "YES"],
+    ids=["y", "capital_y", "yes", "capital_yes"],
+)
 def test_management_command_partition_confirm_yes(
     answer, monkeypatch, snapshot, run, fake_model, fake_partitioning_manager
 ):
@@ -135,7 +145,7 @@ def test_management_command_partition_confirm_yes(
     config = fake_partitioning_manager.find_config_for_model(fake_model)
 
     monkeypatch.setattr("builtins.input", lambda _: answer)
-    snapshot.assert_match(run())
+    assert run() == snapshot
 
     config.strategy.createable_partition.create.assert_called_once()
     config.strategy.createable_partition.delete.assert_not_called()
@@ -143,7 +153,11 @@ def test_management_command_partition_confirm_yes(
     config.strategy.deleteable_partition.delete.assert_called_once()
 
 
-@pytest.mark.parametrize("answer", ["n", "N", "no", "No", "NO"])
+@pytest.mark.parametrize(
+    "answer",
+    ["n", "N", "no", "No", "NO"],
+    ids=["n", "capital_n", "no", "title_no", "capital_no"],
+)
 def test_management_command_partition_confirm_no(
     answer, monkeypatch, snapshot, run, fake_model, fake_partitioning_manager
 ):
@@ -153,7 +167,7 @@ def test_management_command_partition_confirm_no(
     config = fake_partitioning_manager.find_config_for_model(fake_model)
 
     monkeypatch.setattr("builtins.input", lambda _: answer)
-    snapshot.assert_match(run())
+    assert run() == snapshot
 
     config.strategy.createable_partition.create.assert_not_called()
     config.strategy.createable_partition.delete.assert_not_called()

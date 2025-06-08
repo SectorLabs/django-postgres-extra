@@ -558,9 +558,9 @@ class PostgresSchemaEditor(SchemaEditor):
 
         This is used to alter the backing query of a materialized view.
 
-        Replacing a materialized view is a lot trickier than a normal view.
-        For normal views we can use `CREATE OR REPLACE VIEW`, but for
-        materialized views, we have to create the new view, copy all
+        Replacing a materialized view is a lot trickier than a normal
+        view. For normal views we can use `CREATE OR REPLACE VIEW`, but
+        for materialized views, we have to create the new view, copy all
         indexes and constraints and drop the old one.
 
         This operation is atomic as it runs in a transaction.

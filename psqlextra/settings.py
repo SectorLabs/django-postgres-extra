@@ -16,7 +16,8 @@ def postgres_set_local(
 
     The effect is undone when the context manager exits.
 
-    See https://www.postgresql.org/docs/current/runtime-config-client.html
+    See
+    https://www.postgresql.org/docs/current/runtime-config-client.html
     for an overview of all available options.
     """
 

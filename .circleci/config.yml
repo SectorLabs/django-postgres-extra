@@ -55,7 +55,7 @@ jobs:
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test
       - run-tests:
           pyversion: 36
 
@@ -67,7 +67,7 @@ jobs:
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test
       - run-tests:
           pyversion: 37
 
@@ -79,7 +79,7 @@ jobs:
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test
       - run-tests:
           pyversion: 38
 
@@ -91,7 +91,7 @@ jobs:
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test
       - run-tests:
           pyversion: 39
 
@@ -103,7 +103,7 @@ jobs:
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test
       - run-tests:
           pyversion: 310
 
@@ -115,9 +115,14 @@ jobs:
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test, test-report
       - run-tests:
           pyversion: 311
+      - store_test_results:
+          path: reports
+      - run:
+          name: Upload coverage report
+          command: coveralls
 
   test-python312:
     executor:
@@ -128,7 +133,7 @@ jobs:
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test
       - run-tests:
           pyversion: 312
 
@@ -141,14 +146,9 @@ jobs:
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test
       - run-tests:
           pyversion: 313
-      - store_test_results:
-          path: reports
-      - run:
-          name: Upload coverage report
-          command: coveralls
 
   analysis:
     executor:
@@ -157,10 +157,10 @@ jobs:
     steps:
       - checkout
       - install-dependencies:
-          extra: analysis, test
+          extra: dev, analysis, test
       - run:
           name: Verify
-          command: python setup.py verify
+          command: poe verify
 
   publish:
     executor:

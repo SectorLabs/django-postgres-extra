@@ -179,11 +179,11 @@ def test_on_conflict_outdated_model(conflict_action):
     """Tests whether insert properly handles fields that are in the database
     but not on the model.
 
-    This happens if somebody manually modified the database
-    to add a column that is not present in the model.
+    This happens if somebody manually modified the database to add a
+    column that is not present in the model.
 
-    This should be handled properly by ignoring the column
-    returned by the database.
+    This should be handled properly by ignoring the column returned by
+    the database.
     """
 
     model = get_fake_model(
