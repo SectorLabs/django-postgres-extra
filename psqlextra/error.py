@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Type, Union
+from typing import TYPE_CHECKING, Optional, Type, Union, cast
 
 from django import db
 
@@ -38,7 +38,7 @@ def extract_postgres_error(
     ):
         return None
 
-    return error.__cause__
+    return cast(Union["_Psycopg2Error", "_Psycopg3Error"], error.__cause__)
 
 
 def extract_postgres_error_code(error: db.Error) -> Optional[str]:
