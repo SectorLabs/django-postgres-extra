@@ -1,4 +1,4 @@
 -e .
--e .[test]
+-e .[local]
 -e .[analysis]
 -e .[docs]
