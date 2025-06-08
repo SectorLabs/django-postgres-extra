@@ -156,6 +156,33 @@ def fake_model_fk_target_2():
 
 @pytest.fixture
 def fake_model(fake_model_fk_target_1, fake_model_fk_target_2):
+    meta_options = {
+        "indexes": [
+            models.Index(fields=["age", "height"]),
+            models.Index(fields=["age"], name="age_index"),
+            GinIndex(fields=["nicknames"], name="nickname_index"),
+        ],
+        "constraints": [
+            models.UniqueConstraint(
+                fields=["first_name", "last_name"],
+                name="first_last_name_uniq",
+            ),
+            models.CheckConstraint(
+                check=Q(age__gt=0, height__gt=0), name="age_height_check"
+            ),
+        ],
+        "unique_together": (
+            "first_name",
+            "nicknames",
+        ),
+    }
+
+    if django.VERSION < (5, 2):
+        meta_options["index_together"] = (
+            "blob",
+            "age",
+        )
+
     model = get_fake_model(
         {
             "first_name": models.TextField(null=True),
@@ -171,30 +198,7 @@ def fake_model(fake_model_fk_target_1, fake_model_fk_target_2):
                 fake_model_fk_target_2, null=True, on_delete=models.SET_NULL
             ),
         },
-        meta_options={
-            "indexes": [
-                models.Index(fields=["age", "height"]),
-                models.Index(fields=["age"], name="age_index"),
-                GinIndex(fields=["nicknames"], name="nickname_index"),
-            ],
-            "constraints": [
-                models.UniqueConstraint(
-                    fields=["first_name", "last_name"],
-                    name="first_last_name_uniq",
-                ),
-                models.CheckConstraint(
-                    check=Q(age__gt=0, height__gt=0), name="age_height_check"
-                ),
-            ],
-            "unique_together": (
-                "first_name",
-                "nicknames",
-            ),
-            "index_together": (
-                "blob",
-                "age",
-            ),
-        },
+        meta_options=meta_options,
     )
 
     yield model

@@ -250,10 +250,11 @@ class PostgresSchemaEditor(SchemaEditor):
                     model, tuple(), model._meta.unique_together
                 )
 
-            if model._meta.index_together:
-                self.alter_index_together(
-                    model, tuple(), model._meta.index_together
-                )
+            if django.VERSION < (5, 2):
+                if model._meta.index_together:
+                    self.alter_index_together(
+                        model, tuple(), model._meta.index_together
+                    )
 
             for field in model._meta.local_concrete_fields:  # type: ignore[attr-defined]
                 # Django creates primary keys later added to the model with
