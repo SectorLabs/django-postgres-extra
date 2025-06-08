@@ -3,7 +3,6 @@ import pytest
 
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.db import InternalError, ProgrammingError, connection
-from psycopg2 import errorcodes
 
 from psqlextra.error import extract_postgres_error_code
 from psqlextra.schema import PostgresSchema, postgres_temporary_schema
@@ -93,7 +92,7 @@ def test_postgres_schema_delete_and_create():
         schema = PostgresSchema.delete_and_create(schema.name)
 
     pg_error = extract_postgres_error_code(exc_info.value)
-    assert pg_error == errorcodes.DEPENDENT_OBJECTS_STILL_EXIST
+    assert pg_error == "2BP01"  # DEPENDENT_OBJECTS_STILL_EXIST
 
     # Verify that the schema and table still exist
     assert _does_schema_exist(schema.name)
@@ -113,7 +112,7 @@ def test_postgres_schema_delete_and_create():
             assert cursor.fetchone() == ("hello",)
 
     pg_error = extract_postgres_error_code(exc_info.value)
-    assert pg_error == errorcodes.UNDEFINED_TABLE
+    assert pg_error == "42P01"  # UNDEFINED_TABLE
 
 
 def test_postgres_schema_delete():
@@ -135,7 +134,7 @@ def test_postgres_schema_delete_not_empty():
         schema.delete()
 
     pg_error = extract_postgres_error_code(exc_info.value)
-    assert pg_error == errorcodes.DEPENDENT_OBJECTS_STILL_EXIST
+    assert pg_error == "2BP01"  # DEPENDENT_OBJECTS_STILL_EXIST
 
 
 def test_postgres_schema_delete_cascade_not_empty():
@@ -177,7 +176,7 @@ def test_postgres_temporary_schema_not_empty():
                 )
 
     pg_error = extract_postgres_error_code(exc_info.value)
-    assert pg_error == errorcodes.DEPENDENT_OBJECTS_STILL_EXIST
+    assert pg_error == "2BP01"  # DEPENDENT_OBJECTS_STILL_EXIST
 
 
 def test_postgres_temporary_schema_not_empty_cascade():

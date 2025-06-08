@@ -75,7 +75,7 @@ setup(
         ':python_version <= "3.6"': ["dataclasses"],
         "docs": ["Sphinx==2.2.0", "sphinx-rtd-theme==0.4.3", "docutils<0.18"],
         "test": [
-            "psycopg2>=2.8.4,<3.0.0",
+            "psycopg~=3.2",
             "dj-database-url==0.5.0",
             "pytest==6.2.5",
             "pytest-benchmark==3.4.1",
@@ -102,7 +102,6 @@ setup(
             "typing-extensions==4.5.0; python_version > '3.6'",
             "typing-extensions==4.1.0; python_version <= '3.6'",
             "types-dj-database-url==1.3.0.0",
-            "types-psycopg2==2.9.21.9",
             "types-python-dateutil==2.8.19.12",
         ],
         "publish": [
