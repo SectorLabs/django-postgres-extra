@@ -34,6 +34,10 @@ Creating partitioned tables
 
 Partitioned tables are declared like regular Django models with a special base class and two extra options to set the partitioning method and key. Once declared, they behave like regular Django models.
 
+.. warning::
+
+    The partitioning key becomes the (composite) primary key of the table automatically. Creating foreign keys to partitioned tables can only be done in raw SQL. You can use the `django-composite-foreignkey <https://pypi.org/project/django-composite-foreignkey/>`_ package to represent the foreign key in Django.
+
 
 Declaring the model
 *******************
