@@ -1,6 +1,9 @@
-from django.db import connection, models
+import pytest
+
+from django.db import OperationalError, connection, models
 
 from psqlextra.backend.schema import PostgresSchemaEditor
+from psqlextra.error import extract_postgres_error_code
 
 from . import db_introspection
 from .fake_model import (
@@ -101,6 +104,34 @@ def test_schema_editor_create_delete_materialized_view():
 
     # make sure it was actually deleted
     assert model._meta.db_table not in db_introspection.table_names(True)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_schema_editor_create_materialized_view_without_data():
+    underlying_model = get_fake_model({"name": models.TextField()})
+
+    model = define_fake_materialized_view_model(
+        {"name": models.TextField()},
+        {"query": underlying_model.objects.filter(name="test1")},
+    )
+
+    underlying_model.objects.create(name="test1")
+    underlying_model.objects.create(name="test2")
+
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.create_materialized_view_model(model, with_data=False)
+
+    with pytest.raises(OperationalError) as exc_info:
+        list(model.objects.all())
+
+    pg_error = extract_postgres_error_code(exc_info.value)
+    assert pg_error == "55000"  # OBJECT_NOT_IN_PREREQUISITE_STATE
+
+    model.refresh()
+
+    objs = list(model.objects.all())
+    assert len(objs) == 1
+    assert objs[0].name == "test1"
 
 
 def test_schema_editor_replace_materialized_view():

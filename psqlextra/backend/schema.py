@@ -61,8 +61,11 @@ class PostgresSchemaEditor(SchemaEditor):
     sql_create_view = "CREATE VIEW %s AS (%s)"
     sql_replace_view = "CREATE OR REPLACE VIEW %s AS (%s)"
     sql_drop_view = "DROP VIEW IF EXISTS %s"
-    sql_create_materialized_view = (
+    sql_create_materialized_view_with_data = (
         "CREATE MATERIALIZED VIEW %s AS (%s) WITH DATA"
+    )
+    sql_create_materialized_view_without_data = (
+        "CREATE MATERIALIZED VIEW %s AS (%s) WITH NO DATA"
     )
     sql_drop_materialized_view = "DROP MATERIALIZED VIEW %s"
     sql_refresh_materialized_view = "REFRESH MATERIALIZED VIEW %s"
@@ -548,10 +551,19 @@ class PostgresSchemaEditor(SchemaEditor):
         sql = self.sql_drop_view % self.quote_name(model._meta.db_table)
         self.execute(sql)
 
-    def create_materialized_view_model(self, model: Type[Model]) -> None:
+    def create_materialized_view_model(
+        self, model: Type[Model], *, with_data: bool = True
+    ) -> None:
         """Creates a new materialized view model."""
 
-        self._create_view_model(self.sql_create_materialized_view, model)
+        if with_data:
+            self._create_view_model(
+                self.sql_create_materialized_view_with_data, model
+            )
+        else:
+            self._create_view_model(
+                self.sql_create_materialized_view_without_data, model
+            )
 
     def replace_materialized_view_model(self, model: Type[Model]) -> None:
         """Replaces a materialized view with a newer version.
