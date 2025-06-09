@@ -19,7 +19,8 @@ exclude = "(env|build|dist|migrations)"
 
 [[tool.mypy.overrides]]
 module = [
-    "psycopg.*"
+    "psycopg.*",
+    "django.db.models.fields.composite"
 ]
 ignore_missing_imports = true
 

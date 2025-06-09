@@ -8,6 +8,7 @@
 
    Do study the PostgreSQL documentation carefully.
 
+
 .. _table_partitioning_page:
 
 
@@ -22,21 +23,63 @@ The following partitioning methods are available:
 * ``PARTITION BY LIST``
 * ``PARTITION BY HASH``
 
-.. note::
+Known limitations
+-----------------
 
-   Although table partitioning is available in PostgreSQL 10.x, it is highly recommended you use PostgresSQL 11.x. Table partitioning got a major upgrade in PostgreSQL 11.x.
+Foreign keys
+~~~~~~~~~~~~
+Support for foreign keys to partitioned models is limited in Django 5.1 and older. These are only suported under specific conditions.
 
-   PostgreSQL 10.x does not support creating foreign keys to/from partitioned tables and does not automatically create an index across all partitions.
+For full support for foreign keys to partitioned models, use Django 5.2 or newer. Django 5.2 supports composite primary and foreign keys native through :class:`~django:django.db.models.CompositePrimaryKey` to support.
+
+Foreing keys **on** a partitioned models to other, non-partitioned models are always supported.
+
+PostgreSQL 10.x
+~~~~~~~~~~~~~~~
+Although table partitioning is available in PostgreSQL 10.x, it is highly recommended you use PostgresSQL 11.x. Table partitioning got a major upgrade in PostgreSQL 11.x.
+
+PostgreSQL 10.x does not support creating foreign keys to/from partitioned tables and does not automatically create an index across all partitions.
+
+Transforming existing models into partitioned models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is **NO SUPPORT** whatsoever to transform an existing, non-partitioned model into a partitioned model.
+
+At a high-level, you have the following options to do this:
+
+1. Drop the model first and re-create it as a partitioned model according to the documentation.
+
+    .. warning::
+
+        Blindly doing this causes the original table & data to be lost.
+
+2. Craft a custom migration to use the original table as a default partition.
+
+    Migration #1: Rename the original table to ``<table_name>_default``
+
+    Migration #2: Create the partitioned model with the old name.
+
+    Migration #3: Attach the original (renamed) table as the default partition.
+
+    Migration #4: Create more partitions and/or move data from the default partition
+
+    .. warning::
+
+        This is not an officially supported flow. Be extremely cautious to avoid
+        data loss.
+
+Lock-free and/or concurrency safe operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is **NO SUPPORT** whatsoever to create/attach partitions and move data between partitions in a lock-free and concurrency safe manner.
+
+Most operations require ``AccessExclusiveLock`` and **will** block reads/writes. Be extremely cautious on production environments and study the associated locks with the SQL operations before proceeding.
 
 
 Creating partitioned tables
 ---------------------------
 
 Partitioned tables are declared like regular Django models with a special base class and two extra options to set the partitioning method and key. Once declared, they behave like regular Django models.
-
-.. warning::
-
-    The partitioning key becomes the (composite) primary key of the table automatically. Creating foreign keys to partitioned tables can only be done in raw SQL. You can use the `django-composite-foreignkey <https://pypi.org/project/django-composite-foreignkey/>`_ package to represent the foreign key in Django.
 
 
 Declaring the model
@@ -62,6 +105,33 @@ Inherit your model from :class:`psqlextra.models.PostgresPartitionedModel` and d
 
        name = models.TextField()
        timestamp = models.DateTimeField()
+
+Primary key
+~~~~~~~~~~~
+
+PostgreSQL demands that the primary key is the same or is part of the partitioning key. See `PostgreSQL Table Partitioning Limitations`_.
+
+TL;DR Foreign keys don't work in Django <5.2. Use Django 5.2 or newer for proper support.
+
+**In Django <5.2, the behavior is as following:**
+
+    - If the primary key is the same as the partitioning key:
+
+        Foreign keys to partitioned tables will work as you expect.
+
+    - If the primary key is not the exact same as the partitioning key or the partitioning key consists of more than one field:
+
+        An implicit composite primary key (not visible from Django) is created.
+
+        Foreign keys to partitioned tables will **NOT** work.
+
+**In Django >5.2, the behavior is as following:**
+
+    - If no explicit primary key is defined, a :class:`~django:django.db.models.CompositePrimaryKey` is created automatically that includes an auto-incrementing `id` primary key field and the partitioning keys.
+
+    - If an explicit  :class:`~django:django.db.models.CompositePrimaryKey` is specified, no modifications are made to it and it is your responsibility to make sure the partitioning keys are part of the primary key.
+
+    In Django 5.2 and newer, foreign keys to partitioned models always work.
 
 
 Generating a migration

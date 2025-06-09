@@ -617,21 +617,54 @@ class PostgresSchemaEditor(SchemaEditor):
             self.quote_name(field_name) for field_name in meta.key
         )
 
+        pk_field = model._meta.pk
+        has_composite_pk = self._is_composite_primary_key(pk_field)
+
         # create a composite key that includes the partitioning key
-        sql = sql.replace(" PRIMARY KEY", "")
-        if model._meta.pk and model._meta.pk.name not in meta.key:
-            sql = sql[:-1] + ", PRIMARY KEY (%s, %s))" % (
-                self.quote_name(model._meta.pk.name),
-                partitioning_key_sql,
+        # if the user didn't already define one
+        if not has_composite_pk:
+            inline_pk_sql = self._create_primary_key_inline_sql(model, pk_field)
+            inline_tablespace_sql = (
+                self._create_primary_key_inline_tablespace_sql(model, pk_field)
             )
-        else:
-            sql = sql[:-1] + ", PRIMARY KEY (%s))" % (partitioning_key_sql,)
+
+            sql = sql.replace(inline_pk_sql, "")
+
+            if (
+                not self._is_virtual_primary_key(pk_field)
+                and pk_field
+                and pk_field.name not in meta.key
+            ):
+                last_brace_idx = sql.rfind(")")
+                sql = (
+                    sql[:last_brace_idx]
+                    + f", PRIMARY KEY (%s, %s){inline_tablespace_sql}"
+                    % (
+                        self.quote_name(pk_field.name),
+                        partitioning_key_sql,
+                    )
+                    + sql[last_brace_idx:]
+                )
+            else:
+                last_brace_idx = sql.rfind(")")
+                sql = (
+                    sql[:last_brace_idx]
+                    + f", PRIMARY KEY (%s){inline_tablespace_sql}"
+                    % (partitioning_key_sql,)
+                    + sql[last_brace_idx:]
+                )
 
         # extend the standard CREATE TABLE statement with
         # 'PARTITION BY ...'
-        sql += self.sql_partition_by % (
-            meta.method.upper(),
-            partitioning_key_sql,
+        last_brace_idx = sql.rfind(")") + 1
+        sql = (
+            sql[:last_brace_idx]
+            + self.sql_partition_by
+            % (
+                meta.method.upper(),
+                partitioning_key_sql,
+            )
+            + sql[last_brace_idx:]
         )
 
         self.execute(sql, params)
@@ -1085,6 +1118,72 @@ class PostgresSchemaEditor(SchemaEditor):
 
     def create_partition_table_name(self, model: Type[Model], name: str) -> str:
         return "%s_%s" % (model._meta.db_table.lower(), name.lower())
+
+    def _create_primary_key_inline_sql(
+        self, model: Type[Model], pk_field: Optional[Field]
+    ) -> str:
+        pk_field = model._meta.pk
+        if not pk_field:
+            return ""
+
+        tablespace_sql = self._create_primary_key_inline_tablespace_sql(
+            model, pk_field
+        )
+
+        if self._is_virtual_primary_key(pk_field):
+            return ""
+
+        pk_sql = " PRIMARY KEY" if pk_field else ""
+        if tablespace_sql:
+            pk_sql += tablespace_sql
+
+        return pk_sql
+
+    def _create_primary_key_inline_tablespace_sql(
+        self, model: Type[Model], pk_field: Optional[Field]
+    ) -> str:
+        tablespace = (pk_field.db_tablespace if pk_field else None) or model._meta.db_tablespace  # type: ignore [attr-defined]
+        return (
+            " " + self.connection.ops.tablespace_sql(tablespace, inline=True)
+            if tablespace
+            else ""
+        )
+
+    def _is_composite_primary_key(self, field: Optional[Field]) -> bool:
+        """Checks whether the specified field is a composite primary key.
+
+        This needs to be wrapped because composite primary keys are only
+        natively supported in Django 5.2 and newer.
+        """
+
+        if not field:
+            return False
+
+        try:
+            from django.db.models.fields.composite import CompositePrimaryKey
+
+            return isinstance(field, CompositePrimaryKey)
+        except ImportError:
+            return False
+
+    def _is_virtual_primary_key(self, field: Optional[Field]) -> bool:
+        """Gets whether the declared primary key is a virtual field that
+        doesn't construct any real column in the DB.
+
+        It is pseudo-standard to have virtual fields by creating
+        a field with no DB type. CompositePrimaryKey in Django
+        5.2 and newer use this. Some third-party packages use
+        the same technique.
+
+        ManyToManyFields were the first to actually use this.
+        """
+
+        if not field:
+            return True
+
+        pk_db_params = field.db_parameters(connection=self.connection)
+        pk_db_type = pk_db_params["type"] if pk_db_params else None
+        return not bool(pk_db_type)
 
     def _clone_model_field(self, field: Field, **overrides) -> Field:
         """Clones the specified model field and overrides its kwargs with the

@@ -3,3 +3,4 @@
 .. _hstore: https://www.postgresql.org/docs/11/hstore.html
 .. _PostgreSQL Declarative Table Partitioning: https://www.postgresql.org/docs/current/ddl-partitioning.html#DDL-PARTITIONING-DECLARATIVE
 .. _Explicit table-level locks: https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-TABLES
+.. _PostgreSQL Table Partitioning Limitations: https://www.postgresql.org/docs/current/ddl-partitioning.html#DDL-PARTITIONING-DECLARATIVE-LIMITATIONS

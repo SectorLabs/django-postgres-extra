@@ -1,9 +1,50 @@
+import tempfile
+import uuid
+
 import pytest
 
 from django.contrib.postgres.signals import register_type_handlers
 from django.db import connection
 
 from .fake_model import define_fake_app
+
+custom_tablespace_name = f"psqlextra-tblspace-tests-{str(uuid.uuid4())[:8]}"
+
+
+@pytest.fixture
+def custom_tablespace():
+    """Gets the name of a custom tablespace that is not the default to be used
+    for tests that need to assert functionality that depends on custom
+    tablespaces.
+
+    A single custom tablespace is used. Nothing should persist in the
+    tablespace because each test runs in a transaction that is rolled
+    back.
+    """
+
+    return custom_tablespace_name
+
+
+@pytest.fixture(scope="session")
+def django_db_setup(django_db_setup, django_db_blocker):
+    """Extend default pytest-django DB set up to create a single, custom
+    tablespace to be used by tests that need to test functionality that depends
+    on custom tablespaces."""
+
+    with django_db_blocker.unblock():
+        qn = connection.ops.quote_name
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"CREATE TABLESPACE {qn(custom_tablespace_name)} LOCATION %s",
+                    (temp_dir,),
+                )
+
+                yield
+
+            with connection.cursor() as cursor:
+                cursor.execute(f"DROP TABLESPACE {qn(custom_tablespace_name)}")
 
 
 @pytest.fixture(scope="function", autouse=True)
