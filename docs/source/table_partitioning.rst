@@ -2,7 +2,7 @@
 
 .. warning::
 
-   Table partitioning is a relatively new and advanded PostgreSQL feature. It has plenty of ways to shoot yourself in the foot with.
+   Table partitioning is an advanded PostgreSQL feature. It has plenty of ways to shoot yourself in the foot with.
 
    We HIGHLY RECOMMEND you only use this feature if you're already deeply familiar with table partitioning and aware of its advantages and disadvantages.
 
