@@ -1,6 +1,6 @@
 import sys
 
-from typing import Optional
+from typing import List, Optional
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -37,8 +37,16 @@ class Command(BaseCommand):
         parser.add_argument(
             "--using",
             "-u",
-            help="Optional name of the database connection to use.",
+            help="Name of the database connection to use.",
             default="default",
+        )
+
+        parser.add_argument(
+            "--model-names",
+            "-m",
+            nargs="+",
+            help="A list of model names for which to partition.",
+            default=None,
         )
 
         parser.add_argument(
@@ -64,13 +72,17 @@ class Command(BaseCommand):
         using: Optional[str],
         skip_create: bool,
         skip_delete: bool,
+        model_names: Optional[List[str]] = None,
         *args,
         **kwargs,
     ):
         partitioning_manager = self._partitioning_manager()
 
         plan = partitioning_manager.plan(
-            skip_create=skip_create, skip_delete=skip_delete, using=using
+            skip_create=skip_create,
+            skip_delete=skip_delete,
+            model_names=model_names,
+            using=using,
         )
 
         creations_count = len(plan.creations)

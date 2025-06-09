@@ -25,6 +25,7 @@ class PostgresPartitioningManager:
         self,
         skip_create: bool = False,
         skip_delete: bool = False,
+        model_names: Optional[List[str]] = None,
         using: Optional[str] = None,
     ) -> PostgresPartitioningPlan:
         """Plans which partitions should be deleted/created.
@@ -38,6 +39,10 @@ class PostgresPartitioningManager:
                 If set to True, no partitions will be marked
                 for deletion, regardless of the configuration.
 
+            model_names:
+                Optionally, only plan for the models with
+                the specified name.
+
             using:
                 Optional name of the database connection to use.
 
@@ -48,7 +53,19 @@ class PostgresPartitioningManager:
 
         model_plans = []
 
+        normalized_model_names = (
+            [model_name.lower().strip() for model_name in model_names]
+            if model_names
+            else []
+        )
+
         for config in self.configs:
+            if (
+                model_names
+                and config.model.__name__.lower() not in normalized_model_names
+            ):
+                continue
+
             model_plan = self._plan_for_config(
                 config,
                 skip_create=skip_create,
