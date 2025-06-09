@@ -33,11 +33,12 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 
 * **Conflict handling (atomic upsert)**
 
-    Add support for PostgreSQL's `ON CONFLICT` syntax for inserts. Supports `DO UPDATE` and `DO NOTHING`. Single statement, atomic and concurrency safe upserts. Supports conditional updates as well.
+    Adds support for PostgreSQL's `ON CONFLICT` syntax for inserts. Supports `DO UPDATE` and `DO NOTHING`. Single statement, atomic and concurrency safe upserts. Supports conditional updates as well.
 
 * **Table partitioning**
 
-    Add support for PostgreSQL 11.x declarative table partitioning. Fully integrated into Django migrations. Supports all types of partitioning. Includes a command to automatically create time-based partitions.
+    Adds support for PostgreSQL 11.x declarative table partitioning. Fully integrated into Django migrations. Supports all types of partitioning. Includes a command to automatically create time-based partitions.
+
 
 * **Locking models & tables**
 
