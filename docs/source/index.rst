@@ -13,11 +13,25 @@ Explore the documentation to learn about all features:
 
 * :ref:`Conflict handling <conflict_handling_page>`
 
-    Adds support for PostgreSQL's ``ON CONFLICT`` syntax for inserts. Supports for ``DO UPDATE`` and ``DO NOTHING``. In other words; single statement, atomic, concurrency safe upserts.
+    Adds support for PostgreSQL's ``ON CONFLICT`` syntax for inserts. Supports for ``DO UPDATE`` and ``DO NOTHING``. Single statement, atomic, concurrency safe upserts. Supports conditional updates as well.
 
-* :ref:`HStore <hstore_page>`
+* :ref:`Table partitioning <table_partitioning_page>`
 
-    Built on top Django's built-in support for `hstore`_ fields. Adds support for indices on keys and unique/required constraints. All of these features integrate well with Django's migrations sytem.
+    Add support for PostgreSQL 11.x declarative table partitioning. Fully integrated into Django migrations. Supports all types of partitioning. Includes a command to automatically create time-based partitions.
+
+* :ref:`Locking models & tables <locking_page>`
+
+   Support for explicit table-level locks.
+
+* :ref:`Creating/dropping schemas <schemas_page>`
+
+    Support for managing Postgres schemas.
+
+* :ref:`Truncating tables <truncate_page>`
+
+   Support for ``TRUNCATE TABLE`` statements (including cascading).
+
+For Django 3.1 and older:
 
 * :ref:`Partial unique index <conditional_unique_index_page>`
 
@@ -27,22 +41,15 @@ Explore the documentation to learn about all features:
 
    Case insensitive index, allows searching a column and ignoring the casing.
 
-* :ref:`Table partitioning <table_partitioning_page>`
+For Django 2.2 and older:
 
-    Adds support for PostgreSQL 11.x declarative table partitioning.
+* :ref:`Unique index <unique_index_page>`
 
-* :ref:`Truncating tables <truncate_page>`
+   Unique indices that can span more than one field.
 
-   Support for ``TRUNCATE TABLE`` statements (including cascading).
+* :ref:`HStore key unique & required constraint <hstore_page>`
 
-* :ref:`Locking models & tables <locking_page>`
-
-   Support for explicit table-level locks.
-
-
-* :ref:`Creating/dropping schemas <schemas_page>`
-
-    Support for managing Postgres schemas.
+   Add unique and required constraints in specific hstore keys.
 
 
 .. toctree::

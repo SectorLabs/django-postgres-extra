@@ -31,30 +31,35 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 
 [See the full list](http://django-postgres-extra.readthedocs.io/#features)
 
-* **Native upserts**
+* **Conflict handling (atomic upsert)**
 
-    * Single query
-    * Concurrency safe
-    * With bulk support (single query)
+    Add support for PostgreSQL's `ON CONFLICT` syntax for inserts. Supports `DO UPDATE` and `DO NOTHING`. Single statement, atomic and concurrency safe upserts. Supports conditional updates as well.
 
-* **Extended support for HStoreField**
+* **Table partitioning**
 
-    * Unique constraints
-    * Null constraints
-    * Select individual keys using ``.values()`` or ``.values_list()``
+    Add support for PostgreSQL 11.x declarative table partitioning. Fully integrated into Django migrations. Supports all types of partitioning. Includes a command to automatically create time-based partitions.
 
-* **PostgreSQL 11.x declarative table partitioning**
+* **Locking models & tables**
 
-    * Supports both range and list partitioning
+    Support for explicit table-level locks.
 
-* **Faster deletes**
+* **Creating/dropping schemas**
 
-    * Truncate tables (with cascade)
+    Support for managing PostgreSQL schemas.
 
-* **Indexes**
+* **Truncating tables**
 
-    * Conditional unique index.
-    * Case sensitive unique index.
+   Support for ``TRUNCATE TABLE`` statements (including cascading).
+
+For Django 3.1 and older:
+
+* **Conditional unique index**
+* **Case insensitive index**
+
+For Django 2.2 and older:
+
+* **Unique index**
+* **HStore unique and required constraints on specific HStore keys**
 
 ## Working with the code
 ### Prerequisites
