@@ -17,11 +17,11 @@ Explore the documentation to learn about all features:
 
 * :ref:`Table partitioning <table_partitioning_page>`
 
-    Adds support for PostgreSQL 11.x declarative table partitioning. Fully integrated into Django migrations. Supports all types of partitioning. Includes a command to automatically create time-based partitions.
+    Adds support for PostgreSQL 11.x declarative table partitioning. Integrated into Django migrations. Supports all types of partitioning. Includes a command to automatically create time-based partitions.
 
 * :ref:`Views & materialized views <views_page>`
 
-    Adds support for creating views & materialized views as any other model. Fully integrated into Django migrations.
+    Adds support for creating views & materialized views as any other model. Integrated into Django migrations.
 
 * :ref:`Locking models & tables <locking_page>`
 
