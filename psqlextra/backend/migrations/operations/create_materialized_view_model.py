@@ -68,7 +68,7 @@ class PostgresCreateMaterializedViewModel(CreateModel):
         if self.view_options:
             kwargs["view_options"] = self.view_options
 
-        if self.with_data is not False:
+        if self.with_data is False:
             kwargs["with_data"] = self.with_data
 
         return name, args, kwargs
