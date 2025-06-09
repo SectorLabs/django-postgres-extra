@@ -39,6 +39,9 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 
     Adds support for PostgreSQL 11.x declarative table partitioning. Fully integrated into Django migrations. Supports all types of partitioning. Includes a command to automatically create time-based partitions.
 
+* **Views & materialized views**
+
+    Adds support for creating views & materialized views as any other model. Fully integrated into Django migrations.
 
 * **Locking models & tables**
 

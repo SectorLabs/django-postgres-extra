@@ -40,6 +40,13 @@ Although table partitioning is available in PostgreSQL 10.x, it is highly recomm
 
 PostgreSQL 10.x does not support creating foreign keys to/from partitioned tables and does not automatically create an index across all partitions.
 
+Changing the partition key or partition method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is **NO SUPPORT** whatsoever for changing the partitioning key or method on a partitioned model after the initial creation.
+
+Such changes are not detected by ``python manage.py pgmakemigrations`` and there are no pre-built operations for modifying them.
+
 Transforming existing models into partitioned models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
