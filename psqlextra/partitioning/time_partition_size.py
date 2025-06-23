@@ -1,6 +1,6 @@
 import enum
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional, Union
 
 from dateutil.relativedelta import relativedelta
@@ -15,11 +15,15 @@ class PostgresTimePartitionUnit(enum.Enum):
     DAYS = "days"
 
 
+UNIX_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
 class PostgresTimePartitionSize:
     """Size of a time-based range partition table."""
 
     unit: PostgresTimePartitionUnit
     value: int
+    anchor: datetime
 
     def __init__(
         self,
@@ -27,6 +31,7 @@ class PostgresTimePartitionSize:
         months: Optional[int] = None,
         weeks: Optional[int] = None,
         days: Optional[int] = None,
+        anchor: datetime = UNIX_EPOCH
     ) -> None:
         sizes = [years, months, weeks, days]
 
@@ -38,6 +43,7 @@ class PostgresTimePartitionSize:
                 "Partition can only have on size unit."
             )
 
+        self.anchor = anchor
         if years:
             self.unit = PostgresTimePartitionUnit.YEARS
             self.value = years
@@ -82,7 +88,10 @@ class PostgresTimePartitionSize:
         if self.unit == PostgresTimePartitionUnit.WEEKS:
             return self._ensure_datetime(dt - relativedelta(days=dt.weekday()))
 
-        return self._ensure_datetime(dt)
+        diff_days = (dt - self.anchor).days
+        partition_index = diff_days // self.value
+        start = self.anchor + timedelta(days=partition_index * self.value)
+        return self._ensure_datetime(start)
 
     @staticmethod
     def _ensure_datetime(dt: Union[date, datetime]) -> datetime:
