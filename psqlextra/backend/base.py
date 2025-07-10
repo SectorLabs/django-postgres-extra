@@ -2,6 +2,7 @@ import logging
 
 from typing import TYPE_CHECKING
 
+from django import VERSION
 from django.conf import settings
 from django.contrib.postgres.signals import (
     get_hstore_oids,
@@ -44,6 +45,9 @@ class DatabaseWrapper(Wrapper):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        if VERSION >= (5, 0):
+            return
 
         # Some base back-ends such as the PostGIS back-end don't properly
         # set `ops_class` and `introspection_class` and initialize these
