@@ -1,3 +1,4 @@
+import os
 import tempfile
 import uuid
 
@@ -35,6 +36,9 @@ def django_db_setup(django_db_setup, django_db_blocker):
         qn = connection.ops.quote_name
 
         with tempfile.TemporaryDirectory() as temp_dir:
+            if not os.path.exists(temp_dir):
+                os.makedirs(temp_dir)
+
             with connection.cursor() as cursor:
                 cursor.execute(
                     f"CREATE TABLESPACE {qn(custom_tablespace_name)} LOCATION %s",
