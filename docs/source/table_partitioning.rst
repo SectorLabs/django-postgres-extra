@@ -28,9 +28,7 @@ Known limitations
 
 Foreign keys
 ~~~~~~~~~~~~
-Support for foreign keys to partitioned models is limited in Django 5.1 and older. These are only suported under specific conditions.
-
-For full support for foreign keys to partitioned models, use Django 5.2 or newer. Django 5.2 supports composite primary and foreign keys native through :class:`~django:django.db.models.CompositePrimaryKey` to support.
+There is no support for foreign keys **to** partitioned models. Even in Django 5.2 with the introduction of :class:`~django:django.db.models.CompositePrimaryKey`, there is no support for foreign keys. See: https://code.djangoproject.com/ticket/36034
 
 Foreing keys **on** a partitioned models to other, non-partitioned models are always supported.
 
@@ -118,19 +116,13 @@ Primary key
 
 PostgreSQL demands that the primary key is the same or is part of the partitioning key. See `PostgreSQL Table Partitioning Limitations`_.
 
-TL;DR Foreign keys don't work in Django <5.2. Use Django 5.2 or newer for proper support.
-
 **In Django <5.2, the behavior is as following:**
 
-    - If the primary key is the same as the partitioning key:
-
-        Foreign keys to partitioned tables will work as you expect.
+    - If the primary key is the same as the partitioning key, standard Django behavior applies.
 
     - If the primary key is not the exact same as the partitioning key or the partitioning key consists of more than one field:
 
         An implicit composite primary key (not visible from Django) is created.
-
-        Foreign keys to partitioned tables will **NOT** work.
 
 **In Django >5.2, the behavior is as following:**
 
@@ -138,7 +130,51 @@ TL;DR Foreign keys don't work in Django <5.2. Use Django 5.2 or newer for proper
 
     - If an explicit  :class:`~django:django.db.models.CompositePrimaryKey` is specified, no modifications are made to it and it is your responsibility to make sure the partitioning keys are part of the primary key.
 
-    In Django 5.2 and newer, foreign keys to partitioned models always work.
+Django 5.2 examples
+*******************
+
+Custom composite primary key
+""""""""""""""""""""""""""""
+
+.. code-block:: python
+
+   from django.db import models
+
+   from psqlextra.types import PostgresPartitioningMethod
+   from psqlextra.models import PostgresPartitionedModel
+
+   class MyModel(PostgresPartitionedModel):
+       class PartitioningMeta:
+           method = PostgresPartitioningMethod.RANGE
+           key = ["timestamp"]
+
+       # WARNING: This overrides default primary key that includes a auto-increment `id` field.
+       pk = models.CompositePrimaryKey("name", "timestamp")
+
+       name = models.TextField()
+       timestamp = models.DateTimeField()
+
+
+Custom composite primary key with auto-incrementing ID
+""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+.. code-block:: python
+
+   from django.db import models
+
+   from psqlextra.types import PostgresPartitioningMethod
+   from psqlextra.models import PostgresPartitionedModel
+
+   class MyModel(PostgresPartitionedModel):
+       class PartitioningMeta:
+           method = PostgresPartitioningMethod.RANGE
+           key = ["timestamp"]
+
+       id = models.AutoField(primary_key=True)
+       pk = models.CompositePrimaryKey("id", "timestamp")
+
+       name = models.TextField()
+       timestamp = models.DateTimeField()
 
 
 Generating a migration
