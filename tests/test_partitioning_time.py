@@ -255,6 +255,49 @@ def test_partitioning_time_daily_apply():
 
 
 @pytest.mark.postgres_version(lt=110000)
+def test_partitioning_time_consistent_daily_apply():
+    """Ensures that automatic daily partition creation is consistent and aligned
+    when the partition size spans multiple days (e.g., days > 1)"""
+
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    with freezegun.freeze_time("2025-06-20"):
+        manager = PostgresPartitioningManager(
+            [partition_by_current_time(model, days=5, count=3)]
+        )
+        manager.plan().apply()
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 3
+
+    # Partitions are aligned based on the fixed anchor (Unix Epoch by default).
+    # 2025-06-20 falls within the partition starting at 2025-06-16,
+    # since it's the most recent multiple of 5 days since 1970-01-01.
+    assert table.partitions[0].name == "2025_jun_16"
+    assert table.partitions[1].name == "2025_jun_21"
+    assert table.partitions[2].name == "2025_jun_26"
+
+    # re-running it another day only creates the next one needed.
+    with freezegun.freeze_time("2025-06-22"):
+        manager = PostgresPartitioningManager(
+            [partition_by_current_time(model, days=5, count=3)]
+        )
+        manager.plan().apply()
+
+    table = _get_partitioned_table(model)
+    assert len(table.partitions) == 4
+    assert table.partitions[0].name == "2025_jun_16"
+    assert table.partitions[1].name == "2025_jun_21"
+    assert table.partitions[2].name == "2025_jun_26"
+    assert table.partitions[3].name == "2025_jul_01"
+
+
+@pytest.mark.postgres_version(lt=110000)
 def test_partitioning_time_monthly_apply_insert():
     """Tests whether automatically created monthly partitions line up
     perfectly."""
@@ -376,7 +419,7 @@ def test_partitioning_time_daily_apply_insert():
 @pytest.mark.parametrize(
     "kwargs,partition_names",
     [
-        (dict(days=2), ["2019_jan_01", "2019_jan_03"]),
+        (dict(days=2), ["2018_dec_31", "2019_jan_02"]),
         (dict(weeks=2), ["2018_week_53", "2019_week_02"]),
         (dict(months=2), ["2019_jan", "2019_mar"]),
         (dict(years=2), ["2019", "2021"]),
@@ -422,7 +465,7 @@ def test_partitioning_time_multiple(kwargs, partition_names):
             dict(days=7, max_age=relativedelta(weeks=1)),
             [
                 ("2019-1-1", 6),
-                ("2019-1-4", 6),
+                ("2019-1-4", 5),
                 ("2019-1-8", 5),
                 ("2019-1-15", 4),
                 ("2019-1-16", 4),
@@ -450,7 +493,7 @@ def test_partitioning_time_delete(kwargs, timepoints):
     with freezegun.freeze_time(timepoints[0][0]):
         manager.plan().apply()
 
-    for index, (dt, partition_count) in enumerate(timepoints):
+    for (dt, partition_count) in timepoints:
         with freezegun.freeze_time(dt):
             manager.plan(skip_create=True).apply()
 
