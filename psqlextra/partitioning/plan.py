@@ -1,5 +1,8 @@
+import contextlib
+import sys
+
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List, Optional, cast
+from typing import TYPE_CHECKING, ContextManager, List, Optional, Union, cast
 
 from django.db import connections, transaction
 
@@ -36,8 +39,10 @@ class PostgresModelPartitioningPlan:
 
         connection = connections[using or "default"]
 
-        with transaction.atomic():
-            with connection.schema_editor() as schema_editor:
+        with self._migration_context_manager():
+            with connection.schema_editor(
+                atomic=self.config.atomic
+            ) as schema_editor:
                 for partition in self.creations:
                     partition.create(
                         self.config.model,
@@ -50,6 +55,22 @@ class PostgresModelPartitioningPlan:
                         self.config.model,
                         cast("PostgresSchemaEditor", schema_editor),
                     )
+
+    def _migration_context_manager(
+        self,
+    ) -> Union[transaction.Atomic, ContextManager[None]]:
+        if sys.version_info >= (3, 7):
+            return (
+                transaction.atomic()
+                if self.config.atomic
+                else contextlib.nullcontext()
+            )
+        else:
+            return (
+                transaction.atomic()
+                if self.config.atomic
+                else contextlib.suppress()
+            )
 
     def print(self) -> None:
         """Prints this model plan to the terminal in a readable format."""
