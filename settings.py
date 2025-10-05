@@ -43,3 +43,5 @@ INSTALLED_APPS = (
 
 USE_TZ = True
 TIME_ZONE = 'UTC'
+
+DATABASE_IN_CONTAINER = os.environ.get('DATABASE_IN_CONTAINER') == 'true'

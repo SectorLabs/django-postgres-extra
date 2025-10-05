@@ -45,6 +45,7 @@ commands:
           command: tox --listenvs | grep ^py<< parameters.pyversion >> | circleci tests split | xargs -n 1 tox -e
           environment:
             DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
+            DATABASE_IN_CONTAINER: 'true'
 
 jobs:
   test-python36:
