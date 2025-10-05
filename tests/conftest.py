@@ -35,6 +35,7 @@ def django_db_setup(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         qn = connection.ops.quote_name
 
+        db_user = settings.DATABASES[connection.alias]["USER"]
         db_hostname = settings.DATABASES[connection.alias]["HOST"]
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -45,9 +46,13 @@ def django_db_setup(django_db_setup, django_db_blocker):
                 #
                 # Note that this only typically works in CI environments
                 # where we have utter control to execute arbitary commands.
-                if db_hostname and db_hostname not in (
-                    "127.0.0.1",
-                    "localhost",
+                if db_user or (
+                    db_hostname
+                    and db_hostname
+                    not in (
+                        "127.0.0.1",
+                        "localhost",
+                    )
                 ):
                     cursor.execute(
                         f"COPY (select 1) TO PROGRAM 'mkdir --mode=777 -p {temp_dir}'"
