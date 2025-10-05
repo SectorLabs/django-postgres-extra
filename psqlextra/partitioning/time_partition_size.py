@@ -31,7 +31,7 @@ class PostgresTimePartitionSize:
         months: Optional[int] = None,
         weeks: Optional[int] = None,
         days: Optional[int] = None,
-        anchor: datetime = UNIX_EPOCH
+        anchor: datetime = UNIX_EPOCH,
     ) -> None:
         sizes = [years, months, weeks, days]
 

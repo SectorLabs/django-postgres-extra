@@ -256,8 +256,8 @@ def test_partitioning_time_daily_apply():
 
 @pytest.mark.postgres_version(lt=110000)
 def test_partitioning_time_consistent_daily_apply():
-    """Ensures that automatic daily partition creation is consistent and aligned
-    when the partition size spans multiple days (e.g., days > 1)"""
+    """Ensures that automatic daily partition creation is consistent and
+    aligned when the partition size spans multiple days (e.g., days > 1)"""
 
     model = define_fake_partitioned_model(
         {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
