@@ -1,9 +1,9 @@
-import os
 import tempfile
 import uuid
 
 import pytest
 
+from django.conf import settings
 from django.contrib.postgres.signals import register_type_handlers
 from django.db import connection
 
@@ -35,11 +35,24 @@ def django_db_setup(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         qn = connection.ops.quote_name
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            if not os.path.exists(temp_dir):
-                os.makedirs(temp_dir)
+        db_hostname = settings.DATABASES[connection.alias]["HOST"]
 
+        with tempfile.TemporaryDirectory() as temp_dir:
             with connection.cursor() as cursor:
+                # If the database is remote, like in a CI environment, make
+                # sure the temporary directory exists in the container
+                # that PostgreSQL is running.
+                #
+                # Note that this only typically works in CI environments
+                # where we have utter control to execute arbitary commands.
+                if db_hostname and db_hostname not in (
+                    "127.0.0.1",
+                    "localhost",
+                ):
+                    cursor.execute(
+                        f"COPY (select 1) TO PROGRAM 'mkdir --mode=777 -p {temp_dir}'"
+                    )
+
                 cursor.execute(
                     f"CREATE TABLESPACE {qn(custom_tablespace_name)} LOCATION %s",
                     (temp_dir,),
