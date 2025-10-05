@@ -1,9 +1,10 @@
 from typing import Iterable, List, Optional, Tuple
 
+import django
+
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.db.models.base import ModelBase
-from django.db.models.fields.composite import CompositePrimaryKey
 from django.db.models.options import Options
 
 from psqlextra.types import PostgresPartitioningMethod
@@ -28,9 +29,11 @@ class PostgresPartitionedModelMeta(ModelBase):
 
         partitioning_method = getattr(partitioning_meta_class, "method", None)
         partitioning_key = getattr(partitioning_meta_class, "key", None)
-        special = getattr(partitioning_meta_class, "special", None)
 
-        if special:
+        if django.VERSION >= (5, 2):
+            for base in bases:
+                cls._delete_auto_created_fields(base)
+
             cls._create_primary_key(attrs, partitioning_key)
 
         patitioning_meta = PostgresPartitionedModelOptions(
@@ -43,20 +46,56 @@ class PostgresPartitionedModelMeta(ModelBase):
         return new_class
 
     @classmethod
-    def _create_primary_key(cls, attrs, partitioning_key: Optional[List[str]]):
+    def _create_primary_key(
+        cls, attrs, partitioning_key: Optional[List[str]]
+    ) -> None:
+        from django.db.models.fields.composite import CompositePrimaryKey
+
+        # Find any existing primary key the user might have declared.
+        #
+        # If it is a composite primary key, we will do nothing and
+        # keep it as it is. You're own your own.
         pk = cls._find_primary_key(attrs)
         if pk and isinstance(pk[1], CompositePrimaryKey):
             return
 
+        # Create an `id` field (auto-incrementing) if there is no
+        # primary key yet.
+        #
+        # This matches standard Django behavior.
         if not pk:
             attrs["id"] = attrs.get("id") or cls._create_auto_field(attrs)
             pk_fields = ["id"]
         else:
             pk_fields = [pk[0]]
 
-        unique_pk_fields = set(pk_fields + (partitioning_key or []))
+        partitioning_keys = (
+            partitioning_key
+            if isinstance(partitioning_key, list)
+            else list(filter(None, [partitioning_key]))
+        )
+
+        unique_pk_fields = set(pk_fields + (partitioning_keys or []))
         if len(unique_pk_fields) <= 1:
+            if "id" in attrs:
+                attrs["id"].primary_key = True
             return
+
+        # You might have done something like this:
+        #
+        # id = models.AutoField(primary_key=True)
+        # pk = CompositePrimaryKey("id", "timestamp")
+        #
+        # The `primary_key` attribute has to be removed
+        # from the `id` field in the example above to
+        # avoid having two primary keys.
+        #
+        # Without this, the generated schema will
+        # have two primary keys, which is an error.
+        for field in attrs.values():
+            is_pk = getattr(field, "primary_key", False)
+            if is_pk:
+                field.primary_key = False
 
         auto_generated_pk = CompositePrimaryKey(*sorted(unique_pk_fields))
         attrs["pk"] = auto_generated_pk
@@ -67,7 +106,7 @@ class PostgresPartitionedModelMeta(ModelBase):
         meta_class = attrs.get("Meta", None)
 
         pk_class = Options(meta_class, app_label)._get_default_pk_class()
-        return pk_class(verbose_name="ID", primary_key=True, auto_created=True)
+        return pk_class(verbose_name="ID", auto_created=True)
 
     @classmethod
     def _find_primary_key(cls, attrs) -> Optional[Tuple[str, models.Field]]:
@@ -100,6 +139,8 @@ class PostgresPartitionedModelMeta(ModelBase):
 
         3. There is no primary key.
         """
+
+        from django.db.models.fields.composite import CompositePrimaryKey
 
         fields = {
             name: value
@@ -157,6 +198,29 @@ class PostgresPartitionedModelMeta(ModelBase):
             )
 
         return sorted_fields_marked_as_pk[0]
+
+    @classmethod
+    def _delete_auto_created_fields(cls, model: models.Model):
+        """Base classes might be injecting an auto-generated `id` field before
+        we even have the chance of doing this ourselves.
+
+        Delete any auto generated fields from the base class so that we
+        can declare our own. If there is no auto-generated field, one
+        will be added anyways by our own logic
+        """
+
+        fields = model._meta.local_fields + model._meta.local_many_to_many
+        for field in fields:
+            auto_created = getattr(field, "auto_created", False)
+            if auto_created:
+                if field in model._meta.local_fields:
+                    model._meta.local_fields.remove(field)
+
+                if field in model._meta.fields:
+                    model._meta.fields.remove(field)  # type: ignore [attr-defined]
+
+                if hasattr(model, field.name):
+                    delattr(model, field.name)
 
 
 class PostgresPartitionedModel(

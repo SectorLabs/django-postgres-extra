@@ -85,11 +85,11 @@ def test_partitioned_model_key_option_none():
 def test_partitioned_model_custom_composite_primary_key_with_auto_field():
     model = define_fake_partitioned_model(
         fields={
-            "auto_id": models.AutoField(),
+            "auto_id": models.AutoField(primary_key=True),
             "my_custom_pk": models.CompositePrimaryKey("auto_id", "timestamp"),
             "timestamp": models.DateTimeField(),
         },
-        partitioning_options=dict(key=["timestamp"], special=True),
+        partitioning_options=dict(key=["timestamp"]),
     )
 
     assert isinstance(model._meta.pk, models.CompositePrimaryKey)
@@ -108,7 +108,7 @@ def test_partitioned_model_custom_composite_primary_key_with_id_field():
             "my_custom_pk": models.CompositePrimaryKey("id", "timestamp"),
             "timestamp": models.DateTimeField(),
         },
-        partitioning_options=dict(key=["timestamp"], special=True),
+        partitioning_options=dict(key=["timestamp"]),
     )
 
     assert isinstance(model._meta.pk, models.CompositePrimaryKey)
@@ -127,7 +127,7 @@ def test_partitioned_model_custom_composite_primary_key_named_id():
             "id": models.CompositePrimaryKey("other_field", "timestamp"),
             "timestamp": models.DateTimeField(),
         },
-        partitioning_options=dict(key=["timestamp"], special=True),
+        partitioning_options=dict(key=["timestamp"]),
     )
 
     assert isinstance(model._meta.pk, models.CompositePrimaryKey)
@@ -147,7 +147,7 @@ def test_partitioned_model_field_named_pk_not_composite_not_primary():
                 "id": models.CompositePrimaryKey("other_field", "timestamp"),
                 "timestamp": models.DateTimeField(),
             },
-            partitioning_options=dict(key=["timestamp"], special=True),
+            partitioning_options=dict(key=["timestamp"]),
         )
 
 
@@ -162,7 +162,7 @@ def test_partitioned_model_field_named_pk_not_composite():
                 "pk": models.AutoField(primary_key=True),
                 "timestamp": models.DateTimeField(),
             },
-            partitioning_options=dict(key=["timestamp"], special=True),
+            partitioning_options=dict(key=["timestamp"]),
         )
 
 
@@ -179,7 +179,7 @@ def test_partitioned_model_field_multiple_pks():
                 "timestamp": models.DateTimeField(),
                 "real_pk": models.CompositePrimaryKey("id", "timestamp"),
             },
-            partitioning_options=dict(key=["timestamp"], special=True),
+            partitioning_options=dict(key=["timestamp"]),
         )
 
 
@@ -192,7 +192,7 @@ def test_partitioned_model_no_pk_defined():
         fields={
             "timestamp": models.DateTimeField(),
         },
-        partitioning_options=dict(key=["timestamp"], special=True),
+        partitioning_options=dict(key=["timestamp"]),
     )
 
     assert isinstance(model._meta.pk, models.CompositePrimaryKey)
@@ -203,7 +203,7 @@ def test_partitioned_model_no_pk_defined():
     assert id_field.name == "id"
     assert id_field.column == "id"
     assert isinstance(id_field, models.AutoField)
-    assert id_field.primary_key is True
+    assert id_field.primary_key is False
 
 
 @pytest.mark.skipif(
@@ -217,7 +217,7 @@ def test_partitioned_model_composite_primary_key():
             "pk": models.CompositePrimaryKey("id", "timestamp"),
             "timestamp": models.DateTimeField(),
         },
-        partitioning_options=dict(key=["timestamp"], special=True),
+        partitioning_options=dict(key=["timestamp"]),
     )
 
     assert isinstance(model._meta.pk, models.CompositePrimaryKey)
@@ -234,7 +234,7 @@ def test_partitioned_model_composite_primary_key_foreign_key():
         fields={
             "timestamp": models.DateTimeField(),
         },
-        partitioning_options=dict(key=["timestamp"], special=True),
+        partitioning_options=dict(key=["timestamp"]),
     )
 
     define_fake_model(
@@ -255,7 +255,7 @@ def test_partitioned_model_custom_composite_primary_key_foreign_key():
             "timestamp": models.DateTimeField(),
             "custom": models.CompositePrimaryKey("id", "timestamp"),
         },
-        partitioning_options=dict(key=["timestamp"], special=True),
+        partitioning_options=dict(key=["timestamp"]),
     )
 
     define_fake_model(
