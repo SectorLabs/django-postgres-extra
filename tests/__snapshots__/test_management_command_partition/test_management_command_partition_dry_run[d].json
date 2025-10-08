@@ -1,0 +1,1 @@
+"test:\n  - tobedeleted\n  + tobecreated\n\n1 partitions will be deleted\n1 partitions will be created\n"

@@ -1,6 +1,6 @@
 import sys
 
-from typing import Optional
+from typing import List, Optional
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -13,7 +13,11 @@ class Command(BaseCommand):
     """Create new partitions and delete old ones according to the configured
     partitioning strategies."""
 
-    help = "Create new partitions and delete old ones using the configured partitioning manager. The PSQLEXTRA_PARTITIONING_MANAGER setting must be configured."
+    help = (
+        "Create new partitions and delete old ones using the configured "
+        "partitioning manager. The PSQLEXTRA_PARTITIONING_MANAGER setting must "
+        "be configured."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -58,6 +62,14 @@ class Command(BaseCommand):
         )
 
         parser.add_argument(
+            "--model-names",
+            "-m",
+            nargs="+",
+            help="A list of model names for which to partition.",
+            default=None,
+        )
+
+        parser.add_argument(
             "--detach",
             help="Detach partitions",
             required=False,
@@ -73,15 +85,16 @@ class Command(BaseCommand):
             default=False,
         )
 
-    def handle(
+    def handle(  # type: ignore[override]
         self,
         dry: bool,
         yes: bool,
         using: Optional[str],
         skip_create: bool,
         skip_delete: bool,
-        detach: str,
-        defer_attach: Optional[bool],
+        model_names: Optional[List[str]] = None,
+        detach: str = "no",
+        defer_attach: bool = False,
         *args,
         **kwargs,
     ):
@@ -90,6 +103,7 @@ class Command(BaseCommand):
         plan = partitioning_manager.plan(
             skip_create=skip_create,
             skip_delete=skip_delete,
+            model_names=model_names,
             detach=detach,
             using=using,
             deferred_attach=defer_attach,
@@ -99,7 +113,11 @@ class Command(BaseCommand):
         deletions_count = len(plan.deletions)
         deferred_creations_count = len(plan.deferred_creations)
 
-        if creations_count == 0 and deletions_count == 0 and deferred_creations_count == 0:
+        if (
+            creations_count == 0
+            and deletions_count == 0
+            and deferred_creations_count == 0
+        ):
             print("Nothing to be done.")
             return
 

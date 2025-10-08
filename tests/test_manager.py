@@ -34,10 +34,8 @@ def test_manager_backend_set(databases):
 
 
 def test_manager_backend_not_set():
-    """Tests whether creating a new instance of
-    :see:PostgresManager fails if no database
-    has `psqlextra.backend` configured
-    as its ENGINE."""
+    """Tests whether creating a new instance of :see:PostgresManager fails if
+    no database has `psqlextra.backend` configured as its ENGINE."""
 
     with override_settings(
         DATABASES={"default": {"ENGINE": "django.db.backends.postgresql"}}

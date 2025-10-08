@@ -94,7 +94,7 @@ class PostgresPartitionedModelState(PostgresModelState):
         del self.partitions[name]
 
     @classmethod
-    def _pre_new(
+    def _pre_new(  # type: ignore[override]
         cls,
         model: PostgresPartitionedModel,
         model_state: "PostgresPartitionedModelState",
@@ -108,7 +108,7 @@ class PostgresPartitionedModelState(PostgresModelState):
         )
         return model_state
 
-    def _pre_clone(
+    def _pre_clone(  # type: ignore[override]
         self, model_state: "PostgresPartitionedModelState"
     ) -> "PostgresPartitionedModelState":
         """Called when this model state is cloned."""

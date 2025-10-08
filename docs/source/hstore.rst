@@ -15,6 +15,10 @@ Constraints
 Unique
 ******
 
+.. warning::
+
+    In Django 2.2 or newer, you might want to use :class:`~django.db.models.UniqueConstraint` instead.
+
 The ``uniqueness`` constraint can be added on one or more `hstore`_ keys, similar to how a ``UNIQUE`` constraint can be added to a column. Setting this option causes unique indexes to be created on the specified keys.
 
 You can specify a ``list`` of strings to specify the keys that must be marked as unique:
@@ -43,6 +47,10 @@ In the example above, ``key1`` and ``key2`` must unique **together**, and ``key3
 
 Required
 ********
+
+.. warning::
+
+    In Django 2.2 or newer, you might want to use :class:`~django.db.models.CheckConstraint` instead.
 
 The ``required`` option can be added to ensure that the specified `hstore`_ keys are set for every row. This is similar to a ``NOT NULL`` constraint on a column. You can specify a list of `hstore`_ keys that are required:
 

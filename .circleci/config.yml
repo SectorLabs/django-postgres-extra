@@ -3,11 +3,17 @@ version: 2.1
 executors:
   python:
     parameters:
-      version:
+      pyversion:
         type: string
+      pgversion:
+        type: string
+        default: "16.0"
+      debiandist:
+        type: string
+        default: "bullseye"
     docker:
-      - image: python:<< parameters.version >>-buster
-      - image: postgres:11.0
+      - image: python:<< parameters.pyversion >>-<< parameters.debiandist >>
+      - image: postgres:<< parameters.pgversion >>
         environment:
           POSTGRES_DB: 'psqlextra'
           POSTGRES_USER: 'psqlextra'
@@ -22,7 +28,7 @@ commands:
     steps:
       - run:
           name: Install packages
-          command: apt-get update && apt-get install -y --no-install-recommends postgresql-client-11 libpq-dev build-essential git
+          command: apt-get update && apt-get install -y --no-install-recommends postgresql-client libpq-dev build-essential git
 
       - run:
           name: Install Python packages
@@ -32,99 +38,135 @@ commands:
     parameters:
       pyversion:
         type: integer
-      djversions:
-        type: string
 
     steps:
       - run:
           name: Run tests
-          command: tox -e 'py<< parameters.pyversion >>-dj{<< parameters.djversions >>}'
+          command: tox --listenvs | grep ^py<< parameters.pyversion >> | circleci tests split | xargs -n 1 tox -e
           environment:
             DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
-
+            DATABASE_IN_CONTAINER: 'true'
 
 jobs:
   test-python36:
     executor:
       name: python
-      version: "3.6"
+      pyversion: "3.6"
+      pgversion: "13.0"
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test
       - run-tests:
           pyversion: 36
-          djversions: 20,21,22,30,31,32
 
   test-python37:
     executor:
       name: python
-      version: "3.7"
+      pyversion: "3.7"
+      pgversion: "13.0"
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test
       - run-tests:
           pyversion: 37
-          djversions: 20,21,22,30,31,32
 
   test-python38:
     executor:
       name: python
-      version: "3.8"
+      pyversion: "3.8"
+      pgversion: "13.0"
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test
       - run-tests:
           pyversion: 38
-          djversions: 20,21,22,30,31,32,40
 
   test-python39:
     executor:
       name: python
-      version: "3.9"
+      pyversion: "3.9"
+      pgversion: "13.0"
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test
       - run-tests:
           pyversion: 39
-          djversions: 21,22,30,31,32,40
 
   test-python310:
     executor:
       name: python
-      version: "3.10"
+      pyversion: "3.10"
+      pgversion: "16.0"
     steps:
       - checkout
       - install-dependencies:
-          extra: test
+          extra: dev, test
       - run-tests:
           pyversion: 310
-          djversions: 21,22,30,31,32,40
+
+  test-python311:
+    executor:
+      name: python
+      pyversion: "3.11"
+      pgversion: "16.0"
+    steps:
+      - checkout
+      - install-dependencies:
+          extra: dev, test, test-report
+      - run-tests:
+          pyversion: 311
       - store_test_results:
           path: reports
       - run:
           name: Upload coverage report
           command: coveralls
 
-  analysis:
+  test-python312:
     executor:
       name: python
-      version: "3.9"
+      pyversion: "3.12"
+      pgversion: "16.0"
+      debiandist: "bullseye"
     steps:
       - checkout
       - install-dependencies:
-          extra: analysis
+          extra: dev, test
+      - run-tests:
+          pyversion: 312
+
+  test-python313:
+    executor:
+      name: python
+      pyversion: "3.13"
+      pgversion: "16.0"
+      debiandist: "bullseye"
+    steps:
+      - checkout
+      - install-dependencies:
+          extra: dev, test
+      - run-tests:
+          pyversion: 313
+
+  analysis:
+    executor:
+      name: python
+      pyversion: "3.11"
+    steps:
+      - checkout
+      - install-dependencies:
+          extra: dev, analysis, test
       - run:
           name: Verify
-          command: python setup.py verify
+          command: poe verify
 
   publish:
     executor:
       name: python
-      version: "3.9"
+      pyversion: "3.11"
     steps:
       - checkout
       - install-dependencies:
@@ -139,8 +181,8 @@ jobs:
           name: Publish package
           command: >
             python -m twine upload
-            --username "${PYPI_REPO_USERNAME}"
-            --password "${PYPI_REPO_PASSWORD}"
+            --username "__token__"
+            --password "${PYPI_API_TOKEN}"
             --verbose
             --non-interactive
             --disable-progress-bar
@@ -179,6 +221,24 @@ workflows:
               only: /.*/
             branches:
               only: /.*/
+      - test-python311:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+      - test-python312:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+      - test-python313:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
       - analysis:
           filters:
             tags:
@@ -186,13 +246,6 @@ workflows:
             branches:
               only: /.*/
       - publish:
-          requires:
-            - test-python36
-            - test-python37
-            - test-python38
-            - test-python39
-            - test-python310
-            - analysis
           filters:
             tags:
               only: /^v.*/

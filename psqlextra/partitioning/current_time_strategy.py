@@ -16,7 +16,8 @@ class PostgresCurrentTimePartitioningStrategy(
 
     All buckets will be equal in size and start at the start of the
     unit. With monthly partitioning, partitions start on the 1st and
-    with weekly partitioning, partitions start on monday.
+    with weekly partitioning, partitions start on monday, with hourly
+    partitioning, partitions start at 00:00.
     """
 
     def __init__(
@@ -24,6 +25,7 @@ class PostgresCurrentTimePartitioningStrategy(
         size: PostgresTimePartitionSize,
         count: int,
         max_age: Optional[relativedelta] = None,
+        name_format: Optional[str] = None,
     ) -> None:
         """Initializes a new instance of :see:PostgresTimePartitioningStrategy.
 
@@ -44,13 +46,16 @@ class PostgresCurrentTimePartitioningStrategy(
         self.size = size
         self.count = count
         self.max_age = max_age
+        self.name_format = name_format
 
     def to_create(self) -> Generator[PostgresTimePartition, None, None]:
         current_datetime = self.size.start(self.get_start_datetime())
 
         for _ in range(self.count):
             yield PostgresTimePartition(
-                start_datetime=current_datetime, size=self.size
+                start_datetime=current_datetime,
+                size=self.size,
+                name_format=self.name_format,
             )
 
             current_datetime += self.size.as_delta()
@@ -65,7 +70,9 @@ class PostgresCurrentTimePartitioningStrategy(
 
         while True:
             yield PostgresTimePartition(
-                start_datetime=current_datetime, size=self.size
+                start_datetime=current_datetime,
+                size=self.size,
+                name_format=self.name_format,
             )
 
             current_datetime -= self.size.as_delta()

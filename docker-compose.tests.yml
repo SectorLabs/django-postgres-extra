@@ -1,0 +1,42 @@
+version: "3.9"
+
+x-test-env: &test-env
+  DATABASE_URL: postgres://psqlextra:psqlextra@postgres:5432/psqlextra
+  DATABASE_IN_CONTAINER: "true"
+  DJANGO_SETTINGS_MODULE: settings
+  PGPASSWORD: psqlextra
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
+
+services:
+  postgres:
+    image: postgres:16.0
+    environment:
+      POSTGRES_DB: psqlextra
+      POSTGRES_USER: psqlextra
+      POSTGRES_PASSWORD: psqlextra
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U psqlextra -d psqlextra -h localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5435:5432"
+
+  tests:
+    build:
+      context: .
+      dockerfile: docker/tests/Dockerfile
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.12}
+        DEBIAN_DIST: ${DEBIAN_DIST:-bookworm}
+    environment:
+      <<: *test-env
+      TOX_ARGS: ${TOX_ARGS:--e py312-dj52-psycopg32}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: bash -lc "tox ${TOX_ARGS}"

@@ -1,11 +1,14 @@
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional, cast
 
 from django.db import connections, transaction
 
 from .config import PostgresPartitioningConfig
 from .constants import AUTO_PARTITIONED_COMMENT
 from .partition import PostgresPartition
+
+if TYPE_CHECKING:
+    from psqlextra.backend.schema import PostgresSchemaEditor
 
 
 @dataclass
@@ -33,7 +36,7 @@ class PostgresModelPartitioningPlan:
 
         Arguments:
             using:
-                Name of the database connection to use.
+                Optional name of the database connection to use.
         """
 
         connection = connections[using or "default"]
@@ -41,20 +44,22 @@ class PostgresModelPartitioningPlan:
         if self.creations:
             with transaction.atomic():
                 with connection.schema_editor() as schema_editor:
+                    editor = cast("PostgresSchemaEditor", schema_editor)
                     for partition in self.creations:
                         partition.create(
                             self.config.model,
-                            schema_editor,
+                            editor,
                             comment=AUTO_PARTITIONED_COMMENT,
                         )
 
         if self.deferred_creations:
             with transaction.atomic():
                 with connection.schema_editor() as schema_editor:
+                    editor = cast("PostgresSchemaEditor", schema_editor)
                     for partition in self.deferred_creations:
                         partition.create(
                             self.config.model,
-                            schema_editor,
+                            editor,
                             comment=AUTO_PARTITIONED_COMMENT,
                             defer_attach=True,
                         )
@@ -62,22 +67,30 @@ class PostgresModelPartitioningPlan:
         if self.detachements:
             with transaction.atomic():
                 with connection.schema_editor() as schema_editor:
+                    editor = cast("PostgresSchemaEditor", schema_editor)
                     for partition in self.detachements:
                         partition.detach(
-                            self.config.model, schema_editor, concurrently=False
+                            self.config.model,
+                            editor,
+                            concurrently=False,
                         )
 
         if self.concurrent_detachements:
             with connection.schema_editor() as schema_editor:
+                editor = cast("PostgresSchemaEditor", schema_editor)
                 for partition in self.concurrent_detachements:
                     partition.detach(
-                        self.config.model, schema_editor, concurrently=True
+                        self.config.model,
+                        editor,
+                        concurrently=True,
                     )
 
-        with transaction.atomic():
-            with connection.schema_editor() as schema_editor:
-                for partition in self.deletions:
-                    partition.delete(self.config.model, schema_editor)
+        if self.deletions:
+            with transaction.atomic():
+                with connection.schema_editor() as schema_editor:
+                    editor = cast("PostgresSchemaEditor", schema_editor)
+                    for partition in self.deletions:
+                        partition.delete(self.config.model, editor)
 
     def print(self) -> None:
         """Prints this model plan to the terminal in a readable format."""
@@ -95,7 +108,17 @@ class PostgresModelPartitioningPlan:
                 print(f"     {key}: {value}")
 
         for partition in self.deferred_creations:
-            print("  + %s" % partition.name())
+            print("  + %s (deferred attach)" % partition.name())
+            for key, value in partition.deconstruct().items():
+                print(f"     {key}: {value}")
+
+        for partition in self.detachements:
+            print("  ~ %s (detached sequentially)" % partition.name())
+            for key, value in partition.deconstruct().items():
+                print(f"     {key}: {value}")
+
+        for partition in self.concurrent_detachements:
+            print("  ~ %s (detached concurrently)" % partition.name())
             for key, value in partition.deconstruct().items():
                 print(f"     {key}: {value}")
 
@@ -111,7 +134,7 @@ class PostgresPartitioningPlan:
         """Gets a complete flat list of the partitions that are going to be
         created."""
 
-        creations = []
+        creations: List[PostgresPartition] = []
         for model_plan in self.model_plans:
             creations.extend(model_plan.creations)
         return creations
@@ -121,7 +144,7 @@ class PostgresPartitioningPlan:
         """Gets a complete flat list of the partitions that are going to be
         created."""
 
-        deferred_creations = []
+        deferred_creations: List[PostgresPartition] = []
         for model_plan in self.model_plans:
             deferred_creations.extend(model_plan.deferred_creations)
         return deferred_creations
@@ -131,7 +154,7 @@ class PostgresPartitioningPlan:
         """Gets a complete flat list of the partitions that are going to be
         deleted."""
 
-        deletions = []
+        deletions: List[PostgresPartition] = []
         for model_plan in self.model_plans:
             deletions.extend(model_plan.deletions)
         return deletions
@@ -156,7 +179,9 @@ class PostgresPartitioningPlan:
         print(f"{delete_count} partitions will be deleted")
         print(f"{create_count} partitions will be created")
         if deferred_creations_count:
-            print(f"{deferred_creations_count} partitions will be deferently created")
+            print(
+                f"{deferred_creations_count} partitions will be created and attached later"
+            )
 
 
 __all__ = ["PostgresPartitioningPlan", "PostgresModelPartitioningPlan"]

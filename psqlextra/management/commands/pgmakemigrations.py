@@ -1,4 +1,6 @@
-from django.core.management.commands import makemigrations
+from django.core.management.commands import (  # type: ignore[attr-defined]
+    makemigrations,
+)
 
 from psqlextra.backend.migrations import postgres_patched_migrations
 

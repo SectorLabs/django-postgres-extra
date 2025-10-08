@@ -34,8 +34,16 @@ API Reference
 .. automodule:: psqlextra.indexes
 
    .. autoclass:: UniqueIndex
+
    .. autoclass:: ConditionalUniqueIndex
+
    .. autoclass:: CaseInsensitiveUniqueIndex
+
+.. automodule:: psqlextra.locking
+   :members:
+
+.. automodule:: psqlextra.schema
+   :members:
 
 .. automodule:: psqlextra.partitioning
    :members:

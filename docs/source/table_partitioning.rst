@@ -2,11 +2,12 @@
 
 .. warning::
 
-   Table partitioning is a relatively new and advanded PostgreSQL feature. It has plenty of ways to shoot yourself in the foot with.
+   Table partitioning is an advanded PostgreSQL feature. It has plenty of ways to shoot yourself in the foot with.
 
    We HIGHLY RECOMMEND you only use this feature if you're already deeply familiar with table partitioning and aware of its advantages and disadvantages.
 
    Do study the PostgreSQL documentation carefully.
+
 
 .. _table_partitioning_page:
 
@@ -22,11 +23,62 @@ The following partitioning methods are available:
 * ``PARTITION BY LIST``
 * ``PARTITION BY HASH``
 
-.. note::
+Known limitations
+-----------------
 
-   Although table partitioning is available in PostgreSQL 10.x, it is highly recommended you use PostgresSQL 11.x. Table partitioning got a major upgrade in PostgreSQL 11.x.
+Foreign keys
+~~~~~~~~~~~~
+There is no support for foreign keys **to** partitioned models. Even in Django 5.2 with the introduction of :class:`~django:django.db.models.CompositePrimaryKey`, there is no support for foreign keys. See: https://code.djangoproject.com/ticket/36034
 
-   PostgreSQL 10.x does not support creating foreign keys to/from partitioned tables and does not automatically create an index across all partitions.
+Foreing keys **on** a partitioned models to other, non-partitioned models are always supported.
+
+PostgreSQL 10.x
+~~~~~~~~~~~~~~~
+Although table partitioning is available in PostgreSQL 10.x, it is highly recommended you use PostgresSQL 11.x. Table partitioning got a major upgrade in PostgreSQL 11.x.
+
+PostgreSQL 10.x does not support creating foreign keys to/from partitioned tables and does not automatically create an index across all partitions.
+
+Changing the partition key or partition method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is **NO SUPPORT** whatsoever for changing the partitioning key or method on a partitioned model after the initial creation.
+
+Such changes are not detected by ``python manage.py pgmakemigrations`` and there are no pre-built operations for modifying them.
+
+Transforming existing models into partitioned models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is **NO SUPPORT** whatsoever to transform an existing, non-partitioned model into a partitioned model.
+
+At a high-level, you have the following options to do this:
+
+1. Drop the model first and re-create it as a partitioned model according to the documentation.
+
+    .. warning::
+
+        Blindly doing this causes the original table & data to be lost.
+
+2. Craft a custom migration to use the original table as a default partition.
+
+    Migration #1: Rename the original table to ``<table_name>_default``
+
+    Migration #2: Create the partitioned model with the old name.
+
+    Migration #3: Attach the original (renamed) table as the default partition.
+
+    Migration #4: Create more partitions and/or move data from the default partition
+
+    .. warning::
+
+        This is not an officially supported flow. Be extremely cautious to avoid
+        data loss.
+
+Lock-free and/or concurrency safe operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is **NO SUPPORT** whatsoever to create/attach partitions and move data between partitions in a lock-free and concurrency safe manner.
+
+Most operations require ``AccessExclusiveLock`` and **will** block reads/writes. Be extremely cautious on production environments and study the associated locks with the SQL operations before proceeding.
 
 
 Creating partitioned tables
@@ -55,6 +107,71 @@ Inherit your model from :class:`psqlextra.models.PostgresPartitionedModel` and d
        class PartitioningMeta:
            method = PostgresPartitioningMethod.RANGE
            key = ["timestamp"]
+
+       name = models.TextField()
+       timestamp = models.DateTimeField()
+
+Primary key
+~~~~~~~~~~~
+
+PostgreSQL demands that the primary key is the same or is part of the partitioning key. See `PostgreSQL Table Partitioning Limitations`_.
+
+**In Django <5.2, the behavior is as following:**
+
+    - If the primary key is the same as the partitioning key, standard Django behavior applies.
+
+    - If the primary key is not the exact same as the partitioning key or the partitioning key consists of more than one field:
+
+        An implicit composite primary key (not visible from Django) is created.
+
+**In Django >5.2, the behavior is as following:**
+
+    - If no explicit primary key is defined, a :class:`~django:django.db.models.CompositePrimaryKey` is created automatically that includes an auto-incrementing `id` primary key field and the partitioning keys.
+
+    - If an explicit  :class:`~django:django.db.models.CompositePrimaryKey` is specified, no modifications are made to it and it is your responsibility to make sure the partitioning keys are part of the primary key.
+
+Django 5.2 examples
+*******************
+
+Custom composite primary key
+""""""""""""""""""""""""""""
+
+.. code-block:: python
+
+   from django.db import models
+
+   from psqlextra.types import PostgresPartitioningMethod
+   from psqlextra.models import PostgresPartitionedModel
+
+   class MyModel(PostgresPartitionedModel):
+       class PartitioningMeta:
+           method = PostgresPartitioningMethod.RANGE
+           key = ["timestamp"]
+
+       # WARNING: This overrides default primary key that includes a auto-increment `id` field.
+       pk = models.CompositePrimaryKey("name", "timestamp")
+
+       name = models.TextField()
+       timestamp = models.DateTimeField()
+
+
+Custom composite primary key with auto-incrementing ID
+""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+.. code-block:: python
+
+   from django.db import models
+
+   from psqlextra.types import PostgresPartitioningMethod
+   from psqlextra.models import PostgresPartitionedModel
+
+   class MyModel(PostgresPartitionedModel):
+       class PartitioningMeta:
+           method = PostgresPartitioningMethod.RANGE
+           key = ["timestamp"]
+
+       id = models.AutoField(primary_key=True)
+       pk = models.CompositePrimaryKey("id", "timestamp")
 
        name = models.TextField()
        timestamp = models.DateTimeField()
@@ -101,7 +218,8 @@ Command-line options
   Long flag            Short flag    Default          Description
  ==================== ============= ================ ==================================================================================================== === === === === === ===
   ``--yes``            ``-y``        ``False``        Specifies yes to all questions. You will NOT be asked for confirmation before partition deletion.
-  ``--using``          ``-u``        ``'default'``    Name of the database connection to use.
+  ``--using``          ``-u``        ``'default'``    Optionally, name of the database connection to use.
+  ``--model-names``    ``-m``        ``None``         Optionally, a list of model names to partition for.
   ``--skip-create``                  ``False``        Whether to skip creating partitions.
   ``--skip-delete``                  ``False``        Whether to skip deleting partitions.
 
@@ -174,6 +292,17 @@ Time-based partitioning
                count=12,
            ),
        ),
+
+       # 24 partitions ahead, each partition is 1 hour, for a total of 24 hours. Starting with hour 0 of current day
+       # old partitions are never deleted, `max_age` is not set
+       # partitions will be named `[table_name]_[year]_[month]_[month day number]_[hour (24h)]:00:00`.
+       PostgresPartitioningConfig(
+           model=MyPartitionedModel,
+           strategy=PostgresCurrentTimePartitioningStrategy(
+               size=PostgresTimePartitionSize(hours=1),
+               count=24,
+           ),
+       ),
    ])
 
 
@@ -196,7 +325,7 @@ You can look at :class:`psqlextra.partitioning.PostgresCurrentTimePartitioningSt
 Manually managing partitions
 ----------------------------
 
-If you are using list or has partitioning, you most likely have a fixed amount of partitions that can be created up front using migrations or using the schema editor.
+If you are using list or hash partitioning, you most likely have a fixed amount of partitions that can be created up front using migrations or using the schema editor.
 
 Using migration operations
 **************************

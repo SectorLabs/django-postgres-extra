@@ -1,3 +1,4 @@
+import django
 import pytest
 
 from django.db import models
@@ -39,6 +40,35 @@ def test_on_conflict_update():
     assert obj1.cookies == "choco"
     assert obj2.title["key1"] == "beer"
     assert obj2.cookies == "choco"
+
+
+@pytest.mark.skipif(
+    django.VERSION < (2, 2),
+    reason="Django < 2.2 doesn't implement constraints",
+)
+def test_on_conflict_update_by_unique_constraint():
+    model = get_fake_model(
+        {
+            "title": models.CharField(max_length=255, null=True),
+        },
+        meta_options={
+            "constraints": [
+                models.UniqueConstraint(name="test_uniq", fields=["title"]),
+            ],
+        },
+    )
+
+    constraint = next(
+        (
+            constraint
+            for constraint in model._meta.constraints
+            if constraint.name == "test_uniq"
+        )
+    )
+
+    model.objects.on_conflict(constraint, ConflictAction.UPDATE).insert_and_get(
+        title="title"
+    )
 
 
 def test_on_conflict_update_foreign_key_by_object():

@@ -22,8 +22,10 @@ class PostgresViewModelState(PostgresModelState):
         self.view_options = dict(view_options)
 
     @classmethod
-    def _pre_new(
-        cls, model: PostgresViewModel, model_state: "PostgresViewModelState"
+    def _pre_new(  # type: ignore[override]
+        cls,
+        model: Type[PostgresViewModel],
+        model_state: "PostgresViewModelState",
     ) -> "PostgresViewModelState":
         """Called when a new model state is created from the specified
         model."""
@@ -31,7 +33,7 @@ class PostgresViewModelState(PostgresModelState):
         model_state.view_options = dict(model._view_meta.original_attrs)
         return model_state
 
-    def _pre_clone(
+    def _pre_clone(  # type: ignore[override]
         self, model_state: "PostgresViewModelState"
     ) -> "PostgresViewModelState":
         """Called when this model state is cloned."""
