@@ -110,3 +110,17 @@ These are just for local development. CI for code analysis etc runs against thes
 7. Auto-format code, sort imports and auto-fix linting errors:
 
        λ poe fix
+
+### Running tests with Docker Compose
+
+To mirror the CircleCI environment locally, build the Docker image and execute
+tox inside the containers:
+
+       λ docker compose -f docker-compose.tests.yml run --rm tests
+
+The stack provisions Postgres 16 with the expected test credentials, mounts the
+working tree into the Python container, and defaults to Python 3.12 while
+running the `py312-dj52-psycopg32` tox environment. Override the interpreter or
+tox arguments when needed, for example:
+
+       λ PYTHON_VERSION=3.13 TOX_ARGS="-e py313-dj52-psycopg32" docker compose -f docker-compose.tests.yml run --rm tests

@@ -4,19 +4,28 @@ creating a cursor.
 This makes test code less verbose and easier to read/write.
 """
 
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from typing import Optional
 
-from django.db import connection
+from django.db import connection, transaction
 
 from psqlextra.settings import postgres_set_local
 
 
 @contextmanager
 def introspect(schema_name: Optional[str] = None):
-    with postgres_set_local(search_path=schema_name or None):
-        with connection.cursor() as cursor:
-            yield connection.introspection, cursor
+    needs_atomic = not connection.in_atomic_block
+
+    with ExitStack() as stack:
+        if needs_atomic:
+            stack.enter_context(transaction.atomic(using=connection.alias))
+
+        stack.enter_context(
+            postgres_set_local(search_path=schema_name or None)
+        )
+        cursor = stack.enter_context(connection.cursor())
+
+        yield connection.introspection, cursor
 
 
 def table_names(

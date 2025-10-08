@@ -99,7 +99,7 @@ class PostgresSchemaEditor(SchemaEditor):
         cast(DatabaseSchemaEditor, HStoreRequiredSchemaEditorSideEffect()),
     ]
 
-    def __init__(self, connection, collect_sql=False, atomic=False):
+    def __init__(self, connection, collect_sql=False, atomic=True):
         super().__init__(connection, collect_sql, atomic)
 
         for side_effect in self.side_effects:
@@ -172,66 +172,69 @@ class PostgresSchemaEditor(SchemaEditor):
 
         quoted_table_fqn = f"{quoted_schema_name}.{quoted_table_name}"
 
-        self.execute(
-            self.sql_create_table
-            % {
-                "table": quoted_table_fqn,
-                "definition": f"LIKE {quoted_table_name} INCLUDING ALL EXCLUDING CONSTRAINTS EXCLUDING INDEXES",
-            }
-        )
+        with transaction.atomic(using=self.connection.alias):
+            self.execute(
+                self.sql_create_table
+                % {
+                    "table": quoted_table_fqn,
+                    "definition": f"LIKE {quoted_table_name} INCLUDING ALL EXCLUDING CONSTRAINTS EXCLUDING INDEXES",
+                }
+            )
 
-        # Copy sequences
-        #
-        # Django 4.0 and older do not use IDENTITY so Postgres does
-        # not copy the sequences into the new table. We do it manually.
-        if django.VERSION < (4, 1):
-            with self.connection.cursor() as cursor:
-                sequences = self.introspection.get_sequences(cursor, table_name)
-
-            for sequence in sequences:
-                if sequence["table"] != table_name:
-                    continue
-
-                quoted_sequence_name = self.quote_name(sequence["name"])
-                quoted_sequence_fqn = (
-                    f"{quoted_schema_name}.{quoted_sequence_name}"
-                )
-                quoted_column_name = self.quote_name(sequence["column"])
-
-                self.execute(
-                    self.sql_create_sequence_with_owner
-                    % (
-                        quoted_sequence_fqn,
-                        quoted_table_fqn,
-                        quoted_column_name,
+            # Copy sequences
+            #
+            # Django 4.0 and older do not use IDENTITY so Postgres does
+            # not copy the sequences into the new table. We do it manually.
+            if django.VERSION < (4, 1):
+                with self.connection.cursor() as cursor:
+                    sequences = self.introspection.get_sequences(
+                        cursor, table_name
                     )
-                )
 
-                self.execute(
-                    self.sql_alter_column
-                    % {
-                        "table": quoted_table_fqn,
-                        "changes": self.sql_alter_column_default
+                for sequence in sequences:
+                    if sequence["table"] != table_name:
+                        continue
+
+                    quoted_sequence_name = self.quote_name(sequence["name"])
+                    quoted_sequence_fqn = (
+                        f"{quoted_schema_name}.{quoted_sequence_name}"
+                    )
+                    quoted_column_name = self.quote_name(sequence["column"])
+
+                    self.execute(
+                        self.sql_create_sequence_with_owner
+                        % (
+                            quoted_sequence_fqn,
+                            quoted_table_fqn,
+                            quoted_column_name,
+                        )
+                    )
+
+                    self.execute(
+                        self.sql_alter_column
                         % {
-                            "column": quoted_column_name,
-                            "default": "nextval('%s')" % quoted_sequence_fqn,
-                        },
-                    }
+                            "table": quoted_table_fqn,
+                            "changes": self.sql_alter_column_default
+                            % {
+                                "column": quoted_column_name,
+                                "default": "nextval('%s')" % quoted_sequence_fqn,
+                            },
+                        }
+                    )
+
+            # Copy storage settings
+            #
+            # Postgres only copies column-level storage options, not
+            # the table-level storage options.
+            with self.connection.cursor() as cursor:
+                storage_settings = self.introspection.get_storage_settings(
+                    cursor, model._meta.db_table
                 )
 
-        # Copy storage settings
-        #
-        # Postgres only copies column-level storage options, not
-        # the table-level storage options.
-        with self.connection.cursor() as cursor:
-            storage_settings = self.introspection.get_storage_settings(
-                cursor, model._meta.db_table
-            )
-
-        for setting_name, setting_value in storage_settings.items():
-            self.alter_table_storage_setting(
-                quoted_table_fqn, setting_name, setting_value
-            )
+            for setting_name, setting_value in storage_settings.items():
+                self.alter_table_storage_setting(
+                    quoted_table_fqn, setting_name, setting_value
+                )
 
     def clone_model_constraints_and_indexes_to_schema(
         self, model: Type[Model], *, schema_name: str
