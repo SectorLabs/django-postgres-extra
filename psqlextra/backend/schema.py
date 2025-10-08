@@ -99,7 +99,7 @@ class PostgresSchemaEditor(SchemaEditor):
         cast(DatabaseSchemaEditor, HStoreRequiredSchemaEditorSideEffect()),
     ]
 
-    def __init__(self, connection, collect_sql=False, atomic=True):
+    def __init__(self, connection, collect_sql=False, atomic=False):
         super().__init__(connection, collect_sql, atomic)
 
         for side_effect in self.side_effects:
@@ -108,6 +108,47 @@ class PostgresSchemaEditor(SchemaEditor):
 
         self.deferred_sql = []
         self.introspection = PostgresIntrospection(self.connection)
+        self._clone_atomic: Optional[transaction.Atomic] = None
+
+    def __enter__(self):
+        return super().__enter__()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._finish_clone_atomic(exc_type, exc_value, traceback)
+        return super().__exit__(exc_type, exc_value, traceback)
+
+    def _ensure_clone_atomic(self) -> None:
+        """Starts an atomic block when cloning schema objects requires holding
+        locks over multiple statements.
+
+        When Django already manages a transaction (e.g. during a migration), we
+        reuse that transaction and avoid nesting another atomic block. We only
+        open our own transaction when the caller operates in autocommit mode.
+        """
+
+        if self.connection.in_atomic_block or self._clone_atomic is not None:
+            return
+
+        atomic_ctx = transaction.atomic(using=self.connection.alias)
+        atomic_ctx.__enter__()
+        self._clone_atomic = atomic_ctx
+
+    def _finish_clone_atomic(self, exc_type, exc_value, traceback) -> None:
+        """Completes any atomic block started by `_ensure_clone_atomic`."""
+
+        if not self._clone_atomic:
+            return
+
+        atomic_ctx = self._clone_atomic
+        self._clone_atomic = None
+        atomic_ctx.__exit__(exc_type, exc_value, traceback)
+
+    def _ensure_autocommit(self) -> None:
+        """Makes sure there is no outstanding atomic block created by
+        `_ensure_clone_atomic` before running statements that must execute
+        outside a transaction."""
+
+        self._finish_clone_atomic(None, None, None)
 
     def create_schema(self, name: str) -> None:
         """Creates a Postgres schema."""
@@ -172,69 +213,70 @@ class PostgresSchemaEditor(SchemaEditor):
 
         quoted_table_fqn = f"{quoted_schema_name}.{quoted_table_name}"
 
-        with transaction.atomic(using=self.connection.alias):
-            self.execute(
-                self.sql_create_table
-                % {
-                    "table": quoted_table_fqn,
-                    "definition": f"LIKE {quoted_table_name} INCLUDING ALL EXCLUDING CONSTRAINTS EXCLUDING INDEXES",
-                }
+        self._ensure_clone_atomic()
+
+        self.execute(
+            self.sql_create_table
+            % {
+                "table": quoted_table_fqn,
+                "definition": f"LIKE {quoted_table_name} INCLUDING ALL EXCLUDING CONSTRAINTS EXCLUDING INDEXES",
+            }
+        )
+
+        # Copy sequences
+        #
+        # Django 4.0 and older do not use IDENTITY so Postgres does
+        # not copy the sequences into the new table. We do it manually.
+        if django.VERSION < (4, 1):
+            with self.connection.cursor() as cursor:
+                sequences = self.introspection.get_sequences(
+                    cursor, table_name
+                )
+
+            for sequence in sequences:
+                if sequence["table"] != table_name:
+                    continue
+
+                quoted_sequence_name = self.quote_name(sequence["name"])
+                quoted_sequence_fqn = (
+                    f"{quoted_schema_name}.{quoted_sequence_name}"
+                )
+                quoted_column_name = self.quote_name(sequence["column"])
+
+                self.execute(
+                    self.sql_create_sequence_with_owner
+                    % (
+                        quoted_sequence_fqn,
+                        quoted_table_fqn,
+                        quoted_column_name,
+                    )
+                )
+
+                self.execute(
+                    self.sql_alter_column
+                    % {
+                        "table": quoted_table_fqn,
+                        "changes": self.sql_alter_column_default
+                        % {
+                            "column": quoted_column_name,
+                            "default": "nextval('%s')" % quoted_sequence_fqn,
+                        },
+                    }
+                )
+
+        # Copy storage settings
+        #
+        # Postgres only copies column-level storage options, not
+        # the table-level storage options.
+        with self.connection.cursor() as cursor:
+            storage_settings = self.introspection.get_storage_settings(
+                cursor, model._meta.db_table
             )
 
-            # Copy sequences
-            #
-            # Django 4.0 and older do not use IDENTITY so Postgres does
-            # not copy the sequences into the new table. We do it manually.
-            if django.VERSION < (4, 1):
-                with self.connection.cursor() as cursor:
-                    sequences = self.introspection.get_sequences(
-                        cursor, table_name
-                    )
-
-                for sequence in sequences:
-                    if sequence["table"] != table_name:
-                        continue
-
-                    quoted_sequence_name = self.quote_name(sequence["name"])
-                    quoted_sequence_fqn = (
-                        f"{quoted_schema_name}.{quoted_sequence_name}"
-                    )
-                    quoted_column_name = self.quote_name(sequence["column"])
-
-                    self.execute(
-                        self.sql_create_sequence_with_owner
-                        % (
-                            quoted_sequence_fqn,
-                            quoted_table_fqn,
-                            quoted_column_name,
-                        )
-                    )
-
-                    self.execute(
-                        self.sql_alter_column
-                        % {
-                            "table": quoted_table_fqn,
-                            "changes": self.sql_alter_column_default
-                            % {
-                                "column": quoted_column_name,
-                                "default": "nextval('%s')" % quoted_sequence_fqn,
-                            },
-                        }
-                    )
-
-            # Copy storage settings
-            #
-            # Postgres only copies column-level storage options, not
-            # the table-level storage options.
-            with self.connection.cursor() as cursor:
-                storage_settings = self.introspection.get_storage_settings(
-                    cursor, model._meta.db_table
-                )
-
-            for setting_name, setting_value in storage_settings.items():
-                self.alter_table_storage_setting(
-                    quoted_table_fqn, setting_name, setting_value
-                )
+        for setting_name, setting_value in storage_settings.items():
+            self.alter_table_storage_setting(
+                quoted_table_fqn, setting_name, setting_value
+            )
 
     def clone_model_constraints_and_indexes_to_schema(
         self, model: Type[Model], *, schema_name: str
@@ -251,6 +293,8 @@ class PostgresSchemaEditor(SchemaEditor):
                 Name of the schema in which the cloned table
                 resides.
         """
+
+        self._ensure_clone_atomic()
 
         with postgres_prepend_local_search_path(
             [schema_name], using=self.connection.alias
@@ -386,6 +430,8 @@ class PostgresSchemaEditor(SchemaEditor):
                 Name of the schema in which the cloned table
                 resides.
         """
+
+        self._ensure_clone_atomic()
 
         constraint_names = self._constraint_names(model, foreign_key=True)  # type: ignore[attr-defined]
 
@@ -541,6 +587,9 @@ class PostgresSchemaEditor(SchemaEditor):
             if concurrently
             else self.sql_refresh_materialized_view
         )
+
+        if concurrently:
+            self._ensure_autocommit()
 
         sql = sql_template % self.quote_name(model._meta.db_table)
         self.execute(sql)
@@ -915,6 +964,7 @@ class PostgresSchemaEditor(SchemaEditor):
     def detach_partition_concurrently(self, model: Model, name: str) -> None:
         """Detaches concurrently the partition with the specified name."""
 
+        self._ensure_autocommit()
         sql = self.sql_detach_partition_concurrently % (
             self.quote_name(model._meta.db_table),
             self.quote_name(self.create_partition_table_name(model, name)),
