@@ -1,4 +1,6 @@
 -e .
+-e .[dev]
 -e .[test]
+-e .[test-report]
 -e .[analysis]
 -e .[docs]

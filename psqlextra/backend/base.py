@@ -1,6 +1,13 @@
 import logging
 
+from typing import TYPE_CHECKING
+
+from django import VERSION
 from django.conf import settings
+from django.contrib.postgres.signals import (
+    get_hstore_oids,
+    register_type_handlers,
+)
 from django.db import ProgrammingError
 
 from . import base_impl
@@ -8,22 +15,39 @@ from .introspection import PostgresIntrospection
 from .operations import PostgresOperations
 from .schema import PostgresSchemaEditor
 
+from django.db.backends.postgresql.base import (  # isort:skip
+    DatabaseWrapper as PostgresDatabaseWrapper,
+)
+
+
 logger = logging.getLogger(__name__)
 
 
-class DatabaseWrapper(base_impl.backend()):
+if TYPE_CHECKING:
+
+    class Wrapper(PostgresDatabaseWrapper):
+        pass
+
+else:
+    Wrapper = base_impl.backend()
+
+
+class DatabaseWrapper(Wrapper):
     """Wraps the standard PostgreSQL database back-end.
 
     Overrides the schema editor with our custom schema editor and makes
     sure the `hstore` extension is enabled.
     """
 
-    SchemaEditorClass = PostgresSchemaEditor
+    SchemaEditorClass = PostgresSchemaEditor  # type: ignore[assignment]
     introspection_class = PostgresIntrospection
     ops_class = PostgresOperations
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        if VERSION >= (5, 0):
+            return
 
         # Some base back-ends such as the PostGIS back-end don't properly
         # set `ops_class` and `introspection_class` and initialize these
@@ -78,3 +102,22 @@ class DatabaseWrapper(base_impl.backend()):
                     "or add the extension manually.",
                     exc_info=True,
                 )
+                return
+
+        # Clear old (non-existent), stale oids.
+        get_hstore_oids.cache_clear()
+
+        # Verify that we (and Django) can find the OIDs
+        # for hstore.
+        oids, _ = get_hstore_oids(self.alias)
+        if not oids:
+            logger.warning(
+                '"hstore" extension was created, but we cannot find the oids'
+                "in the database. Something went wrong.",
+            )
+            return
+
+        # We must trigger Django into registering the type handlers now
+        # so that any subsequent code can properly use the newly
+        # registered types.
+        register_type_handlers(self)

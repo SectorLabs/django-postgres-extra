@@ -1,6 +1,6 @@
 import enum
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional, Union
 
 from dateutil.relativedelta import relativedelta
@@ -16,11 +16,15 @@ class PostgresTimePartitionUnit(enum.Enum):
     HOURS = "hours"
 
 
+UNIX_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
 class PostgresTimePartitionSize:
     """Size of a time-based range partition table."""
 
     unit: PostgresTimePartitionUnit
     value: int
+    anchor: datetime
 
     def __init__(
         self,
@@ -29,6 +33,7 @@ class PostgresTimePartitionSize:
         weeks: Optional[int] = None,
         days: Optional[int] = None,
         hours: Optional[int] = None,
+        anchor: datetime = UNIX_EPOCH,
     ) -> None:
         sizes = [years, months, weeks, days, hours]
 
@@ -40,6 +45,7 @@ class PostgresTimePartitionSize:
                 "Partition can only have on size unit."
             )
 
+        self.anchor = anchor
         if years:
             self.unit = PostgresTimePartitionUnit.YEARS
             self.value = years
@@ -82,23 +88,29 @@ class PostgresTimePartitionSize:
 
     def start(self, dt: datetime) -> datetime:
         if self.unit == PostgresTimePartitionUnit.YEARS:
-            return self._ensure_datetime(dt.replace(month=1, day=1, hour=0))
+            return self._ensure_datetime(dt.replace(month=1, day=1))
 
         if self.unit == PostgresTimePartitionUnit.MONTHS:
-            return self._ensure_datetime(dt.replace(day=1, hour=0))
+            return self._ensure_datetime(dt.replace(day=1))
 
         if self.unit == PostgresTimePartitionUnit.WEEKS:
-            week_dt = dt - relativedelta(days=dt.weekday())
-            return self._ensure_datetime(week_dt.replace(hour=0))
+            return self._ensure_datetime(dt - relativedelta(days=dt.weekday()))
 
         if self.unit == PostgresTimePartitionUnit.DAYS:
+            diff_days = (dt - self.anchor).days
+            partition_index = diff_days // self.value
+            start = self.anchor + timedelta(days=partition_index * self.value)
+            return self._ensure_datetime(start)
+
+        if self.unit == PostgresTimePartitionUnit.HOURS:
             return self._ensure_datetime(dt.replace(hour=0))
 
-        return self._ensure_datetime(dt)
+        raise ValueError("Unknown unit")
 
     @staticmethod
     def _ensure_datetime(dt: Union[date, datetime]) -> datetime:
-        return datetime(year=dt.year, month=dt.month, day=dt.day, hour=dt.hour)
+        hour = dt.hour if isinstance(dt, datetime) else 0
+        return datetime(year=dt.year, month=dt.month, day=dt.day, hour=hour)
 
     def __repr__(self) -> str:
         return "PostgresTimePartitionSize<%s, %s>" % (self.unit, self.value)

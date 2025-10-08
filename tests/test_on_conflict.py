@@ -1,4 +1,5 @@
 import django
+import freezegun
 import pytest
 
 from django.core.exceptions import SuspiciousOperation
@@ -14,7 +15,7 @@ from .fake_model import get_fake_model
 
 
 @pytest.mark.parametrize("conflict_action", ConflictAction.all())
-@override_settings(PSQLEXTRA_ANNOTATE_SQL=True)
+@override_settings(POSTGRES_EXTRA_ANNOTATE_SQL=True)
 def test_on_conflict(conflict_action):
     """Tests whether simple inserts work correctly."""
 
@@ -130,13 +131,16 @@ def test_on_conflict_partial_get():
         }
     )
 
-    obj1 = model.objects.on_conflict(
-        ["title"], ConflictAction.UPDATE
-    ).insert_and_get(title="beer", purpose="for-sale")
+    with freezegun.freeze_time("2020-1-1 12:00:00.0") as fg:
+        obj1 = model.objects.on_conflict(
+            ["title"], ConflictAction.UPDATE
+        ).insert_and_get(title="beer", purpose="for-sale")
 
-    obj2 = model.objects.on_conflict(
-        ["title"], ConflictAction.UPDATE
-    ).insert_and_get(title="beer")
+        fg.tick()
+
+        obj2 = model.objects.on_conflict(
+            ["title"], ConflictAction.UPDATE
+        ).insert_and_get(title="beer")
 
     obj2.refresh_from_db()
 
@@ -175,11 +179,11 @@ def test_on_conflict_outdated_model(conflict_action):
     """Tests whether insert properly handles fields that are in the database
     but not on the model.
 
-    This happens if somebody manually modified the database
-    to add a column that is not present in the model.
+    This happens if somebody manually modified the database to add a
+    column that is not present in the model.
 
-    This should be handled properly by ignoring the column
-    returned by the database.
+    This should be handled properly by ignoring the column returned by
+    the database.
     """
 
     model = get_fake_model(

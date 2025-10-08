@@ -3,7 +3,7 @@ import os
 import sys
 
 from collections.abc import Iterable
-from typing import Tuple, Union
+from typing import TYPE_CHECKING, Tuple, Union, cast
 
 import django
 
@@ -12,10 +12,12 @@ from django.core.exceptions import SuspiciousOperation
 from django.db.models import Expression, Model, Q
 from django.db.models.fields.related import RelatedField
 from django.db.models.sql import compiler as django_compiler
-from django.db.utils import ProgrammingError
 
 from .expressions import HStoreValue
 from .types import ConflictAction
+
+if TYPE_CHECKING:
+    from .sql import PostgresInsertQuery
 
 
 def append_caller_to_sql(sql):
@@ -46,10 +48,10 @@ def append_caller_to_sql(sql):
     Slow and blocking queries could be easily tracked down to their originator
     within the source code using the "pg_stat_activity" table.
 
-    Enable "PSQLEXTRA_ANNOTATE_SQL" within the database settings to enable this feature.
+    Enable "POSTGRES_EXTRA_ANNOTATE_SQL" within the database settings to enable this feature.
     """
 
-    if not getattr(settings, "PSQLEXTRA_ANNOTATE_SQL", None):
+    if not getattr(settings, "POSTGRES_EXTRA_ANNOTATE_SQL", None):
         return sql
 
     try:
@@ -71,25 +73,25 @@ def append_caller_to_sql(sql):
         return sql
 
 
-class SQLCompiler(django_compiler.SQLCompiler):
+class SQLCompiler(django_compiler.SQLCompiler):  # type: ignore [attr-defined]
     def as_sql(self, *args, **kwargs):
         sql, params = super().as_sql(*args, **kwargs)
         return append_caller_to_sql(sql), params
 
 
-class SQLDeleteCompiler(django_compiler.SQLDeleteCompiler):
+class SQLDeleteCompiler(django_compiler.SQLDeleteCompiler):  # type: ignore [name-defined]
     def as_sql(self, *args, **kwargs):
         sql, params = super().as_sql(*args, **kwargs)
         return append_caller_to_sql(sql), params
 
 
-class SQLAggregateCompiler(django_compiler.SQLAggregateCompiler):
+class SQLAggregateCompiler(django_compiler.SQLAggregateCompiler):  # type: ignore [name-defined]
     def as_sql(self, *args, **kwargs):
         sql, params = super().as_sql(*args, **kwargs)
         return append_caller_to_sql(sql), params
 
 
-class SQLUpdateCompiler(django_compiler.SQLUpdateCompiler):
+class SQLUpdateCompiler(django_compiler.SQLUpdateCompiler):  # type: ignore [name-defined]
     """Compiler for SQL UPDATE statements that allows us to use expressions
     inside HStore values.
 
@@ -104,8 +106,7 @@ class SQLUpdateCompiler(django_compiler.SQLUpdateCompiler):
         return append_caller_to_sql(sql), params
 
     def _prepare_query_values(self):
-        """Extra prep on query values by converting dictionaries into.
-
+        """Extra prep on query values by converting dictionaries into
         :see:HStoreValue expressions.
 
         This allows putting expressions in a dictionary. The
@@ -146,7 +147,7 @@ class SQLUpdateCompiler(django_compiler.SQLUpdateCompiler):
         return False
 
 
-class SQLInsertCompiler(django_compiler.SQLInsertCompiler):
+class SQLInsertCompiler(django_compiler.SQLInsertCompiler):  # type: ignore [name-defined]
     """Compiler for SQL INSERT statements."""
 
     def as_sql(self, *args, **kwargs):
@@ -159,8 +160,10 @@ class SQLInsertCompiler(django_compiler.SQLInsertCompiler):
         return queries
 
 
-class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):
+class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):  # type: ignore [name-defined]
     """Compiler for SQL INSERT statements."""
+
+    query: "PostgresInsertQuery"
 
     def __init__(self, *args, **kwargs):
         """Initializes a new instance of
@@ -170,33 +173,13 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):
 
     def as_sql(self, return_id=False, *args, **kwargs):
         """Builds the SQL INSERT statement."""
+
         queries = [
             self._rewrite_insert(sql, params, return_id)
             for sql, params in super().as_sql(*args, **kwargs)
         ]
 
         return queries
-
-    def execute_sql(self, return_id=False):
-        # execute all the generate queries
-        with self.connection.cursor() as cursor:
-            rows = []
-            for sql, params in self.as_sql(return_id):
-                cursor.execute(sql, params)
-                try:
-                    rows.extend(cursor.fetchall())
-                except ProgrammingError:
-                    pass
-
-        # create a mapping between column names and column value
-        return [
-            {
-                column.name: row[column_index]
-                for column_index, column in enumerate(cursor.description)
-                if row
-            }
-            for row in rows
-        ]
 
     def _rewrite_insert(self, sql, params, return_id=False):
         """Rewrites a formed SQL INSERT query to include the ON CONFLICT
@@ -209,9 +192,9 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):
             params:
                 The parameters passed to the query.
 
-            returning:
-                What to put in the `RETURNING` clause
-                of the resulting query.
+            return_id:
+                Whether to only return the ID or all
+                columns.
 
         Returns:
             A tuple of the rewritten SQL query and new params.
@@ -233,30 +216,34 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):
         """Rewrites a normal SQL INSERT query to add the 'ON CONFLICT'
         clause."""
 
-        update_columns = ", ".join(
-            [
-                "{0} = EXCLUDED.{0}".format(self.qn(field.column))
-                for field in self.query.update_fields
-            ]
-        )
-
         # build the conflict target, the columns to watch
         # for conflicts
-        conflict_target = self._build_conflict_target()
-        index_predicate = self.query.index_predicate
-        update_condition = self.query.conflict_update_condition
+        on_conflict_clause = self._build_on_conflict_clause()
+        index_predicate = self.query.index_predicate  # type: ignore[attr-defined]
+        update_condition = self.query.conflict_update_condition  # type: ignore[attr-defined]
 
-        rewritten_sql = f"{sql} ON CONFLICT {conflict_target}"
+        rewritten_sql = f"{sql} {on_conflict_clause}"
 
         if index_predicate:
             expr_sql, expr_params = self._compile_expression(index_predicate)
             rewritten_sql += f" WHERE {expr_sql}"
             params += tuple(expr_params)
 
+        # Fallback in case the user didn't specify any update values. We can still
+        # make the query work if we switch to ConflictAction.NOTHING
+        if (
+            conflict_action == ConflictAction.UPDATE.value
+            and not self.query.update_values
+        ):
+            conflict_action = ConflictAction.NOTHING
+
         rewritten_sql += f" DO {conflict_action}"
 
-        if conflict_action == "UPDATE":
-            rewritten_sql += f" SET {update_columns}"
+        if conflict_action == ConflictAction.UPDATE.value:
+            set_sql, sql_params = self._build_set_statement()
+
+            rewritten_sql += f" SET {set_sql}"
+            params += sql_params
 
             if update_condition:
                 expr_sql, expr_params = self._compile_expression(
@@ -268,6 +255,38 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):
         rewritten_sql += f" RETURNING {returning}"
 
         return (rewritten_sql, params)
+
+    def _build_set_statement(self) -> Tuple[str, tuple]:
+        """Builds the SET statement for the ON CONFLICT DO UPDATE clause.
+
+        This uses the update compiler to provide full compatibility with
+        the standard Django's `update(...)`.
+        """
+
+        # Local import to work around the circular dependency between
+        # the compiler and the queries.
+        from .sql import PostgresUpdateQuery
+
+        query = cast(PostgresUpdateQuery, self.query.chain(PostgresUpdateQuery))
+        query.add_update_values(self.query.update_values)
+
+        sql, params = query.get_compiler(self.connection.alias).as_sql()
+        return sql.split("SET")[1].split(" WHERE")[0], tuple(params)
+
+    def _build_on_conflict_clause(self):
+        if django.VERSION >= (2, 2):
+            from django.db.models.constraints import BaseConstraint
+            from django.db.models.indexes import Index
+
+            if isinstance(
+                self.query.conflict_target, BaseConstraint
+            ) or isinstance(self.query.conflict_target, Index):
+                return "ON CONFLICT ON CONSTRAINT %s" % self.qn(
+                    self.query.conflict_target.name
+                )
+
+        conflict_target = self._build_conflict_target()
+        return f"ON CONFLICT {conflict_target}"
 
     def _build_conflict_target(self):
         """Builds the `conflict_target` for the ON CONFLICT clause."""
@@ -354,12 +373,15 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):
 
         field_name = self._normalize_field_name(name)
 
+        if not self.query.model:
+            return None
+
         # 'pk' has special meaning and always refers to the primary
         # key of a model, we have to respect this de-facto standard behaviour
         if field_name == "pk" and self.query.model._meta.pk:
             return self.query.model._meta.pk
 
-        for field in self.query.model._meta.local_concrete_fields:
+        for field in self.query.model._meta.local_concrete_fields:  # type: ignore[attr-defined]
             if field.name == field_name or field.column == field_name:
                 return field
 
@@ -401,7 +423,7 @@ class PostgresInsertOnConflictCompiler(django_compiler.SQLInsertCompiler):
         if isinstance(field, RelatedField) and isinstance(value, Model):
             value = value.pk
 
-        return django_compiler.SQLInsertCompiler.prepare_value(
+        return django_compiler.SQLInsertCompiler.prepare_value(  # type: ignore[attr-defined]
             self,
             field,
             # Note: this deliberately doesn't use `pre_save_val` as we don't

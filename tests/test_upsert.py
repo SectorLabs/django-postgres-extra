@@ -1,12 +1,14 @@
 import django
 import pytest
 
-from django.db import models
-from django.db.models import Q
+from django.db import connection, models
+from django.db.models import F, Q
 from django.db.models.expressions import CombinedExpression, Value
+from django.test.utils import CaptureQueriesContext
 
 from psqlextra.expressions import ExcludedCol
 from psqlextra.fields import HStoreField
+from psqlextra.query import ConflictAction
 
 from .fake_model import get_fake_model
 
@@ -82,6 +84,22 @@ def test_upsert_explicit_pk():
     assert obj2.cookies == "second-boo"
 
 
+def test_upsert_one_to_one_field():
+    model1 = get_fake_model({"title": models.TextField(unique=True)})
+    model2 = get_fake_model(
+        {"model1": models.OneToOneField(model1, on_delete=models.CASCADE)}
+    )
+
+    obj1 = model1.objects.create(title="hello world")
+
+    obj2_id = model2.objects.upsert(
+        conflict_target=["model1"], fields=dict(model1=obj1)
+    )
+
+    obj2 = model2.objects.get(id=obj2_id)
+    assert obj2.model1 == obj1
+
+
 def test_upsert_with_update_condition():
     """Tests that an expression can be used as an upsert update condition."""
 
@@ -125,6 +143,83 @@ def test_upsert_with_update_condition():
     assert obj1.pk == obj1_pk
     assert obj1.priority == 2
     assert obj1.active
+
+
+@pytest.mark.parametrize("update_condition_value", [0, False])
+def test_upsert_with_update_condition_false(update_condition_value):
+    """Tests that an expression can be used as an upsert update condition."""
+
+    model = get_fake_model(
+        {
+            "name": models.TextField(unique=True),
+            "priority": models.IntegerField(),
+            "active": models.BooleanField(),
+        }
+    )
+
+    obj1 = model.objects.create(name="joe", priority=1, active=False)
+
+    with CaptureQueriesContext(connection) as ctx:
+        upsert_result = model.objects.upsert(
+            conflict_target=["name"],
+            update_condition=update_condition_value,
+            fields=dict(name="joe", priority=2, active=True),
+        )
+        assert upsert_result is None
+        assert len(ctx) == 1
+        assert 'ON CONFLICT ("name") DO NOTHING' in ctx[0]["sql"]
+
+    obj1.refresh_from_db()
+    assert obj1.priority == 1
+    assert not obj1.active
+
+
+def test_upsert_with_update_values():
+    """Tests that the default update values can be overriden with custom
+    expressions."""
+
+    model = get_fake_model(
+        {
+            "name": models.TextField(unique=True),
+            "count": models.IntegerField(default=0),
+        }
+    )
+
+    obj1 = model.objects.create(name="joe")
+
+    model.objects.upsert(
+        conflict_target=["name"],
+        fields=dict(name="joe"),
+        update_values=dict(
+            count=F("count") + 1,
+        ),
+    )
+
+    obj1.refresh_from_db()
+    assert obj1.count == 1
+
+
+def test_upsert_with_update_values_empty():
+    """Tests that an upsert with an empty dict turns into ON CONFLICT DO
+    NOTHING."""
+
+    model = get_fake_model(
+        {
+            "name": models.TextField(unique=True),
+            "count": models.IntegerField(default=0),
+        }
+    )
+
+    obj1 = model.objects.create(name="joe")
+
+    model.objects.upsert(
+        conflict_target=["name"],
+        fields=dict(name="joe"),
+        update_values={},
+    )
+
+    obj1.refresh_from_db()
+    assert obj1.count == 0
 
 
 @pytest.mark.skipif(
@@ -183,7 +278,7 @@ def test_upsert_and_get_applies_converters():
     assert obj.title == "bye"
 
 
-def test_upsert_bulk():
+def test_bulk_upsert():
     """Tests whether bulk_upsert works properly."""
 
     model = get_fake_model(
@@ -229,9 +324,17 @@ def test_upsert_bulk_no_rows():
         {"name": models.CharField(max_length=255, null=True, unique=True)}
     )
 
+    model.objects.on_conflict(ConflictAction.UPDATE, ["name"]).bulk_insert(
+        rows=[]
+    )
+
     model.objects.bulk_upsert(conflict_target=["name"], rows=[])
 
     model.objects.bulk_upsert(conflict_target=["name"], rows=None)
+
+    model.objects.on_conflict(ConflictAction.UPDATE, ["name"]).bulk_insert(
+        rows=None
+    )
 
 
 def test_bulk_upsert_return_models():
@@ -312,3 +415,93 @@ def test_bulk_upsert_accepts_iter_iterable():
     for index, obj in enumerate(objs, 1):
         assert isinstance(obj, model)
         assert obj.id == index
+
+
+def test_bulk_upsert_update_values():
+    model = get_fake_model(
+        {
+            "name": models.CharField(max_length=255, unique=True),
+            "count": models.IntegerField(default=0),
+        }
+    )
+
+    model.objects.bulk_create(
+        [
+            model(name="joe"),
+            model(name="john"),
+        ]
+    )
+
+    objs = model.objects.bulk_upsert(
+        conflict_target=["name"],
+        rows=[],
+        return_model=True,
+        update_values=dict(count=F("count") + 1),
+    )
+
+    assert all([obj for obj in objs if obj.count == 1])
+
+
+@pytest.mark.parametrize("return_model", [True])
+def test_bulk_upsert_extra_columns_in_schema(return_model):
+    """Tests that extra columns being returned by the database that aren't
+    known by Django don't make the bulk upsert crash."""
+
+    model = get_fake_model(
+        {
+            "name": models.CharField(max_length=255, unique=True),
+        }
+    )
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"ALTER TABLE {model._meta.db_table} ADD COLUMN new_name text NOT NULL DEFAULT %s",
+            ("newjoe",),
+        )
+
+    objs = model.objects.bulk_upsert(
+        conflict_target=["name"],
+        rows=[
+            dict(name="joe"),
+        ],
+        return_model=return_model,
+    )
+
+    assert len(objs) == 1
+
+    if return_model:
+        assert objs[0].name == "joe"
+    else:
+        assert objs[0]["name"] == "joe"
+        assert sorted(list(objs[0].keys())) == ["id", "name"]
+
+
+def test_upsert_extra_columns_in_schema():
+    """Tests that extra columns being returned by the database that aren't
+    known by Django don't make the upsert crash."""
+
+    model = get_fake_model(
+        {
+            "name": models.CharField(max_length=255, unique=True),
+        }
+    )
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"ALTER TABLE {model._meta.db_table} ADD COLUMN new_name text NOT NULL DEFAULT %s",
+            ("newjoe",),
+        )
+
+    obj_id = model.objects.upsert(
+        conflict_target=["name"],
+        fields=dict(name="joe"),
+    )
+
+    assert obj_id == 1
+
+    obj = model.objects.upsert_and_get(
+        conflict_target=["name"],
+        fields=dict(name="joe"),
+    )
+
+    assert obj.name == "joe"

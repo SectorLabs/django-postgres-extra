@@ -170,17 +170,26 @@ def test_on_conflict_nothing_foreign_key_by_id():
     assert obj1.data == "some data"
 
 
-def test_on_conflict_nothing_duplicate_rows():
+@pytest.mark.parametrize(
+    "rows,expected_row_count",
+    [
+        ([dict(amount=1), dict(amount=1)], 1),
+        (iter([dict(amount=1), dict(amount=1)]), 1),
+        ((row for row in [dict(amount=1), dict(amount=1)]), 1),
+        ([], 0),
+        (iter([]), 0),
+        ((row for row in []), 0),
+    ],
+)
+def test_on_conflict_nothing_duplicate_rows(rows, expected_row_count):
     """Tests whether duplicate rows are filtered out when doing a insert
     NOTHING and no error is raised when the list of rows contains
     duplicates."""
 
     model = get_fake_model({"amount": models.IntegerField(unique=True)})
 
-    rows = [dict(amount=1), dict(amount=1)]
+    inserted_rows = model.objects.on_conflict(
+        ["amount"], ConflictAction.NOTHING
+    ).bulk_insert(rows)
 
-    (
-        model.objects.on_conflict(
-            ["amount"], ConflictAction.NOTHING
-        ).bulk_insert(rows)
-    )
+    assert len(inserted_rows) == expected_row_count

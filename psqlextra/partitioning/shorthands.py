@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Type
 
 from dateutil.relativedelta import relativedelta
 
@@ -10,7 +10,7 @@ from .time_partition_size import PostgresTimePartitionSize
 
 
 def partition_by_current_time(
-    model: PostgresPartitionedModel,
+    model: Type[PostgresPartitionedModel],
     count: int,
     years: Optional[int] = None,
     months: Optional[int] = None,
@@ -18,6 +18,7 @@ def partition_by_current_time(
     days: Optional[int] = None,
     hours: Optional[int] = None,
     max_age: Optional[relativedelta] = None,
+    name_format: Optional[str] = None,
 ) -> PostgresPartitioningConfig:
     """Short-hand for generating a partitioning config that partitions the
     specified model by time.
@@ -52,16 +53,28 @@ def partition_by_current_time(
 
             Partitions older than this are deleted when running
             a delete/cleanup run.
+
+        name_format:
+            The datetime format passed to ``datetime.strftime``
+            to generate the partition name. Defaults to a
+            sensible format per size unit.
     """
 
     size = PostgresTimePartitionSize(
-        years=years, months=months, weeks=weeks, days=days, hours=hours,
+        years=years,
+        months=months,
+        weeks=weeks,
+        days=days,
+        hours=hours,
     )
 
     return PostgresPartitioningConfig(
         model=model,
         strategy=PostgresCurrentTimePartitioningStrategy(
-            size=size, count=count, max_age=max_age
+            size=size,
+            count=count,
+            max_age=max_age,
+            name_format=name_format,
         ),
     )
 

@@ -1,3 +1,4 @@
+import django
 import pytest
 
 from django.core.exceptions import ImproperlyConfigured
@@ -11,7 +12,14 @@ from .fake_model import define_fake_partitioned_model
 
 
 @pytest.mark.postgres_version(lt=110000)
-def test_schema_editor_create_delete_partitioned_model_range():
+@pytest.mark.parametrize(
+    "in_custom_tablespace",
+    [False, True],
+    ids=["default_tablespace", "custom_tablespace"],
+)
+def test_schema_editor_create_delete_partitioned_model_range(
+    custom_tablespace, in_custom_tablespace
+):
     """Tests whether creating a partitioned model and adding a list partition
     to it using the :see:PostgresSchemaEditor works."""
 
@@ -21,6 +29,7 @@ def test_schema_editor_create_delete_partitioned_model_range():
     model = define_fake_partitioned_model(
         {"name": models.TextField(), "timestamp": models.DateTimeField()},
         {"method": method, "key": key},
+        {"db_tablespace": custom_tablespace if in_custom_tablespace else None},
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -44,7 +53,14 @@ def test_schema_editor_create_delete_partitioned_model_range():
 
 
 @pytest.mark.postgres_version(lt=110000)
-def test_schema_editor_create_delete_partitioned_model_list():
+@pytest.mark.parametrize(
+    "in_custom_tablespace",
+    [False, True],
+    ids=["default_tablespace", "custom_tablespace"],
+)
+def test_schema_editor_create_delete_partitioned_model_list(
+    custom_tablespace, in_custom_tablespace
+):
     """Tests whether creating a partitioned model and adding a range partition
     to it using the :see:PostgresSchemaEditor works."""
 
@@ -54,6 +70,7 @@ def test_schema_editor_create_delete_partitioned_model_list():
     model = define_fake_partitioned_model(
         {"name": models.TextField(), "category": models.TextField()},
         {"method": method, "key": key},
+        {"db_tablespace": custom_tablespace if in_custom_tablespace else None},
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -78,14 +95,23 @@ def test_schema_editor_create_delete_partitioned_model_list():
 
 @pytest.mark.postgres_version(lt=110000)
 @pytest.mark.parametrize("key", [["name"], ["id", "name"]])
-def test_schema_editor_create_delete_partitioned_model_hash(key):
+@pytest.mark.parametrize(
+    "in_custom_tablespace",
+    [False, True],
+    ids=["default_tablespace", "custom_tablespace"],
+)
+def test_schema_editor_create_delete_partitioned_model_hash(
+    key, custom_tablespace, in_custom_tablespace
+):
     """Tests whether creating a partitioned model and adding a hash partition
     to it using the :see:PostgresSchemaEditor works."""
 
     method = PostgresPartitioningMethod.HASH
 
     model = define_fake_partitioned_model(
-        {"name": models.TextField()}, {"method": method, "key": key},
+        {"name": models.TextField()},
+        {"method": method, "key": key},
+        {"db_tablespace": custom_tablespace if in_custom_tablespace else None},
     )
 
     schema_editor = PostgresSchemaEditor(connection)
@@ -277,41 +303,114 @@ def test_schema_editor_add_default_partition(method, key):
 
 
 @pytest.mark.postgres_version(lt=110000)
-def test_schema_editor_detach_and_delete_list_partition():
-    """Tests whether detaching a list partition works."""
-
+@pytest.mark.parametrize(
+    "in_custom_tablespace",
+    [False, True],
+    ids=["default_tablespace", "custom_tablespace"],
+)
+def test_schema_editor_create_partitioned_custom_primary_key(
+    custom_tablespace, in_custom_tablespace
+):
     model = define_fake_partitioned_model(
-        {"name": models.TextField()},
-        {"method": PostgresPartitioningMethod.LIST, "key": ["name"]},
+        {
+            "custom_pk": models.IntegerField(primary_key=True),
+            "name": models.TextField(),
+            "timestamp": models.DateTimeField(),
+        },
+        {"method": PostgresPartitioningMethod.RANGE, "key": ["timestamp"]},
+        {"db_tablespace": custom_tablespace if in_custom_tablespace else None},
     )
 
     schema_editor = PostgresSchemaEditor(connection)
     schema_editor.create_partitioned_model(model)
 
-    schema_editor.add_list_partition(
-        model, name="mypartition", values=["1"], comment="test"
+    constraints = db_introspection.get_constraints(model._meta.db_table)
+    primary_key_constraint = next(
+        (
+            constraint
+            for constraint in constraints.values()
+            if constraint["primary_key"]
+        ),
+        None,
     )
 
-    table = db_introspection.get_partitioned_table(model._meta.db_table)
-    assert len(table.partitions) == 1
-    assert table.partitions[0].name == "mypartition"
-    assert (
-        table.partitions[0].full_name == f"{model._meta.db_table}_mypartition"
-    )
-    assert table.partitions[0].comment == "test"
+    assert primary_key_constraint
+    assert primary_key_constraint["columns"] == ["custom_pk", "timestamp"]
 
-    assert (
-        f"{model._meta.db_table}_mypartition" in db_introspection.table_names()
+
+@pytest.mark.postgres_version(lt=110000)
+@pytest.mark.parametrize(
+    "in_custom_tablespace",
+    [False, True],
+    ids=["default_tablespace", "custom_tablespace"],
+)
+def test_schema_editor_create_partitioned_partioning_key_is_primary_key(
+    custom_tablespace, in_custom_tablespace
+):
+    model = define_fake_partitioned_model(
+        {
+            "name": models.TextField(),
+            "timestamp": models.DateTimeField(primary_key=True),
+        },
+        {"method": PostgresPartitioningMethod.RANGE, "key": ["timestamp"]},
+        {"db_tablespace": custom_tablespace if in_custom_tablespace else None},
     )
 
-    schema_editor.detach_partition(model, "mypartition")
-    schema_editor.delete_partition(model, "mypartition")
-    table = db_introspection.get_partitioned_table(model._meta.db_table)
-    assert len(table.partitions) == 0
-    assert (
-        f"{model._meta.db_table}_mypartition"
-        not in db_introspection.table_names()
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.create_partitioned_model(model)
+
+    constraints = db_introspection.get_constraints(model._meta.db_table)
+    primary_key_constraint = next(
+        (
+            constraint
+            for constraint in constraints.values()
+            if constraint["primary_key"]
+        ),
+        None,
     )
+
+    assert primary_key_constraint
+    assert primary_key_constraint["columns"] == ["timestamp"]
+
+
+@pytest.mark.skipif(
+    django.VERSION < (5, 2),
+    reason="Django < 5.2 doesn't implement composite primary keys",
+)
+@pytest.mark.postgres_version(lt=110000)
+@pytest.mark.parametrize(
+    "in_custom_tablespace",
+    [False, True],
+    ids=["default_tablespace", "custom_tablespace"],
+)
+def test_schema_editor_create_partitioned_custom_composite_primary_key(
+    custom_tablespace, in_custom_tablespace
+):
+    model = define_fake_partitioned_model(
+        {
+            "pk": models.CompositePrimaryKey("name", "timestamp"),
+            "name": models.TextField(),
+            "timestamp": models.DateTimeField(),
+        },
+        {"method": PostgresPartitioningMethod.RANGE, "key": ["timestamp"]},
+        {"db_tablespace": custom_tablespace if in_custom_tablespace else None},
+    )
+
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.create_partitioned_model(model)
+
+    constraints = db_introspection.get_constraints(model._meta.db_table)
+    primary_key_constraint = next(
+        (
+            constraint
+            for constraint in constraints.values()
+            if constraint["primary_key"]
+        ),
+        None,
+    )
+
+    assert primary_key_constraint
+    assert primary_key_constraint["columns"] == ["name", "timestamp"]
 
 
 @pytest.mark.postgres_version(lt=140000)
@@ -342,10 +441,10 @@ def test_schema_editor_detach_and_delete_list_partition():
 def test_schema_editor_detach_and_delete_concurrently(
     method, key, add_partition_func_name, kwargs
 ):
-    """Tests whether detaching a list partition works."""
+    """Ensures detaching and deleting partitions works sequentially."""
 
     model = define_fake_partitioned_model(
-        {"name": models.TextField(), "timestamp": models.DateTimeField(),},
+        {"name": models.TextField(), "timestamp": models.DateTimeField()},
         {"method": method, "key": key},
     )
 
@@ -369,6 +468,7 @@ def test_schema_editor_detach_and_delete_concurrently(
 
     schema_editor.detach_partition_concurrently(model, "mypartition")
     schema_editor.delete_partition(model, "mypartition")
+
     table = db_introspection.get_partitioned_table(model._meta.db_table)
     assert len(table.partitions) == 0
     assert (
@@ -405,10 +505,10 @@ def test_schema_editor_detach_and_delete_concurrently(
 def test_schema_editor_detach_concurrently(
     method, key, add_partition_func_name, kwargs
 ):
-    """Tests whether detaching a list partition works."""
+    """Ensures detaching partitions leaves the detached table behind."""
 
     model = define_fake_partitioned_model(
-        {"name": models.TextField(), "timestamp": models.DateTimeField(),},
+        {"name": models.TextField(), "timestamp": models.DateTimeField()},
         {"method": method, "key": key},
     )
 
@@ -431,11 +531,13 @@ def test_schema_editor_detach_concurrently(
     )
 
     schema_editor.detach_partition_concurrently(model, "mypartition")
+
     table = db_introspection.get_partitioned_table(model._meta.db_table)
     assert len(table.partitions) == 0
     assert (
         f"{model._meta.db_table}_mypartition" in db_introspection.table_names()
     )
+
 
 @pytest.mark.postgres_version(lt=140000)
 @pytest.mark.django_db(transaction=True)
@@ -459,10 +561,10 @@ def test_schema_editor_detach_concurrently(
 def test_schema_editor_create_and_attach_and_then_detach_concurrently(
     method, key, add_partition_func_name, kwargs
 ):
-    """Tests whether detaching a list partition works."""
+    """Ensures deferred partitions can be detached once attached."""
 
     model = define_fake_partitioned_model(
-        {"name": models.TextField(), "timestamp": models.DateTimeField(),},
+        {"name": models.TextField(), "timestamp": models.DateTimeField()},
         {"method": method, "key": key},
     )
 
@@ -485,6 +587,7 @@ def test_schema_editor_create_and_attach_and_then_detach_concurrently(
     )
 
     schema_editor.detach_partition_concurrently(model, "mypartition")
+
     table = db_introspection.get_partitioned_table(model._meta.db_table)
     assert len(table.partitions) == 0
     assert (

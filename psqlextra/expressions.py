@@ -1,4 +1,6 @@
-from django.db.models import CharField, expressions
+from typing import Union
+
+from django.db.models import CharField, Field, expressions
 
 
 class HStoreValue(expressions.Expression):
@@ -140,7 +142,7 @@ class HStoreRef(expressions.F):
     def resolve_expression(self, *args, **kwargs):
         """Resolves the expression into a :see:HStoreColumn expression."""
 
-        original_expression: expressions.Col = super().resolve_expression(
+        original_expression: expressions.Col = super().resolve_expression(  # type: ignore[annotation-unchecked]
             *args, **kwargs
         )
         expression = HStoreColumn(
@@ -212,11 +214,21 @@ class ExcludedCol(expressions.Expression):
     """References a column in PostgreSQL's special EXCLUDED column, which is
     used in upserts to refer to the data about to be inserted/updated.
 
-    See: https://www.postgresql.org/docs/9.5/sql-insert.html#SQL-ON-CONFLICT
+    See: https://www.postgresql.org/docs/current/sql-insert.html#SQL-ON-CONFLICT
     """
 
-    def __init__(self, name: str):
-        self.name = name
+    def __init__(self, field_or_name: Union[Field, str]):
+
+        # We support both field classes or just field names here. We prefer
+        # fields because when the expression is compiled, it might need
+        # the field information to figure out the correct placeholder.
+        # Even though that isn't require for this particular expression.
+        if isinstance(field_or_name, Field):
+            super().__init__(field_or_name)
+            self.name = field_or_name.column
+        else:
+            super().__init__(None)
+            self.name = field_or_name
 
     def as_sql(self, compiler, connection):
         quoted_name = connection.ops.quote_name(self.name)

@@ -7,6 +7,11 @@ Indexes
 
 Unique Index
 -----------------------------
+
+.. warning::
+
+    In Django 2.2 or newer, you might want to use :class:`~django.db.models.UniqueConstraint` instead.
+
 The :class:`~psqlextra.indexes.UniqueIndex` lets you create a unique index. Normally Django only allows you to create unique indexes by specifying ``unique=True`` on the model field.
 
 Although it can be used on any Django model, it is most useful on views and materialized views where ``unique=True`` does not work.
@@ -32,12 +37,13 @@ Although it can be used on any Django model, it is most useful on views and mate
 
 Conditional Unique Index
 ------------------------
-The :class:`~psqlextra.indexes.ConditionalUniqueIndex` lets you create partial unique indexes in case you ever need :attr:`~django:django.db.models.Options.unique_together` constraints
-on nullable columns.
 
 .. warning::
 
     In Django 3.1 or newer, you might want to use :attr:`~django.db.models.indexes.condition` instead.
+
+The :class:`~psqlextra.indexes.ConditionalUniqueIndex` lets you create partial unique indexes in case you ever need :attr:`~django:django.db.models.Options.unique_together` constraints
+on nullable columns.
 
 Before:
 
@@ -83,6 +89,11 @@ After:
 
 Case Insensitive Unique Index
 -----------------------------
+
+.. warning::
+
+    In Django 3.1 or newer, you might want to use :attr:`~django.db.models.indexes.condition` instead.
+
 The :class:`~psqlextra.indexes.CaseInsensitiveUniqueIndex` lets you create an index that ignores the casing for the specified field(s).
 
 This makes the field(s) behave more like a text field in MySQL.

@@ -23,10 +23,13 @@ class PostgresCreateMaterializedViewModel(CreateModel):
         view_options={},
         bases=None,
         managers=None,
+        *,
+        with_data: bool = True,
     ):
         super().__init__(name, fields, options, bases, managers)
 
         self.view_options = view_options or {}
+        self.with_data = with_data
 
     def state_forwards(self, app_label, state):
         state.add_model(
@@ -46,7 +49,9 @@ class PostgresCreateMaterializedViewModel(CreateModel):
 
         model = to_state.apps.get_model(app_label, self.name)
         if self.allow_migrate_model(schema_editor.connection.alias, model):
-            schema_editor.create_materialized_view_model(model)
+            schema_editor.create_materialized_view_model(
+                model, with_data=self.with_data
+            )
 
     def database_backwards(
         self, app_label, schema_editor, from_state, to_state
@@ -62,6 +67,9 @@ class PostgresCreateMaterializedViewModel(CreateModel):
 
         if self.view_options:
             kwargs["view_options"] = self.view_options
+
+        if self.with_data is False:
+            kwargs["with_data"] = self.with_data
 
         return name, args, kwargs
 

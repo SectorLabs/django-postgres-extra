@@ -10,7 +10,7 @@ Annotations
 Renaming annotations
 --------------------
 
-Django does allow you to create an annotation that conflicts with a field on the model. :meth:`psqlextra.query.QuerySet.rename_annotation` makes it possible to do just that.
+Django does not allow you to create an annotation that conflicts with a field on the model. :meth:`psqlextra.query.QuerySet.rename_annotation` makes it possible to do just that.
 
 .. code-block:: python
 

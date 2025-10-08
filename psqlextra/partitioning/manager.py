@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Type
 
 from django.db import connections
 
@@ -25,6 +25,7 @@ class PostgresPartitioningManager:
         self,
         skip_create: bool = False,
         skip_delete: bool = False,
+        model_names: Optional[List[str]] = None,
         using: Optional[str] = None,
         detach: Optional[str] = None,
         deferred_attach: Optional[bool] = None
@@ -40,8 +41,12 @@ class PostgresPartitioningManager:
                 If set to True, no partitions will be marked
                 for deletion, regardless of the configuration.
 
+            model_names:
+                Optionally, only plan for the models with
+                the specified name.
+
             using:
-                Name of the database connection to use.
+                Optional name of the database connection to use.
 
         Returns:
             A plan describing what partitions would be created
@@ -50,7 +55,19 @@ class PostgresPartitioningManager:
 
         model_plans = []
 
+        normalized_model_names = (
+            [model_name.lower().strip() for model_name in model_names]
+            if model_names
+            else []
+        )
+
         for config in self.configs:
+            if (
+                model_names
+                and config.model.__name__.lower() not in normalized_model_names
+            ):
+                continue
+
             model_plan = self._plan_for_config(
                 config,
                 skip_create=skip_create,
@@ -129,7 +146,9 @@ class PostgresPartitioningManager:
         return model_plan
 
     @staticmethod
-    def _get_partitioned_table(connection, model: PostgresPartitionedModel):
+    def _get_partitioned_table(
+        connection, model: Type[PostgresPartitionedModel]
+    ):
         with connection.cursor() as cursor:
             table = connection.introspection.get_partitioned_table(
                 cursor, model._meta.db_table

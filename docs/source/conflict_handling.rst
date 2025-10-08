@@ -87,6 +87,41 @@ Specifying multiple columns is necessary in case of a constraint that spans mult
    )
 
 
+Specific constraint
+*******************
+
+Alternatively, instead of specifying the columns the constraint you're targetting applies to, you can also specify the exact constraint to use:
+
+.. code-block:: python
+
+   from django.db import models
+   from psqlextra.models import PostgresModel
+
+   class MyModel(PostgresModel)
+       class Meta:
+           constraints = [
+               models.UniqueConstraint(
+                   name="myconstraint",
+                   fields=["first_name", "last_name"]
+               ),
+           ]
+
+       first_name = models.CharField(max_length=255)
+       last_name = models.CharField(max_length=255)
+
+   constraint = next(
+       constraint
+       for constraint in MyModel._meta.constraints
+       if constraint.name == "myconstraint"
+    ), None)
+
+   obj = (
+       MyModel.objects
+       .on_conflict(constraint, ConflictAction.UPDATE)
+       .insert_and_get(first_name='Henk', last_name='Jansen')
+   )
+
+
 HStore keys
 ***********
 Catching conflicts in columns with a ``UNIQUE`` constraint on a :class:`~psqlextra.fields.HStoreField` key is also supported:
@@ -195,6 +230,42 @@ Alternatively, with Django 3.1 or newer, :class:`~django:django.db.models.Q` obj
     Q(name=ExcludedCol('name'))
     Q(name__isnull=True)
     Q(name__gt=ExcludedCol('priority'))
+
+
+Update values
+"""""""""""""
+
+Optionally, the fields to update can be overriden. The default is to update the same fields that were specified in the rows to insert.
+
+Refer to the insert values using the :class:`psqlextra.expressions.ExcludedCol` expression which translates to PostgreSQL's ``EXCLUDED.<column>`` expression. All expressions and features that can be used with Django's :meth:`~django:django.db.models.query.QuerySet.update` can be used here.
+
+.. warning::
+
+   Specifying an empty ``update_values`` (``{}``) will transform the query into :attr:`~psqlextra.types.ConflictAction.NOTHING`. Only ``None`` makes the default behaviour kick in of updating all fields that were specified.
+
+.. code-block:: python
+
+    from django.db.models import F
+
+    from psqlextra.expressions import ExcludedCol
+
+    (
+        MyModel
+        .objects
+        .on_conflict(
+            ['name'],
+            ConflictAction.UPDATE,
+            update_values=dict(
+                name=ExcludedCol('name'),
+                count=F('count') + 1,
+            ),
+        )
+        .insert(
+            name='henk',
+            count=0,
+        )
+    )
+
 
 
 ConflictAction.NOTHING

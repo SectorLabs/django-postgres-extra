@@ -8,8 +8,9 @@
 | :memo: | **License** | [![License](https://img.shields.io/:license-mit-blue.svg)](http://doge.mit-license.org) |
 | :package: | **PyPi** | [![PyPi](https://badge.fury.io/py/django-postgres-extra.svg)](https://pypi.python.org/pypi/django-postgres-extra) |
 | :four_leaf_clover: | **Code coverage** | [![Coverage Status](https://coveralls.io/repos/github/SectorLabs/django-postgres-extra/badge.svg?branch=coveralls)](https://coveralls.io/github/SectorLabs/django-postgres-extra?branch=master) |
-| <img src="https://cdn.iconscout.com/icon/free/png-256/django-1-282754.png" width="22px" height="22px" align="center" /> | **Django Versions** | 2.0, 2.1, 2.2, 3.0, 3.1, 3.2, 4.0 |
-| <img src="http://www.iconarchive.com/download/i73027/cornmanthe3rd/plex/Other-python.ico" width="22px" height="22px" align="center" /> | **Python Versions** | 3.6, 3.7, 3.8, 3.9, 3.10 |
+| <img src="https://cdn.iconscout.com/icon/free/png-256/django-1-282754.png" width="22px" height="22px" align="center" /> | **Django Versions** | 2.0, 2.1, 2.2, 3.0, 3.1, 3.2, 4.0, 4.1, 4.2, 5.0, 5.1, 5.2 |
+| <img src="https://cdn3.iconfinder.com/data/icons/logos-and-brands-adobe/512/267_Python-512.png" width="22px" height="22px" align="center" /> | **Python Versions** | 3.6, 3.7, 3.8, 3.9, 3.10, 3.11, 3.12, 3.13 |
+| <img src="https://pbs.twimg.com/profile_images/1152122059/psycopg-100_400x400.png" width="22px" height="22px" align="center" /> | **Psycopg Versions** | 2, 3 |
 | :book: | **Documentation** | [Read The Docs](https://django-postgres-extra.readthedocs.io/en/master/) |
 | :warning: | **Upgrade** | [Upgrade from v1.x](https://django-postgres-extra.readthedocs.io/en/master/major_releases.html#new-features)
 | :checkered_flag: | **Installation** | [Installation Guide](https://django-postgres-extra.readthedocs.io/en/master/installation.html) |
@@ -30,37 +31,48 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 
 [See the full list](http://django-postgres-extra.readthedocs.io/#features)
 
-* **Native upserts**
+* **Conflict handling (atomic upsert)**
 
-    * Single query
-    * Concurrency safe
-    * With bulk support (single query)
+    Adds support for PostgreSQL's `ON CONFLICT` syntax for inserts. Supports `DO UPDATE` and `DO NOTHING`. Single statement, atomic and concurrency safe upserts. Supports conditional updates as well.
 
-* **Extended support for HStoreField**
+* **Table partitioning**
 
-    * Unique constraints
-    * Null constraints
-    * Select individual keys using ``.values()`` or ``.values_list()``
+    Adds support for PostgreSQL 11.x declarative table partitioning. Integrated into Django migrations. Supports all types of partitioning. Includes a command to automatically create time-based partitions.
 
-* **PostgreSQL 11.x declarative table partitioning**
+* **Views & materialized views**
 
-    * Supports both range and list partitioning
+    Adds support for creating views & materialized views as any other model. Integrated into Django migrations.
 
-* **Faster deletes**
+* **Locking models & tables**
 
-    * Truncate tables (with cascade)
+    Support for explicit table-level locks.
 
-* **Indexes**
+* **Creating/dropping schemas**
 
-    * Conditional unique index.
-    * Case sensitive unique index.
+    Support for managing PostgreSQL schemas.
+
+* **Truncating tables**
+
+   Support for ``TRUNCATE TABLE`` statements (including cascading).
+
+For Django 3.1 and older:
+
+* **Conditional unique index**
+* **Case insensitive index**
+
+For Django 2.2 and older:
+
+* **Unique index**
+* **HStore unique and required constraints on specific HStore keys**
 
 ## Working with the code
 ### Prerequisites
 
-* PostgreSQL 10 or newer.
-* Django 2.0 or newer (including 3.x, 4.x).
-* Python 3.6 or newer.
+* PostgreSQL 14 or newer.
+* Django 5.x or newer.
+* Python 3.11 or newer.
+
+These are just for local development. CI for code analysis etc runs against these. Tests will pass on all Python, Django and PostgreSQL versions documented. Linting, formatting and type-checking the code might not work on other Python and/or Django versions.
 
 ### Getting started
 
@@ -85,16 +97,16 @@ With seamless we mean that any features we add will work truly seamlessly. You s
 
 4. Install the development/test dependencies:
 
-       λ pip install .[test] .[analysis]
+       λ pip install -r requirements-test.txt
 
 5. Run the tests:
 
-       λ tox
+       λ poe test
 
 6. Run the benchmarks:
 
-       λ py.test -c pytest-benchmark.ini
+       λ poe benchmark
 
 7. Auto-format code, sort imports and auto-fix linting errors:
 
-       λ python setup.py fix
+       λ poe fix

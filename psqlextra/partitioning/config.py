@@ -1,3 +1,5 @@
+from typing import Type
+
 from psqlextra.models import PostgresPartitionedModel
 
 from .strategy import PostgresPartitioningStrategy
@@ -9,7 +11,7 @@ class PostgresPartitioningConfig:
 
     def __init__(
         self,
-        model: PostgresPartitionedModel,
+        model: Type[PostgresPartitionedModel],
         strategy: PostgresPartitioningStrategy,
     ) -> None:
         self.model = model

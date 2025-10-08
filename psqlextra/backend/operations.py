@@ -9,7 +9,7 @@ from psqlextra.compiler import (
 from . import base_impl
 
 
-class PostgresOperations(base_impl.operations()):
+class PostgresOperations(base_impl.operations()):  # type: ignore[misc]
     """Simple operations specific to PostgreSQL."""
 
     compiler_module = "psqlextra.compiler"

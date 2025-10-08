@@ -28,3 +28,13 @@ Settings
    .. note::
 
       If set to ``False``, you must ensure that the ``hstore`` extension is enabled on your database manually. If not enabled, any ``hstore`` related functionality will not work.
+
+.. _POSTGRES_EXTRA_ANNOTATE_SQL_:
+
+* ``POSTGRES_EXTRA_ANNOTATE_SQL``
+
+   If set to ``True``, will append a comment to all SQL queries with the path and line number that the query was made from.
+
+   Format: ``/* <pid> <function name> <filename> <line number> */``
+
+   This can be useful when debugging queries found in PostgreSQL's ``pg_stat_activity`` or in its query log.

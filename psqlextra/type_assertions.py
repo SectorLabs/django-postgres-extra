@@ -7,7 +7,7 @@ from django.db.models.query import QuerySet
 def is_query_set(value: Any) -> bool:
     """Gets whether the specified value is a :see:QuerySet."""
 
-    return isinstance(value, QuerySet)
+    return isinstance(value, QuerySet)  # type: ignore[misc]
 
 
 def is_sql(value: Any) -> bool:
