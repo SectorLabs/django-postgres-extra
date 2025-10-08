@@ -9,6 +9,7 @@ from . import db_introspection
 from .fake_model import (
     define_fake_materialized_view_model,
     define_fake_view_model,
+    delete_fake_model,
     get_fake_model,
 )
 
@@ -174,3 +175,39 @@ def test_schema_editor_replace_materialized_view():
     # replacing a materialized view involves re-creating it
     constraints_after = db_introspection.get_constraints(model._meta.db_table)
     assert constraints_after == constraints_before
+
+
+@pytest.mark.django_db(transaction=True)
+def test_schema_editor_refresh_materialized_view_concurrently_inside_context():
+    """Refreshing concurrently within the schema editor context should work."""
+
+    underlying_model = get_fake_model({"name": models.TextField(unique=True)})
+
+    model = define_fake_materialized_view_model(
+        {"name": models.TextField()},
+        {"query": underlying_model.objects.all()},
+    )
+
+    underlying_model.objects.create(name="alpha")
+    underlying_model.objects.create(name="beta")
+
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.create_materialized_view_model(model)
+
+    # Postgres requires a unique index before allowing CONCURRENTLY refreshes.
+    with schema_editor:
+        schema_editor.execute(
+            "CREATE UNIQUE INDEX mv_refresh_unique_name ON %s (name)"
+            % schema_editor.quote_name(model._meta.db_table)
+        )
+
+    underlying_model.objects.create(name="gamma")
+
+    with schema_editor:
+        schema_editor.refresh_materialized_view_model(model, concurrently=True)
+
+    rows = set(model.objects.values_list("name", flat=True))
+    assert rows == {"alpha", "beta", "gamma"}
+
+    schema_editor.delete_materialized_view_model(model)
+    delete_fake_model(underlying_model)

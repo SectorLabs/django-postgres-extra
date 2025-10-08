@@ -586,10 +586,40 @@ def test_schema_editor_create_and_attach_and_then_detach_concurrently(
         f"{model._meta.db_table}_mypartition" in db_introspection.table_names()
     )
 
-    schema_editor.detach_partition_concurrently(model, "mypartition")
+
+@pytest.mark.postgres_version(lt=110000)
+@pytest.mark.django_db(transaction=True)
+def test_schema_editor_detach_concurrently_within_context():
+    """`detach_partition_concurrently` must succeed in schema editor contexts."""
+
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()},
+        {"method": PostgresPartitioningMethod.RANGE, "key": ["timestamp"]},
+    )
+
+    schema_editor = PostgresSchemaEditor(connection)
+
+    with schema_editor:
+        schema_editor.create_partitioned_model(model)
+        schema_editor.add_range_partition(
+            model,
+            name="mypartition",
+            from_values="2019-01-01",
+            to_values="2019-02-01",
+        )
+        schema_editor.detach_partition_concurrently(model, "mypartition")
 
     table = db_introspection.get_partitioned_table(model._meta.db_table)
     assert len(table.partitions) == 0
     assert (
         f"{model._meta.db_table}_mypartition" in db_introspection.table_names()
+    )
+
+    with schema_editor:
+        schema_editor.delete_partition(model, "mypartition")
+        schema_editor.delete_partitioned_model(model)
+
+    assert (
+        f"{model._meta.db_table}_mypartition"
+        not in db_introspection.table_names()
     )
