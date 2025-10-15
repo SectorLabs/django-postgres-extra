@@ -3,7 +3,6 @@ from typing import Iterable, List, Optional, Tuple
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.db.models.base import ModelBase
-from django.db.models.fields.composite import CompositePrimaryKey
 from django.db.models.options import Options
 
 from psqlextra.types import PostgresPartitioningMethod
@@ -44,6 +43,8 @@ class PostgresPartitionedModelMeta(ModelBase):
 
     @classmethod
     def _create_primary_key(cls, attrs, partitioning_key: Optional[List[str]]):
+        from django.db.models.fields.composite import CompositePrimaryKey
+
         pk = cls._find_primary_key(attrs)
         if pk and isinstance(pk[1], CompositePrimaryKey):
             return
@@ -100,6 +101,7 @@ class PostgresPartitionedModelMeta(ModelBase):
 
         3. There is no primary key.
         """
+        from django.db.models.fields.composite import CompositePrimaryKey
 
         fields = {
             name: value
