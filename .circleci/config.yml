@@ -46,6 +46,7 @@ commands:
           environment:
             DATABASE_URL: 'postgres://psqlextra:psqlextra@localhost:5432/psqlextra'
             DATABASE_IN_CONTAINER: 'true'
+            TOX_TESTENV_PASSENV: 'DATABASE_URL DATABASE_IN_CONTAINER'
 
 jobs:
   test-python36:
