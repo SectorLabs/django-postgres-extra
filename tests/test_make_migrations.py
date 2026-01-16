@@ -45,6 +45,13 @@ from .migrations import apply_migration, make_migration
                 method=PostgresPartitioningMethod.HASH, key="artist_id"
             ),
         ),
+        dict(
+            fields={"category": models.IntegerField(), "timestamp": models.DateTimeField()},
+            partitioning_options=dict(
+                method=PostgresPartitioningMethod.LIST, key="category",
+                sub_key=["timestamp"], sub_method=PostgresPartitioningMethod.RANGE
+            ),
+        ),
     ],
 )
 @postgres_patched_migrations()
@@ -80,8 +87,8 @@ def test_make_migration_create_partitioned_model(fake_app, model_config):
     assert len(ops[0].bases) == 1
     assert issubclass(ops[0].bases[0], PostgresPartitionedModel)
 
-    # make sure the partitioning options got copied correctly
-    assert ops[0].partitioning_options == model_config["partitioning_options"]
+    # make sure the partitioning options got copied correctly (not considering None values)
+    assert {k:v for k, v in ops[0].partitioning_options.items() if v is not None} == model_config["partitioning_options"]
 
 
 @postgres_patched_migrations()
