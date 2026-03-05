@@ -60,7 +60,7 @@ class HStoreValue(expressions.Expression):
                 sql.append("hstore(%s, NULL)")
                 params.append(key)
 
-        return " || ".join(sql), params
+        return " || ".join(sql), tuple(params)
 
 
 class HStoreColumn(expressions.Col):
@@ -105,7 +105,7 @@ class HStoreColumn(expressions.Col):
         return (
             "%s.%s->'%s'"
             % (qn(self.alias), qn(self.target.column), self.hstore_key),
-            [],
+            (),
         )
 
     def relabeled_clone(self, relabels):

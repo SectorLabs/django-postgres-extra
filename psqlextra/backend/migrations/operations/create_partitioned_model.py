@@ -1,3 +1,5 @@
+import django
+
 from django.db.migrations.operations.models import CreateModel
 
 from psqlextra.backend.migrations.state import PostgresPartitionedModelState
@@ -27,12 +29,16 @@ class PostgresCreatePartitionedModel(CreateModel):
         self.partitioning_options = partitioning_options or {}
 
     def state_forwards(self, app_label, state):
+        options = dict(self.options)
+        options.setdefault("indexes", [])
+        if django.VERSION >= (2, 2):
+            options.setdefault("constraints", [])
         state.add_model(
             PostgresPartitionedModelState(
                 app_label=app_label,
                 name=self.name,
                 fields=list(self.fields),
-                options=dict(self.options),
+                options=options,
                 bases=tuple(self.bases),
                 managers=list(self.managers),
                 partitioning_options=dict(self.partitioning_options),
@@ -76,12 +82,14 @@ class PostgresCreatePartitionedModel(CreateModel):
         # replace CreateModel operation with PostgresCreatePartitionedModel
         if isinstance(result, list) and result:
             for i, op in enumerate(result):
-                if isinstance(op, CreateModel):
-                    _, args, kwargs = op.deconstruct()
+                if isinstance(op, CreateModel) and not isinstance(
+                    op, PostgresCreatePartitionedModel
+                ):
+                    _, op_args, op_kwargs = op.deconstruct()
                     result[i] = PostgresCreatePartitionedModel(
-                        *args,
-                        **kwargs,
-                        partitioning_options=self.partitioning_options
+                        *op_args,
+                        **op_kwargs,
+                        partitioning_options=self.partitioning_options,
                     )
 
         return result

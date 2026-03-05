@@ -21,7 +21,7 @@ class InValuesLookupMixin:
         _, rhs_params = self.process_rhs(compiler, connection)
         rhs = ",".join([f"(%s)" for _ in rhs_params])  # noqa: F541
 
-        return f"{lhs} IN (VALUES {rhs})", lhs_params + list(rhs_params)
+        return f"{lhs} IN (VALUES {rhs})", (*lhs_params, *rhs_params)
 
 
 @Field.register_lookup
