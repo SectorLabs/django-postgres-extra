@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any, List, Optional, Type, cast
 from unittest import mock
 
+
 import django
 
 from django.core.exceptions import (
