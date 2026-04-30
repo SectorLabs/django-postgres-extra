@@ -1,3 +1,5 @@
+import copy
+
 from contextlib import contextmanager
 from typing import List
 from unittest import mock
@@ -87,9 +89,11 @@ def make_migration(app_label="tests", from_state=None, to_state=None):
         specified_apps=app_labels, dry_run=False
     )
 
+    # Deep copy states because the autodetector mutates them (e.g.
+    # options.pop("indexes")) which breaks callers that reuse states.
     autodetector = MigrationAutodetector(
-        from_state or loader.project_state(),
-        to_state or ProjectState.from_apps(apps),
+        copy.deepcopy(from_state) if from_state else loader.project_state(),
+        copy.deepcopy(to_state) if to_state else ProjectState.from_apps(apps),
         questioner,
     )
 

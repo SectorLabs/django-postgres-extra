@@ -140,6 +140,19 @@ jobs:
       - run-tests:
           pyversion: 313
 
+  test-python314:
+    executor:
+      name: python
+      pyversion: "3.14"
+      pgversion: "18.0"
+      debiandist: "trixie"
+    steps:
+      - checkout
+      - install-dependencies:
+          extra: dev, test
+      - run-tests:
+          pyversion: 314
+
   analysis:
     executor:
       name: python
@@ -217,6 +230,12 @@ workflows:
             branches:
               only: /.*/
       - test-python313:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+      - test-python314:
           filters:
             tags:
               only: /.*/

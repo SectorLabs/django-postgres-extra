@@ -34,6 +34,26 @@ def _create_schema() -> str:
     return name
 
 
+def _is_not_null_constraint(name, info):
+    """PG17+ stores NOT NULL as named constraints in pg_constraint."""
+    return (
+        name.endswith("_not_null")
+        and not info["primary_key"]
+        and not info["unique"]
+        and not info["check"]
+        and not info["index"]
+        and info["foreign_key"] is None
+    )
+
+
+def _filter_not_null_constraints(constraints):
+    return {
+        k: v
+        for k, v in constraints.items()
+        if not _is_not_null_constraint(k, v)
+    }
+
+
 @transaction.atomic
 def _assert_cloned_table_is_same(
     source_table_fqn: Tuple[str, str],
@@ -62,11 +82,15 @@ def _assert_cloned_table_is_same(
     else:
         assert source_relations == target_relations
 
-    source_constraints = db_introspection.get_constraints(
-        source_table_name, schema_name=source_schema_name
+    source_constraints = _filter_not_null_constraints(
+        db_introspection.get_constraints(
+            source_table_name, schema_name=source_schema_name
+        )
     )
-    target_constraints = db_introspection.get_constraints(
-        target_table_name, schema_name=target_schema_name
+    target_constraints = _filter_not_null_constraints(
+        db_introspection.get_constraints(
+            target_table_name, schema_name=target_schema_name
+        )
     )
     if excluding_constraints_and_indexes:
         assert target_constraints == {}
@@ -168,7 +192,12 @@ def fake_model(fake_model_fk_target_1, fake_model_fk_target_2):
                 name="first_last_name_uniq",
             ),
             models.CheckConstraint(
-                check=Q(age__gt=0, height__gt=0), name="age_height_check"
+                **{
+                    "condition"
+                    if django.VERSION >= (6, 0)
+                    else "check": Q(age__gt=0, height__gt=0)
+                },
+                name="age_height_check",
             ),
         ],
         "unique_together": (

@@ -1,3 +1,5 @@
+import django
+
 from django.db.migrations.operations.models import CreateModel
 
 from psqlextra.backend.migrations.state import PostgresViewModelState
@@ -27,12 +29,16 @@ class PostgresCreateViewModel(CreateModel):
         self.view_options = view_options or {}
 
     def state_forwards(self, app_label, state):
+        options = dict(self.options)
+        options.setdefault("indexes", [])
+        if django.VERSION >= (2, 2):
+            options.setdefault("constraints", [])
         state.add_model(
             PostgresViewModelState(
                 app_label=app_label,
                 name=self.name,
                 fields=list(self.fields),
-                options=dict(self.options),
+                options=options,
                 bases=tuple(self.bases),
                 managers=list(self.managers),
                 view_options=dict(self.view_options),

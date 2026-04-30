@@ -30,12 +30,15 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
 requires-python = ">=3.7"
 dependencies = [
-    "Django>=2.0,<6.0",
+    "Django>=2.0,<7.0",
     "python-dateutil>=2.8.0,<=3.0.0",
 ]
 dynamic = ["version"]
@@ -72,14 +75,17 @@ test = [
     "syrupy==4.9.1; python_version >= '3.9'",
     "syrupy==2.3.1; python_version <= '3.8'",
 ]
-test-report = ["coveralls==4.0.1"]
+test-report = [
+    "coveralls==4.0.1; python_version < '3.13'",
+    "coveralls==4.1.0; python_version >= '3.13'",
+]
 analysis = [
     "black==22.3.0",
     "flake8==7.2.0",
     "autoflake==2.3.1",
     "autopep8==2.3.2",
     "isort==6.0.1",
-    "docformatter==1.7.7",
+    "docformatter==1.7.7; python_version < '3.14'",
     "mypy==1.16.0",
     "django-stubs==4.2.7",
     "typing-extensions==4.14.0",
@@ -122,6 +128,17 @@ exclude-newer = "3 days"
 # not this lockfile.  Restrict uv's resolution to 3.11+ so `uv lock` can
 # solve.
 environments = ["python_version >= '3.11'"]
+
+# `untokenize` 0.1.1 (transitive via `docformatter==1.7.7`) ships only an
+# sdist whose setup.py uses `ast.Constant.s`, removed in Python 3.14.  The
+# `python_version < '3.14'` marker on docformatter keeps it out of the 3.14
+# install set, but uv still needs metadata for resolution and tries to
+# build the sdist with the active interpreter.  Vouch for the metadata
+# directly (no runtime deps) so uv skips the build.
+[[tool.uv.dependency-metadata]]
+name = "untokenize"
+version = "0.1.1"
+requires-dist = []
 
 [tool.black]
 line-length = 80
