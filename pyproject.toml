@@ -129,6 +129,17 @@ exclude-newer = "3 days"
 # solve.
 environments = ["python_version >= '3.11'"]
 
+# `untokenize` 0.1.1 (transitive via `docformatter==1.7.7`) ships only an
+# sdist whose setup.py uses `ast.Constant.s`, removed in Python 3.14.  The
+# `python_version < '3.14'` marker on docformatter keeps it out of the 3.14
+# install set, but uv still needs metadata for resolution and tries to
+# build the sdist with the active interpreter.  Vouch for the metadata
+# directly (no runtime deps) so uv skips the build.
+[[tool.uv.dependency-metadata]]
+name = "untokenize"
+version = "0.1.1"
+requires-dist = []
+
 [tool.black]
 line-length = 80
 exclude = '''
