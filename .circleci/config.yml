@@ -49,18 +49,6 @@ commands:
             TOX_TESTENV_PASSENV: 'DATABASE_URL DATABASE_IN_CONTAINER'
 
 jobs:
-  test-python36:
-    executor:
-      name: python
-      pyversion: "3.6"
-      pgversion: "13.0"
-    steps:
-      - checkout
-      - install-dependencies:
-          extra: dev, test
-      - run-tests:
-          pyversion: 36
-
   test-python37:
     executor:
       name: python
@@ -192,12 +180,6 @@ jobs:
 workflows:
   build:
     jobs:
-      - test-python36:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
       - test-python37:
           filters:
             tags:

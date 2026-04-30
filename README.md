@@ -9,7 +9,7 @@
 | :package: | **PyPi** | [![PyPi](https://badge.fury.io/py/django-postgres-extra.svg)](https://pypi.python.org/pypi/django-postgres-extra) |
 | :four_leaf_clover: | **Code coverage** | [![Coverage Status](https://coveralls.io/repos/github/SectorLabs/django-postgres-extra/badge.svg?branch=coveralls)](https://coveralls.io/github/SectorLabs/django-postgres-extra?branch=master) |
 | <img src="https://cdn.iconscout.com/icon/free/png-256/django-1-282754.png" width="22px" height="22px" align="center" /> | **Django Versions** | 2.0, 2.1, 2.2, 3.0, 3.1, 3.2, 4.0, 4.1, 4.2, 5.0, 5.1, 5.2 |
-| <img src="https://cdn3.iconfinder.com/data/icons/logos-and-brands-adobe/512/267_Python-512.png" width="22px" height="22px" align="center" /> | **Python Versions** | 3.6, 3.7, 3.8, 3.9, 3.10, 3.11, 3.12, 3.13 |
+| <img src="https://cdn3.iconfinder.com/data/icons/logos-and-brands-adobe/512/267_Python-512.png" width="22px" height="22px" align="center" /> | **Python Versions** | 3.7, 3.8, 3.9, 3.10, 3.11, 3.12, 3.13 |
 | <img src="https://pbs.twimg.com/profile_images/1152122059/psycopg-100_400x400.png" width="22px" height="22px" align="center" /> | **Psycopg Versions** | 2, 3 |
 | :book: | **Documentation** | [Read The Docs](https://django-postgres-extra.readthedocs.io/en/master/) |
 | :warning: | **Upgrade** | [Upgrade from v1.x](https://django-postgres-extra.readthedocs.io/en/master/major_releases.html#new-features)
@@ -80,13 +80,21 @@ These are just for local development. CI for code analysis etc runs against thes
 
         λ git clone https://github.com/SectorLabs/django-postgres-extra.git
 
-2. Create a virtual environment:
+2. Install [uv](https://docs.astral.sh/uv/) if you don't have it:
+
+       λ curl -LsSf https://astral.sh/uv/install.sh | sh
+
+3. Sync the development/test dependencies (creates `.venv` and installs from `uv.lock`):
 
        λ cd django-postgres-extra
-       λ virtualenv env
-       λ source env/bin/activate
+       λ uv sync --extra dev --extra test
+       λ source .venv/bin/activate
 
-3. Create a postgres user for use in tests (skip if your default user is a postgres superuser):
+   `uv.lock` enforces a 3-day dependency cooldown via `[tool.uv] exclude-newer`
+   in `pyproject.toml`, so newly-published versions cannot enter your
+   environment until the community has had time to flag malicious releases.
+
+4. Create a postgres user for use in tests (skip if your default user is a postgres superuser):
 
        λ createuser --superuser psqlextra --pwprompt
        λ export DATABASE_URL=postgres://psqlextra:<password>@localhost/psqlextra
@@ -94,10 +102,6 @@ These are just for local development. CI for code analysis etc runs against thes
    Hint: if you're using virtualenvwrapper, you might find it beneficial to put
    the ``export`` line in ``$VIRTUAL_ENV/bin/postactivate`` so that it's always
    available when using this virtualenv.
-
-4. Install the development/test dependencies:
-
-       λ pip install -r requirements-test.txt
 
 5. Run the tests:
 
