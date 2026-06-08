@@ -4,7 +4,7 @@
   
 |  |  |  |
 |--------------------|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| :white_check_mark: | **Tests** | [![CircleCI](https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master.svg?style=svg)](https://circleci.com/gh/SectorLabs/django-postgres-extra/tree/master) |
+| :white_check_mark: | **Tests** | [![Verify](https://github.com/SectorLabs/django-postgres-extra/actions/workflows/test.yml/badge.svg)](https://github.com/SectorLabs/django-postgres-extra/actions/workflows/test.yml) |
 | :memo: | **License** | [![License](https://img.shields.io/:license-mit-blue.svg)](http://doge.mit-license.org) |
 | :package: | **PyPi** | [![PyPi](https://badge.fury.io/py/django-postgres-extra.svg)](https://pypi.python.org/pypi/django-postgres-extra) |
 | :four_leaf_clover: | **Code coverage** | [![Coverage Status](https://coveralls.io/repos/github/SectorLabs/django-postgres-extra/badge.svg?branch=coveralls)](https://coveralls.io/github/SectorLabs/django-postgres-extra?branch=master) |
