@@ -1,0 +1,97 @@
+name: Verify
+
+on:
+  pull_request: {}
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analysis:
+    name: Analysis
+
+    runs-on: ubuntu-latest
+
+    container:
+      image: public.ecr.aws/docker/library/python:3.11-bullseye
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install packages
+        run: apt-get update && apt-get install -y --no-install-recommends postgresql-client libpq-dev build-essential git
+
+      - name: Install Python packages
+        run: pip install --progress-bar off '.[dev, analysis, test]'
+
+      - name: Verify
+        run: poe verify
+
+  run-tests:
+    name: Run Tests
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.7"
+            postgres-version: "13.0"
+            debian-dist: "bullseye"
+          - python-version: "3.8"
+            postgres-version: "13.0"
+            debian-dist: "bullseye"
+          - python-version: "3.9"
+            postgres-version: "13.0"
+            debian-dist: "bullseye"
+          - python-version: "3.10"
+            postgres-version: "16.0"
+            debian-dist: "bullseye"
+          - python-version: "3.11"
+            postgres-version: "16.0"
+            debian-dist: "bullseye"
+          - python-version: "3.12"
+            postgres-version: "16.0"
+            debian-dist: "bullseye"
+          - python-version: "3.13"
+            postgres-version: "16.0"
+            debian-dist: "bullseye"
+
+    container:
+      image: public.ecr.aws/docker/library/python:${{ matrix.python-version }}-${{ matrix.debian-dist }}
+
+    services:
+      postgres:
+        image: public.ecr.aws/docker/library/postgres:${{ matrix.postgres-version }}
+        env:
+          POSTGRES_DB: "psqlextra"
+          POSTGRES_USER: "psqlextra"
+          POSTGRES_PASSWORD: "psqlextra"
+        ports:
+          - "5432:5432"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install packages
+        run: apt-get update && apt-get install -y --no-install-recommends postgresql-client libpq-dev build-essential git
+
+      - name: Install Python packages
+        run: pip install --progress-bar off '.[dev, test]'
+
+      - name: Compute Python Version
+        run: echo "PYVERSION=${{ matrix.python-version }}" | sed 's/\.//g' >> $GITHUB_ENV
+
+      - name: Run tests
+        env:
+          DATABASE_URL: "postgres://psqlextra:psqlextra@postgres:5432/psqlextra"
+          DATABASE_IN_CONTAINER: "true"
+          TOX_TESTENV_PASSENV: "DATABASE_URL DATABASE_IN_CONTAINER"
+        run: tox --listenvs | grep "^py$PYVERSION" | xargs -n 1 tox -e

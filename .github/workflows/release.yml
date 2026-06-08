@@ -1,0 +1,65 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: The version to release.
+        required: true
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}-${{ inputs.version || '' }
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Run Tests
+
+    runs-on: ubuntu-latest
+
+    container:
+      image: public.ecr.aws/docker/library/python:3.11-bullseye
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install packages
+        run: apt-get update && apt-get install -y --no-install-recommends postgresql-client libpq-dev build-essential git
+
+      - name: Install Python packages
+        run: pip install --progress-bar off '.[publish]'
+
+      - name: Set version number
+        env:
+          RELEASE_VERSION: |-
+            ${{ case(
+              github.event_name == 'workflow_dispatch', inputs.version,
+              github.ref_name,
+            ) }}
+        run: |
+          if [[ "$RELEASE_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "__version__ = \"${RELEASE_VERSION:1}\"" > psqlextra/_version.py
+          else
+            echo "::error::Invalid version format: '$RELEASE_VERSION', expected 'vX.Y.Z'."
+            exit 1
+          fi
+
+      - name: Build package
+        run: python -m build
+
+      - name: Publish package
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: >
+          python -m twine upload
+          --username "__token__"
+          --password "${PYPI_API_TOKEN}"
+          --verbose
+          --non-interactive
+          --disable-progress-bar
+          dist/*
