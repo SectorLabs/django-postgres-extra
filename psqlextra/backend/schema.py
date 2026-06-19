@@ -752,7 +752,7 @@ class PostgresSchemaEditor(SchemaEditor):
         """
 
         # asserts the model is a model set up for partitioning
-        self._partitioning_properties_for_model(model)
+        meta = self._partitioning_properties_for_model(model)
 
         table_name = self.create_partition_table_name(model, name)
 
@@ -761,6 +761,22 @@ class PostgresSchemaEditor(SchemaEditor):
             self.quote_name(model._meta.db_table),
             ",".join(["%s" for _ in range(len(values))]),
         )
+
+        if getattr(meta, "sub_key", None) and len(meta.sub_key) > 0:
+            sub_partitioning_key_sql = ", ".join(
+                self.quote_name(field_name) for field_name in meta.sub_key
+            )
+
+            last_brace_idx = sql.rfind(")") + 1
+            sql = (
+                sql[:last_brace_idx]
+                + self.sql_partition_by
+                % (
+                    meta.sub_method.upper(),
+                    sub_partitioning_key_sql,
+                )
+                + sql[last_brace_idx:]
+            )
 
         with transaction.atomic(using=self.connection.alias):
             self.execute(sql, values)
@@ -1100,9 +1116,17 @@ class PostgresSchemaEditor(SchemaEditor):
                 )
                 % model.__name__
             )
-
+        if meta.sub_method and len(meta.sub_key)==0:
+            raise ImproperlyConfigured(
+                (
+                    "Model '%s' is not properly configured to be partitioned."
+                    " 'sub_method' is specified '%s', but no 'sub_key' is defined."
+                )
+                % (model.__name__, meta.sub_method)
+            )
+        
         try:
-            for field_name in meta.key:
+            for field_name in meta.key + meta.sub_key:
                 model._meta.get_field(field_name)
         except FieldDoesNotExist:
             raise ImproperlyConfigured(
