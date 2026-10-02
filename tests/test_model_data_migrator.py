@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import MagicMock
 
+import django
 import pytest
 
 from django.db import connection, models, transaction
@@ -10,6 +11,11 @@ from psqlextra.schema import PostgresSchema
 from psqlextra.settings import postgres_prepend_local_search_path
 
 from .fake_model import delete_fake_model, get_fake_model
+
+pytestmark = pytest.mark.skipif(
+    django.VERSION < (3, 2),
+    reason="The migrator clones models into a separate schema and uses durable transactions, which need Django >= 3.2",
+)
 
 
 @pytest.fixture
