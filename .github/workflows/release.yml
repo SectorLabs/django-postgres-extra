@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: public.ecr.aws/docker/library/python:3.11-bullseye
+      image: public.ecr.aws/docker/library/python:3.11-bookworm
 
     steps:
       - name: Checkout
