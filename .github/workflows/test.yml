@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: public.ecr.aws/docker/library/python:3.11-bullseye
+      image: public.ecr.aws/docker/library/python:3.11-bookworm
 
     steps:
       - name: Checkout
@@ -43,25 +43,25 @@ jobs:
         include:
           - python-version: "3.7"
             postgres-version: "13"
-            debian-dist: "bullseye"
+            debian-dist: "bookworm"
           - python-version: "3.8"
             postgres-version: "13"
-            debian-dist: "bullseye"
+            debian-dist: "bookworm"
           - python-version: "3.9"
             postgres-version: "13"
-            debian-dist: "bullseye"
+            debian-dist: "bookworm"
           - python-version: "3.10"
             postgres-version: "16"
-            debian-dist: "bullseye"
+            debian-dist: "bookworm"
           - python-version: "3.11"
             postgres-version: "16"
-            debian-dist: "bullseye"
+            debian-dist: "bookworm"
           - python-version: "3.12"
             postgres-version: "16"
-            debian-dist: "bullseye"
+            debian-dist: "bookworm"
           - python-version: "3.13"
             postgres-version: "16"
-            debian-dist: "bullseye"
+            debian-dist: "bookworm"
 
     container:
       image: public.ecr.aws/docker/library/python:${{ matrix.python-version }}-${{ matrix.debian-dist }}

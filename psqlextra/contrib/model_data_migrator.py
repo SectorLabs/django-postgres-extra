@@ -99,16 +99,26 @@ class PostgresModelDataMigrator:
     The process is very similiar to how pg_repack rewrites
     an entire table without long-running locks on the table.
 
+    If any of the steps fails, the work and backup schemas are
+    deleted and the original table is left as it was.
+
     Attributes:
         model: The model to migrate.
         using: Optional name of the database connection to use.
         operation_timeout: Maximum amount of time a single statement
                            can take.
+        keep_backup_schema: Whether to keep the backup schema with
+                            the original table in it after a
+                            successful migration. Turn off for
+                            migrations that run on a schedule, which
+                            would otherwise leave a copy of the table
+                            behind on every run.
     """
 
     model: Type[models.Model]
     using: str = DEFAULT_DB_ALIAS
     operation_timeout: timedelta
+    keep_backup_schema: bool = True
 
     def __init__(self, logger) -> None:
         self.logger = logger
@@ -184,18 +194,31 @@ class PostgresModelDataMigrator:
             (self._migrate_phase_4, "swapping"),
         ]
 
-        for index, (phase, description) in enumerate(phases):
-            phase_start_time = time.time()
+        try:
+            for index, (phase, description) in enumerate(phases):
+                phase_start_time = time.time()
+                logger.info(
+                    f"Starting phase #{index + 1} of migrating {self.table_name}: {description}"
+                )
+                phase(state)
+                logger.info(
+                    f"Finished phase #{index + 1} of migrating {self.table_name}: {description}",
+                    task_time=time.time() - phase_start_time,
+                )
+        except Exception:
+            # The swap is the last phase and runs in a single transaction,
+            # so the original table never made it into the backup schema.
             logger.info(
-                f"Starting phase #{index + 1} of migrating {self.table_name}: {description}"
+                f"Failed migrating {self.table_name}, deleting the work and backup schemas"
             )
-            phase(state)
-            logger.info(
-                f"Finished phase #{index + 1} of migrating {self.table_name}: {description}",
-                task_time=time.time() - phase_start_time,
-            )
+            state.work_schema.delete(cascade=True, using=self.using)
+            state.backup_schema.delete(cascade=True, using=self.using)
+            raise
 
         state.work_schema.delete(cascade=True, using=self.using)
+
+        if not self.keep_backup_schema:
+            state.backup_schema.delete(cascade=True, using=self.using)
 
         logger.info(
             f"Finished migrating {self.table_name}",
