@@ -197,6 +197,13 @@ def fake_model(fake_model_fk_target_1, fake_model_fk_target_2):
             "alternative_family": models.ForeignKey(
                 fake_model_fk_target_2, null=True, on_delete=models.SET_NULL
             ),
+            "unconstrained_family": models.ForeignKey(
+                fake_model_fk_target_2,
+                null=True,
+                on_delete=models.DO_NOTHING,
+                db_constraint=False,
+                related_name="+",
+            ),
         },
         meta_options=meta_options,
     )

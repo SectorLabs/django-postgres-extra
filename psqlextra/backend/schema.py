@@ -286,8 +286,9 @@ class PostgresSchemaEditor(SchemaEditor):
                 # a AccessExclusiveLock on the referenced table. We want to avoid
                 # that and created the FK as NOT VALID. We can run VALIDATE in
                 # a separate transaction later to validate the entries without
-                # acquiring a AccessExclusiveLock.
-                if field.remote_field:
+                # acquiring a AccessExclusiveLock. A field with `db_constraint=False`
+                # has no foreign key constraint to clone.
+                if field.remote_field and field.db_constraint:
                     with postgres_reset_local_search_path(
                         using=self.connection.alias
                     ):
