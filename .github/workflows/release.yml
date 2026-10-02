@@ -12,7 +12,7 @@ on:
         required: true
 
 concurrency:
-  group: release-${{ github.workflow }}-${{ github.ref }}-${{ inputs.version || '' }
+  group: release-${{ github.workflow }}-${{ github.ref }}-${{ inputs.version || '' }}
   cancel-in-progress: true
 
 jobs:
@@ -36,11 +36,8 @@ jobs:
 
       - name: Set version number
         env:
-          RELEASE_VERSION: |-
-            ${{ case(
-              github.event_name == 'workflow_dispatch', inputs.version,
-              github.ref_name,
-            ) }}
+          RELEASE_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+        shell: bash
         run: |
           if [[ "$RELEASE_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "__version__ = \"${RELEASE_VERSION:1}\"" > psqlextra/_version.py
