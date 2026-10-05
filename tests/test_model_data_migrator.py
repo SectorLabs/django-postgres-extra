@@ -10,6 +10,7 @@ from psqlextra.contrib.model_data_migrator import PostgresModelDataMigrator
 from psqlextra.schema import PostgresSchema
 from psqlextra.settings import postgres_prepend_local_search_path
 
+from . import db_introspection
 from .fake_model import delete_fake_model, get_fake_model
 
 pytestmark = pytest.mark.skipif(
@@ -108,3 +109,45 @@ def test_model_data_migrator_deletes_its_schemas_when_it_fails(fake_model):
 
     assert _list_schemas_of(fake_model) == []
     assert list(fake_model.objects.values_list("name", flat=True)) == ["old"]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_model_data_migrator_keeps_the_storage_settings(fake_model):
+    with connection.schema_editor() as schema_editor:
+        schema_editor.alter_model_storage_setting(
+            fake_model, "fillfactor", "80"
+        )
+
+    _create_migrator(fake_model, keep_backup_schema=False).migrate()
+
+    with transaction.atomic():
+        assert db_introspection.get_storage_settings(
+            fake_model._meta.db_table
+        ) == {"fillfactor": "80"}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_model_data_migrator_analyzes_the_swapped_in_table(fake_model):
+    _create_migrator(fake_model, keep_backup_schema=False).migrate()
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT attname FROM pg_stats WHERE schemaname = current_schema() AND tablename = %s",
+            (fake_model._meta.db_table,),
+        )
+        assert "name" in {attname for attname, in cursor.fetchall()}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_model_data_migrator_keeps_the_autovacuum_setting(fake_model):
+    with connection.schema_editor() as schema_editor:
+        schema_editor.alter_model_storage_setting(
+            fake_model, "autovacuum_enabled", "true"
+        )
+
+    _create_migrator(fake_model, keep_backup_schema=False).migrate()
+
+    with transaction.atomic():
+        assert db_introspection.get_storage_settings(
+            fake_model._meta.db_table
+        ) == {"autovacuum_enabled": "true"}

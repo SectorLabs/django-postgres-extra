@@ -292,25 +292,25 @@ class PostgresModelDataMigrator:
         # ANALYZE: The table went from 0 to being filled, by running ANALYZE,
         #          we update the statistics, allowing the query planner to
         #          make good decisions.
-        with postgres_prepend_local_search_path(
-            [state.work_schema.name], using=self.using
-        ):
-            self.schema_editor.vacuum_model(self.model, analyze=True)
+        #
+        # VACUUM cannot run in a transaction, which a local search path
+        # needs, so the cloned table is referred to by its schema instead.
+        cloned_table_fqn = self._cloned_table_fqn(state)
+
+        self.schema_editor.vacuum_table(cloned_table_fqn, analyze=True)
 
         # Re-enable autovacuum on the cloned table
-        with postgres_prepend_local_search_path(
-            [state.work_schema.name], using=self.using
-        ):
+        with self.atomic():
             autovacuum_enabled = state.storage_settings.get(
                 "autovacuum_enabled"
             )
             if autovacuum_enabled:
-                self.schema_editor.alter_model_storage_setting(
-                    self.model, "autovacuum_enabled", autovacuum_enabled
+                self.schema_editor.alter_table_storage_setting(
+                    cloned_table_fqn, "autovacuum_enabled", autovacuum_enabled
                 )
             else:
-                self.schema_editor.reset_model_storage_setting(
-                    self.model, "autovacuum_enabled"
+                self.schema_editor.reset_table_storage_setting(
+                    cloned_table_fqn, "autovacuum_enabled"
                 )
 
     def _migrate_phase_4(self, state: PostgresModelDataMigratorState) -> None:
@@ -346,6 +346,11 @@ class PostgresModelDataMigrator:
                 self.schema_editor.alter_model_schema(
                     self.model, state.default_schema.name
                 )
+
+    def _cloned_table_fqn(self, state: PostgresModelDataMigratorState) -> str:
+        quote_name = self.connection.ops.quote_name
+
+        return f"{quote_name(state.work_schema.name)}.{quote_name(self.table_name)}"
 
     @property
     def model_name(self) -> str:
