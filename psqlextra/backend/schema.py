@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, List, Optional, Type, cast
+from collections import defaultdict
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, cast
 from unittest import mock
 
 import django
@@ -52,6 +53,8 @@ class PostgresSchemaEditor(SchemaEditor):
 
     sql_alter_table_storage_setting = "ALTER TABLE %s SET (%s = %s)"
     sql_reset_table_storage_setting = "ALTER TABLE %s RESET (%s)"
+
+    sql_grant_table_privileges = "GRANT %s ON TABLE %s TO %s%s"
 
     sql_alter_table_schema = "ALTER TABLE %s SET SCHEMA %s"
     sql_create_schema = "CREATE SCHEMA %s"
@@ -221,6 +224,65 @@ class PostgresSchemaEditor(SchemaEditor):
         for setting_name, setting_value in storage_settings.items():
             self.alter_table_storage_setting(
                 quoted_table_fqn, setting_name, setting_value
+            )
+
+    def clone_model_privileges_to_schema(
+        self, model: Type[Model], *, schema_name: str
+    ) -> None:
+        """Grants the privileges granted on the model table to the table that
+        was cloned from it by `clone_model_structure_to_schema`.
+
+        Postgres copies none of them, and the default privileges for
+        the schema the original table is in do not apply to a table
+        created in another schema.
+
+        Run this right before swapping the cloned table in, so that
+        privileges granted or revoked in the meantime are not lost.
+
+        Only privileges on the table itself are copied. These are not:
+
+            - Column privileges, such as `GRANT SELECT (name)`.
+
+            - Privileges on the sequences that
+              `clone_model_structure_to_schema` creates for the
+              cloned table on Django 4.0 and older. Newer versions
+              use identity columns, and inserting into those does
+              not check the privileges on their sequences.
+
+        Arguments:
+            model:
+                Model for which the cloned table was created.
+
+            schema_name:
+                Name of the schema in which the cloned table
+                resides.
+        """
+
+        quoted_table_fqn = f"{self.quote_name(schema_name)}.{self.quote_name(model._meta.db_table)}"
+
+        with self.connection.cursor() as cursor:
+            privileges = self.introspection.get_privileges(
+                cursor, model._meta.db_table
+            )
+
+        privileges_by_grantee: Dict[
+            Tuple[Optional[str], bool], List[str]
+        ] = defaultdict(list)
+        for grantee, privilege, grantable in privileges:
+            privileges_by_grantee[(grantee, grantable)].append(privilege)
+
+        for (
+            grantee,
+            grantable,
+        ), grantee_privileges in privileges_by_grantee.items():
+            self.execute(
+                self.sql_grant_table_privileges
+                % (
+                    ", ".join(grantee_privileges),
+                    quoted_table_fqn,
+                    self.quote_name(grantee) if grantee else "PUBLIC",
+                    " WITH GRANT OPTION" if grantable else "",
+                )
             )
 
     def clone_model_constraints_and_indexes_to_schema(

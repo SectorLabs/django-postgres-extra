@@ -301,6 +301,33 @@ class PostgresIntrospection(Introspection):
 
         return storage_settings
 
+    def get_privileges(
+        self, cursor, table_name: str
+    ) -> List[Tuple[Optional[str], str, bool]]:
+        """Gets the privileges granted on the specified table as a list of
+        (grantee, privilege, grantable) tuples.
+
+        The grantee is `None` for privileges granted to PUBLIC.
+        """
+
+        sql = """
+            SELECT
+                CASE WHEN acl.grantee = 0 THEN NULL ELSE pg_catalog.pg_get_userbyid(acl.grantee) END,
+                acl.privilege_type,
+                acl.is_grantable
+            FROM
+                pg_catalog.pg_class c
+            CROSS JOIN LATERAL
+                pg_catalog.aclexplode(c.relacl) acl
+            WHERE
+                c.relname::text = %s
+                AND pg_catalog.pg_table_is_visible(c.oid)
+            ORDER BY 1, 2
+        """
+
+        cursor.execute(sql, (table_name,))
+        return cursor.fetchall()
+
     def get_relations(self, cursor, table_name: str):
         """Gets a dictionary {field_name: (field_name_other_table,
         other_table)} representing all relations in the specified table.

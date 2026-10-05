@@ -87,14 +87,22 @@ class PostgresModelDataMigrator:
             began. Since the original table is locked, you can
             be sure no more rows are being added or modified.
 
-        9. Move the original table into a backup schema.
+        9. Grant the privileges of the real table on the copy.
+
+            Postgres does not copy them, and the default privileges
+            of the schema the real table is in do not apply to it.
+
+            Column privileges, and on Django 4.0 and older the
+            privileges on the table's sequences, are not copied.
+
+        10. Move the original table into a backup schema.
 
             This allows it to be quickly restored manually
             if the migration is broken in any way.
 
-        10. Move the copied table in place of the real one.
+        11. Move the copied table in place of the real one.
 
-        11. Commit the transaction, which releases the lock.
+        12. Commit the transaction, which releases the lock.
 
     The process is very similiar to how pg_repack rewrites
     an entire table without long-running locks on the table.
@@ -327,6 +335,12 @@ class PostgresModelDataMigrator:
             # original is locked. Not much work should happen here.
             self.fill_cloned_table_locked(
                 state.work_schema, state.default_schema
+            )
+
+            # Copied last so that privileges granted or revoked while
+            # the cloned table was being filled carry over.
+            self.schema_editor.clone_model_privileges_to_schema(
+                self.model, schema_name=state.work_schema.name
             )
 
             # Move the original table into the backup schema.
