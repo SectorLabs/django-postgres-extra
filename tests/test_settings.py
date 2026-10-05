@@ -80,6 +80,13 @@ def test_postgres_prepend_local_search_path():
     assert _get_current_setting("search_path") == '"$user", public'
 
 
+@pytest.mark.django_db(transaction=True)
+def test_postgres_prepend_local_search_path_no_transaction():
+    with pytest.raises(SuspiciousOperation):
+        with postgres_prepend_local_search_path(["a"]):
+            pass
+
+
 def test_postgres_prepend_local_search_path_nested():
     with postgres_prepend_local_search_path(["a", "b"]):
         with postgres_prepend_local_search_path(["c"]):

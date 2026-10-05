@@ -94,6 +94,11 @@ def postgres_prepend_local_search_path(
 
     connection = connections[using]
 
+    if not connection.in_atomic_block:
+        raise SuspiciousOperation(
+            "SET LOCAL makes no sense outside a transaction. Start a transaction first."
+        )
+
     with connection.cursor() as cursor:
         cursor.execute("SHOW search_path")
         [
