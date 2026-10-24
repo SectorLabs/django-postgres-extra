@@ -101,7 +101,7 @@ publish = [
 version = {attr = "psqlextra._version.__version__"}
 
 [tool.setuptools.packages.find]
-exclude = ["tests*"]
+include = ["psqlextra*"]
 
 [tool.setuptools.package-data]
 psqlextra = ["py.typed"]
