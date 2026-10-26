@@ -82,10 +82,15 @@ class PostgresModelState(ModelState):
             # In Django < 3.1 `self.fields` is a list of (name, field) tuples
             fields = {name: field.clone() for name, field in self.fields}
 
+        meta_options = {**self.options} if self.options else {}
+        # Prune index_together from options as it is no longer an allowed meta
+        # attribute on Django 5.1+ (mirrors Django ticket #34856).
+        meta_options.pop("index_together", None)
+
         meta = type(
             "Meta",
             (),
-            {"app_label": self.app_label, "apps": apps, **self.options},
+            {"app_label": self.app_label, "apps": apps, **meta_options},
         )
 
         attributes = {
