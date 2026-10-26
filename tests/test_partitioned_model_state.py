@@ -108,3 +108,26 @@ def test_partitioned_model_render(model):
     assert rendered_model._meta.app_label == "tests"
     assert rendered_model._partitioning_meta.method == options["method"]
     assert rendered_model._partitioning_meta.key == options["key"]
+
+
+def test_partitioned_model_render_index_together():
+    """Tests whether historical model state containing index_together can be
+    rendered on Django 5.1+ without raising a TypeError."""
+
+    options = dict(method=PostgresPartitioningMethod.RANGE, key=["timestamp"])
+
+    state = PostgresPartitionedModelState(
+        app_label="tests",
+        name=str(uuid.uuid4()),
+        fields=[("timestamp", models.DateTimeField())],
+        options={"index_together": [("timestamp",)]},
+        partitioning_options=options,
+        bases=(PostgresPartitionedModel,),
+    )
+
+    rendered_model = state.render(apps)
+
+    assert issubclass(rendered_model, PostgresPartitionedModel)
+    assert rendered_model.__name__ == state.name
+    assert rendered_model._meta.apps == apps
+    assert rendered_model._meta.app_label == "tests"
