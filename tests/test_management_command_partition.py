@@ -173,3 +173,45 @@ def test_management_command_partition_confirm_no(
     config.strategy.createable_partition.delete.assert_not_called()
     config.strategy.deleteable_partition.create.assert_not_called()
     config.strategy.deleteable_partition.delete.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "mode,concurrently",
+    [("sequentially", False), ("concurrently", True)],
+    ids=["sequentially", "concurrently"],
+)
+def test_management_command_partition_detach(
+    mode, concurrently, run, fake_model, fake_partitioning_manager
+):
+    """Tests whether the --detach option makes it detach partitions instead of
+    deleting them."""
+
+    config = fake_partitioning_manager.find_config_for_model(fake_model)
+    output = run("--yes", "--detach", mode)
+
+    assert "1 partitions will be detached" in output
+    assert "Operations applied." in output
+
+    config.strategy.createable_partition.create.assert_called_once()
+    config.strategy.deleteable_partition.delete.assert_not_called()
+    config.strategy.deleteable_partition.detach.assert_called_once()
+    assert (
+        config.strategy.deleteable_partition.detach.call_args.kwargs.get(
+            "concurrently", False
+        )
+        is concurrently
+    )
+
+
+def test_management_command_partition_detach_dry_run(
+    run, fake_model, fake_partitioning_manager
+):
+    """Tests whether --dry together with --detach does not touch any
+    partition."""
+
+    config = fake_partitioning_manager.find_config_for_model(fake_model)
+    output = run("--dry", "--detach", "sequentially")
+
+    assert "1 partitions will be detached" in output
+    config.strategy.deleteable_partition.detach.assert_not_called()
+    config.strategy.deleteable_partition.delete.assert_not_called()
