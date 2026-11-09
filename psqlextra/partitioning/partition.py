@@ -29,6 +29,23 @@ class PostgresPartition:
     ) -> None:
         """Deletes this partition from the database."""
 
+    def detach(
+        self,
+        model: Type[PostgresPartitionedModel],
+        schema_editor: PostgresSchemaEditor,
+        *,
+        concurrently: bool = False,
+    ) -> None:
+        """Detaches this partition from the partitioned table, keeping the
+        partition's table and its rows.
+
+        See :meth:`PostgresSchemaEditor.detach_partition`.
+        """
+
+        schema_editor.detach_partition(
+            model, self.name(), concurrently=concurrently
+        )
+
     def deconstruct(self) -> dict:
         """Deconstructs this partition into a dict of attributes/fields."""
 

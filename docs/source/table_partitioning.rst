@@ -222,8 +222,29 @@ Command-line options
   ``--model-names``    ``-m``        ``None``         Optionally, a list of model names to partition for.
   ``--skip-create``                  ``False``        Whether to skip creating partitions.
   ``--skip-delete``                  ``False``        Whether to skip deleting partitions.
+  ``--detach``                       ``'no'``         ``sequentially`` or ``concurrently`` to detach old partitions instead of deleting them. See below.
 
  ==================== ============= ================ ==================================================================================================== === === === === === ===
+
+
+Detaching instead of deleting
+*****************************
+
+By default, partitions that are older than ``max_age`` are dropped together with their rows. Pass ``--detach`` to detach them from the partitioned table instead. The partition's table and its rows are kept as a regular table, so you can archive, export or re-attach it later. Detached tables are no longer partitions, so later runs of the command do not touch them.
+
+* ``--detach sequentially`` runs ``ALTER TABLE ... DETACH PARTITION ...`` in the same transaction that creates the new partitions.
+* ``--detach concurrently`` runs ``ALTER TABLE ... DETACH PARTITION ... CONCURRENTLY`` (PostgreSQL 14 and newer). It only takes a ``SHARE UPDATE EXCLUSIVE`` lock on the partitioned table, so queries against it keep running. PostgreSQL does not allow this in a transaction, so new partitions are created in a transaction first and the old ones are then detached one by one. It cannot be used when the table has a default partition. If a concurrent detach is interrupted, PostgreSQL leaves the partition in a pending state; finish it with ``ALTER TABLE ... DETACH PARTITION ... FINALIZE``.
+
+The same is available from code:
+
+.. code-block:: python
+
+   plan = manager.plan(skip_create=True)
+   plan.apply(detach=True)  # or plan.apply(concurrently=True)
+
+   # or for a single partition
+   with connection.schema_editor(atomic=False) as schema_editor:
+       schema_editor.detach_partition(MyModel, "2019_jan", concurrently=True)
 
 
 Configuration

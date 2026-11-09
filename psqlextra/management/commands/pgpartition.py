@@ -65,6 +65,19 @@ class Command(BaseCommand):
             default=False,
         )
 
+        parser.add_argument(
+            "--detach",
+            choices=["no", "sequentially", "concurrently"],
+            help=(
+                "Detach old partitions instead of dropping them, keeping "
+                "their tables and rows. 'concurrently' uses DETACH PARTITION "
+                "... CONCURRENTLY (PostgreSQL 14+) so queries against the "
+                "partitioned table are not blocked."
+            ),
+            required=False,
+            default="no",
+        )
+
     def handle(  # type: ignore[override]
         self,
         dry: bool,
@@ -73,6 +86,7 @@ class Command(BaseCommand):
         skip_create: bool,
         skip_delete: bool,
         model_names: Optional[List[str]] = None,
+        detach: str = "no",
         *args,
         **kwargs,
     ):
@@ -91,7 +105,8 @@ class Command(BaseCommand):
             print("Nothing to be done.")
             return
 
-        plan.print()
+        detach_partitions = detach != "no"
+        plan.print(detach=detach_partitions)
 
         if dry:
             return
@@ -103,7 +118,11 @@ class Command(BaseCommand):
                 print("Operation aborted.")
                 return
 
-        plan.apply(using=using)
+        plan.apply(
+            using=using,
+            detach=detach_partitions,
+            concurrently=detach == "concurrently",
+        )
         print("Operations applied.")
 
     @staticmethod

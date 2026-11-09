@@ -644,3 +644,99 @@ def test_partitioning_time_multiple_sizes():
 
     with pytest.raises(PostgresPartitioningError):
         partition_by_current_time(model, weeks=1, months=2, count=1)
+
+
+def _count_rows(table_name):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"SELECT COUNT(*) FROM {connection.ops.quote_name(table_name)}"
+        )
+        return cursor.fetchone()[0]
+
+
+def _create_and_fill_monthly(model):
+    schema_editor = connection.schema_editor()
+    schema_editor.create_partitioned_model(model)
+
+    manager = PostgresPartitioningManager(
+        [
+            partition_by_current_time(
+                model, months=1, count=3, max_age=relativedelta(months=2)
+            )
+        ]
+    )
+
+    with freezegun.freeze_time("2019-1-1"):
+        manager.plan().apply()
+
+    model.objects.create(timestamp=datetime.datetime(2019, 1, 10))
+    model.objects.create(timestamp=datetime.datetime(2019, 2, 10))
+    model.objects.create(timestamp=datetime.datetime(2019, 3, 10))
+
+    return manager
+
+
+@pytest.mark.postgres_version(lt=110000)
+def test_partitioning_time_detach():
+    """Tests whether partitions older than max_age are detached instead of
+    dropped, keeping their tables and rows."""
+
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+    manager = _create_and_fill_monthly(model)
+
+    with freezegun.freeze_time("2019-3-1"):
+        plan = manager.plan(skip_create=True)
+        assert [p.name() for p in plan.deletions] == ["2019_jan"]
+        plan.apply(detach=True)
+
+    table = _get_partitioned_table(model)
+    assert [p.name for p in table.partitions] == ["2019_feb", "2019_mar"]
+
+    detached_table_name = f"{model._meta.db_table}_2019_jan"
+    assert detached_table_name in db_introspection.table_names()
+    assert _count_rows(detached_table_name) == 1
+    assert model.objects.count() == 2
+
+    # detached partitions are not partitions anymore, so running the plan
+    # again does not touch them
+    with freezegun.freeze_time("2019-3-1"):
+        assert manager.plan(skip_create=True).deletions == []
+
+
+@pytest.mark.postgres_version(lt=140000)
+@pytest.mark.django_db(transaction=True)
+def test_partitioning_time_detach_concurrently():
+    """Tests whether partitions can be detached concurrently while new
+    partitions are created in the same plan."""
+
+    model = define_fake_partitioned_model(
+        {"timestamp": models.DateTimeField()}, {"key": ["timestamp"]}
+    )
+    manager = _create_and_fill_monthly(model)
+
+    with freezegun.freeze_time("2019-3-1"):
+        plan = manager.plan()
+        assert [p.name() for p in plan.creations] == ["2019_apr", "2019_may"]
+        assert [p.name() for p in plan.deletions] == ["2019_jan"]
+        plan.apply(concurrently=True)
+
+    with transaction.atomic():
+        table = _get_partitioned_table(model)
+    assert sorted(p.name for p in table.partitions) == [
+        "2019_apr",
+        "2019_feb",
+        "2019_mar",
+        "2019_may",
+    ]
+
+    detached_table_name = f"{model._meta.db_table}_2019_jan"
+    assert _count_rows(detached_table_name) == 1
+    assert model.objects.count() == 2
+
+    with connection.schema_editor(atomic=False) as schema_editor:
+        schema_editor.delete_partitioned_model(model)
+        schema_editor.execute(
+            f"DROP TABLE {connection.ops.quote_name(detached_table_name)}"
+        )

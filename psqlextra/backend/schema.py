@@ -15,6 +15,7 @@ from django.db.backends.postgresql.schema import (  # type: ignore[import]
     DatabaseSchemaEditor,
 )
 from django.db.models import Field, Model
+from django.db.transaction import TransactionManagementError
 
 from psqlextra.settings import (
     postgres_prepend_local_search_path,
@@ -85,6 +86,10 @@ class PostgresSchemaEditor(SchemaEditor):
         "CREATE TABLE %s PARTITION OF %s FOR VALUES IN (%s)"
     )
     sql_delete_partition = "DROP TABLE %s"
+    sql_detach_partition = "ALTER TABLE %s DETACH PARTITION %s"
+    sql_detach_partition_concurrently = (
+        "ALTER TABLE %s DETACH PARTITION %s CONCURRENTLY"
+    )
     sql_table_comment = "COMMENT ON TABLE %s IS %s"
 
     side_effects: List[DatabaseSchemaEditor] = [
@@ -919,6 +924,55 @@ class PostgresSchemaEditor(SchemaEditor):
 
         sql = self.sql_delete_partition % self.quote_name(
             self.create_partition_table_name(model, name)
+        )
+        self.execute(sql)
+
+    def detach_partition(
+        self, model: Type[Model], name: str, *, concurrently: bool = False
+    ) -> None:
+        """Detaches the partition with the specified name from the partitioned
+        table.
+
+        Unlike :meth:`delete_partition`, the partition's table and the
+        rows in it are kept. The table becomes a regular, standalone
+        table that can be archived, exported or re-attached later.
+
+        Arguments:
+            model:
+                Partitioned model to detach the partition from.
+
+            name:
+                Name of the partition to detach.
+
+            concurrently:
+                Whether to use ``DETACH PARTITION ... CONCURRENTLY``
+                (PostgreSQL 14 and newer). This only takes a
+                ``SHARE UPDATE EXCLUSIVE`` lock on the partitioned table
+                instead of an ``ACCESS EXCLUSIVE`` lock, so queries
+                against the partitioned table keep running while the
+                partition is detached.
+
+                PostgreSQL does not allow this inside a transaction
+                block. Use a schema editor created with
+                ``atomic=False`` outside of ``transaction.atomic()``.
+        """
+
+        if concurrently and self.connection.in_atomic_block:
+            raise TransactionManagementError(
+                "Partitions cannot be detached concurrently inside a "
+                "transaction. Use a schema editor with atomic=False "
+                "outside of transaction.atomic()."
+            )
+
+        template = (
+            self.sql_detach_partition_concurrently
+            if concurrently
+            else self.sql_detach_partition
+        )
+
+        sql = template % (
+            self.quote_name(model._meta.db_table),
+            self.quote_name(self.create_partition_table_name(model, name)),
         )
         self.execute(sql)
 

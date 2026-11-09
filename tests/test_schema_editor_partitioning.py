@@ -2,7 +2,8 @@ import django
 import pytest
 
 from django.core.exceptions import ImproperlyConfigured
-from django.db import connection, models
+from django.db import connection, models, transaction
+from django.db.transaction import TransactionManagementError
 
 from psqlextra.backend.schema import PostgresSchemaEditor
 from psqlextra.types import PostgresPartitioningMethod
@@ -411,3 +412,95 @@ def test_schema_editor_create_partitioned_custom_composite_primary_key(
 
     assert primary_key_constraint
     assert primary_key_constraint["columns"] == ["name", "timestamp"]
+
+
+def _count_rows(table_name: str) -> int:
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"SELECT COUNT(*) FROM {connection.ops.quote_name(table_name)}"
+        )
+        return cursor.fetchone()[0]
+
+
+def _create_model_with_partitions():
+    model = define_fake_partitioned_model(
+        {"name": models.TextField(), "timestamp": models.DateTimeField()},
+        {"key": ["timestamp"]},
+    )
+
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.create_partitioned_model(model)
+    schema_editor.add_range_partition(
+        model, name="jan", from_values="2019-1-1", to_values="2019-2-1"
+    )
+    schema_editor.add_range_partition(
+        model, name="feb", from_values="2019-2-1", to_values="2019-3-1"
+    )
+
+    model.objects.create(name="a", timestamp="2019-01-15T00:00:00Z")
+    model.objects.create(name="b", timestamp="2019-01-20T00:00:00Z")
+    model.objects.create(name="c", timestamp="2019-02-15T00:00:00Z")
+
+    return model
+
+
+@pytest.mark.postgres_version(lt=110000)
+def test_schema_editor_detach_partition():
+    """Tests whether detaching a partition removes it from the partitioned
+    table but keeps the partition's table and rows."""
+
+    model = _create_model_with_partitions()
+    table_name = model._meta.db_table
+    partition_table_name = f"{table_name}_jan"
+
+    schema_editor = PostgresSchemaEditor(connection)
+    schema_editor.detach_partition(model, "jan")
+
+    table = db_introspection.get_partitioned_table(table_name)
+    assert [partition.name for partition in table.partitions] == ["feb"]
+
+    assert partition_table_name in db_introspection.table_names()
+    assert _count_rows(partition_table_name) == 2
+    assert model.objects.count() == 1
+
+
+@pytest.mark.postgres_version(lt=140000)
+@pytest.mark.django_db(transaction=True)
+def test_schema_editor_detach_partition_concurrently():
+    """Tests whether a partition can be detached concurrently outside of a
+    transaction and whether its table and rows are kept."""
+
+    model = _create_model_with_partitions()
+    table_name = model._meta.db_table
+    partition_table_name = f"{table_name}_jan"
+
+    with connection.schema_editor(atomic=False) as schema_editor:
+        schema_editor.detach_partition(model, "jan", concurrently=True)
+
+    with transaction.atomic():
+        table = db_introspection.get_partitioned_table(table_name)
+    assert [partition.name for partition in table.partitions] == ["feb"]
+
+    assert _count_rows(partition_table_name) == 2
+    assert model.objects.count() == 1
+
+    with connection.schema_editor(atomic=False) as schema_editor:
+        schema_editor.delete_partitioned_model(model)
+        schema_editor.execute(
+            f"DROP TABLE {connection.ops.quote_name(partition_table_name)}"
+        )
+
+
+@pytest.mark.postgres_version(lt=110000)
+def test_schema_editor_detach_partition_concurrently_in_transaction():
+    """Tests whether detaching concurrently inside a transaction raises a clear
+    error instead of failing in PostgreSQL."""
+
+    model = _create_model_with_partitions()
+
+    schema_editor = PostgresSchemaEditor(connection)
+    with pytest.raises(TransactionManagementError):
+        schema_editor.detach_partition(model, "jan", concurrently=True)
+
+    table = db_introspection.get_partitioned_table(model._meta.db_table)
+    assert len(table.partitions) == 2
