@@ -647,7 +647,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "python_full_version < '3.9' and extra == 'test'", specifier = "==4.0.0" },
     { name = "pytest-django", marker = "python_full_version >= '3.8' and extra == 'test'", specifier = "==4.11.1" },
     { name = "pytest-django", marker = "python_full_version < '3.8' and extra == 'test'", specifier = "==4.5.2" },
-    { name = "python-dateutil", specifier = ">=2.8.0,<=3.0.0" },
+    { name = "python-dateutil", specifier = ">=2.8.0,<5.0.0" },
     { name = "sphinx", marker = "extra == 'docs'", specifier = "==8.2.3" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'", specifier = "==3.0.2" },
     { name = "syrupy", marker = "python_full_version >= '3.9' and extra == 'test'", specifier = "==4.9.1" },
