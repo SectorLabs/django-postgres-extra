@@ -29,16 +29,21 @@ class PostgresPartitionedModelMeta(ModelBase):
 
         partitioning_method = getattr(partitioning_meta_class, "method", None)
         partitioning_key = getattr(partitioning_meta_class, "key", None)
+        partitioning_sub_method = getattr(partitioning_meta_class, "sub_method", None)
+        partitioning_sub_key = getattr(partitioning_meta_class, "sub_key", None)
+
 
         if django.VERSION >= (5, 2):
             for base in bases:
                 cls._delete_auto_created_fields(base)
 
-            cls._create_primary_key(attrs, partitioning_key)
+            cls._create_primary_key(attrs, partitioning_key, partitioning_sub_key)
 
         patitioning_meta = PostgresPartitionedModelOptions(
             method=partitioning_method or cls.default_method,
             key=partitioning_key or cls.default_key,
+            sub_method=partitioning_sub_method,
+            sub_key=partitioning_sub_key,
         )
 
         new_class = super().__new__(cls, name, bases, attrs, **kwargs)
@@ -47,7 +52,7 @@ class PostgresPartitionedModelMeta(ModelBase):
 
     @classmethod
     def _create_primary_key(
-        cls, attrs, partitioning_key: Optional[List[str]]
+        cls, attrs, partitioning_key: Optional[List[str]], partitioning_sub_key: Optional[List[str]]
     ) -> None:
         from django.db.models.fields.composite import CompositePrimaryKey
 
@@ -75,7 +80,13 @@ class PostgresPartitionedModelMeta(ModelBase):
             else list(filter(None, [partitioning_key]))
         )
 
-        unique_pk_fields = set(pk_fields + (partitioning_keys or []))
+        partitioning_sub_key = (
+            partitioning_sub_key
+            if isinstance(partitioning_sub_key, list)
+            else list(filter(None, [partitioning_sub_key]))
+        )
+
+        unique_pk_fields = set(pk_fields + (partitioning_keys or []) + (partitioning_sub_key or []))
         if len(unique_pk_fields) <= 1:
             if "id" in attrs:
                 attrs["id"].primary_key = True
