@@ -190,3 +190,25 @@ def test_query_comment():
         assert " test_query_comment " in str(qs.query)
         list(qs)
         assert " test_query_comment " in queries[0]["sql"]
+
+
+def test_query_annotate_hstore_key_ref_with_quote_in_key():
+    """Tests that a key containing quotes is passed as a value, not as SQL."""
+
+    model_fk = get_fake_model({"title": HStoreField()})
+
+    model = get_fake_model(
+        {"fk": models.ForeignKey(model_fk, on_delete=models.CASCADE)}
+    )
+
+    key = "it's 100% a key"
+    fk = model_fk.objects.create(title={key: "value"})
+    model.objects.create(fk=fk)
+
+    queryset = (
+        model.objects.annotate(selected=HStoreRef("fk__title", key))
+        .values("selected")
+        .first()
+    )
+
+    assert queryset["selected"] == "value"

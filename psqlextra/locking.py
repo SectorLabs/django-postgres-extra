@@ -3,6 +3,8 @@ from typing import Optional, Type
 
 from django.db import DEFAULT_DB_ALIAS, connections, models
 
+from .quoting import quote_identifier
+
 
 class PostgresTableLockMode(Enum):
     """List of table locking modes.
@@ -58,11 +60,9 @@ def postgres_lock_table(
     connection = connections[using]
 
     with connection.cursor() as cursor:
-        quoted_fqn = connection.ops.quote_name(table_name)
+        quoted_fqn = quote_identifier(table_name)
         if schema_name:
-            quoted_fqn = (
-                connection.ops.quote_name(schema_name) + "." + quoted_fqn
-            )
+            quoted_fqn = quote_identifier(schema_name) + "." + quoted_fqn
 
         cursor.execute(f"LOCK TABLE {quoted_fqn} IN {lock_mode.value} MODE")
 

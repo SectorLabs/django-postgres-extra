@@ -66,6 +66,26 @@ def test_postgres_lock_table_in_schema():
     assert lock_signature not in get_table_locks()
 
 
+@pytest.mark.django_db(transaction=True)
+def test_postgres_lock_table_name_with_quotes():
+    table_name = 'quoted"table'
+
+    with connection.cursor() as cursor:
+        cursor.execute('CREATE TABLE "quoted""table" (id int)')
+
+    try:
+        with transaction.atomic():
+            postgres_lock_table(
+                table_name,
+                PostgresTableLockMode.EXCLUSIVE,
+                schema_name="public",
+            )
+            assert ("public", table_name, "ExclusiveLock") in get_table_locks()
+    finally:
+        with connection.cursor() as cursor:
+            cursor.execute('DROP TABLE "quoted""table"')
+
+
 @pytest.mark.parametrize("lock_mode", list(PostgresTableLockMode))
 @pytest.mark.django_db(transaction=True)
 def test_postgres_lock_model(mocked_model, lock_mode):
