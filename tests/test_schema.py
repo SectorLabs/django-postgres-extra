@@ -45,6 +45,18 @@ def test_postgres_schema_create_name_that_requires_escaping():
     assert _does_schema_exist("table")
 
 
+def test_postgres_schema_create_name_with_quotes_is_not_executed():
+    name = 'pwn"; CREATE SCHEMA injected; --'
+
+    schema = PostgresSchema.create(name)
+
+    assert _does_schema_exist(name)
+    assert not _does_schema_exist("injected")
+
+    schema.delete(cascade=False)
+    assert not _does_schema_exist(name)
+
+
 def test_postgres_schema_create_time_based():
     with freezegun.freeze_time("2023-04-07 13:37:23.4"):
         schema = PostgresSchema.create_time_based("myprefix")

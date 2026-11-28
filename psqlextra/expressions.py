@@ -103,9 +103,8 @@ class HStoreColumn(expressions.Col):
 
         qn = compiler.quote_name_unless_alias
         return (
-            "%s.%s->'%s'"
-            % (qn(self.alias), qn(self.target.column), self.hstore_key),
-            [],
+            "%s.%s->%%s" % (qn(self.alias), qn(self.target.column)),
+            [self.hstore_key],
         )
 
     def relabeled_clone(self, relabels):

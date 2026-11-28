@@ -16,6 +16,7 @@ from django.db.backends.postgresql.schema import (  # type: ignore[import]
 )
 from django.db.models import Field, Model
 
+from psqlextra.quoting import quote_identifier
 from psqlextra.settings import (
     postgres_prepend_local_search_path,
     postgres_reset_local_search_path,
@@ -105,7 +106,7 @@ class PostgresSchemaEditor(SchemaEditor):
     def create_schema(self, name: str) -> None:
         """Creates a Postgres schema."""
 
-        self.execute(self.sql_create_schema % self.quote_name(name))
+        self.execute(self.sql_create_schema % quote_identifier(name))
 
     def delete_schema(self, name: str, cascade: bool) -> None:
         """Drops a Postgres schema."""
@@ -115,7 +116,7 @@ class PostgresSchemaEditor(SchemaEditor):
             if not cascade
             else self.sql_delete_schema_cascade
         )
-        self.execute(sql % self.quote_name(name))
+        self.execute(sql % quote_identifier(name))
 
     def create_model(self, model: Type[Model]) -> None:
         """Creates a new model."""
